@@ -39,27 +39,27 @@
 <table class="deals">
   <thead>
     <tr>
-      <th>상품</th>
-      <th>판매처</th>
-      <th class="num">현재가</th>
-      <th class="num">90일 중앙값</th>
-      <th class="num">하락률</th>
-      <th>등급</th>
-      <th>출처</th>
+      <th class="num col-price">현재가</th>
+      <th class="col-name">상품</th>
+      <th class="col-seller">판매처</th>
+      <th class="num col-base">90일 중앙값</th>
+      <th class="num col-drop">하락률</th>
+      <th class="col-grade">등급</th>
+      <th class="col-src">출처</th>
     </tr>
   </thead>
   <tbody id="deal-body">
     {% for d in deals %}
     <tr data-id="{{ d.id }}">
-      <td><a href="/deal/{{ d.id }}" class="deal-link">{{ d.product_name }}</a></td>
-      <td>{{ d.seller or "-" }}</td>
-      <td class="num">{% if d.price %}{{ "{:,}".format(d.price) }}원{% else %}-{% endif %}</td>
-      <td class="num">{% if d.baseline_price %}{{ "{:,}".format(d.baseline_price) }}원{% else %}-{% endif %}</td>
-      <td class="num {% if d.discount_rate and d.discount_rate >= 0.15 %}down{% endif %}">
+      <td class="num col-price">{% if d.price %}{{ "{:,}".format(d.price) }}원{% else %}-{% endif %}</td>
+      <td class="col-name"><a href="/deal/{{ d.id }}" class="deal-link">{{ d.product_name }}</a></td>
+      <td class="col-seller">{{ d.seller or "-" }}</td>
+      <td class="num col-base">{% if d.baseline_price %}{{ "{:,}".format(d.baseline_price) }}원{% else %}-{% endif %}</td>
+      <td class="num col-drop {% if d.discount_rate and d.discount_rate >= 0.15 %}down{% endif %}">
         {% if d.discount_rate is not none %}{{ "%.1f"|format(-d.discount_rate * 100) }}%{% else %}-{% endif %}
       </td>
-      <td>{{ d.grade }}</td>
-      <td class="muted">{{ d.sources or "-" }}</td>
+      <td class="col-grade">{{ d.grade }}</td>
+      <td class="muted col-src">{{ d.sources or "-" }}</td>
     </tr>
     {% else %}
     <tr class="empty-row"><td colspan="7" class="empty">아직 딜이 없습니다. 수집을 실행하세요.</td></tr>

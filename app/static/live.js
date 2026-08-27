@@ -51,17 +51,17 @@ function renderRow(deal) {
   tr.className = isHot(deal) ? "fresh hot-fresh" : "fresh";
   const down = deal.discount_rate != null && deal.discount_rate >= 0.15 ? " down" : "";
   tr.innerHTML =
-    `<td><a class="deal-link" href="/deal/${deal.id}"></a></td>` +
-    `<td></td>` +
-    `<td class="num"></td>` +
-    `<td class="num"></td>` +
-    `<td class="num${down}"></td>` +
-    `<td></td>` +
-    `<td class="muted"></td>`;
+    `<td class="num col-price"></td>` +
+    `<td class="col-name"><a class="deal-link" href="/deal/${deal.id}"></a></td>` +
+    `<td class="col-seller"></td>` +
+    `<td class="num col-base"></td>` +
+    `<td class="num col-drop${down}"></td>` +
+    `<td class="col-grade"></td>` +
+    `<td class="muted col-src"></td>`;
   const cells = tr.children;
-  cells[0].querySelector("a").textContent = deal.product_name || "(제목 없음)";
-  cells[1].textContent = deal.seller || "-";
-  cells[2].textContent = won(deal.price);
+  cells[0].textContent = won(deal.price);
+  cells[1].querySelector("a").textContent = deal.product_name || "(제목 없음)";
+  cells[2].textContent = deal.seller || "-";
   cells[3].textContent = won(deal.baseline_price);
   cells[4].textContent = pct(deal.discount_rate);
   cells[5].textContent = deal.grade || "-";
@@ -73,7 +73,7 @@ function pushTicker(deal) {
   const item = document.createElement("span");
   item.className = "ticker-item";
   const flag = isHot(deal) ? " " + (deal.grade || "") : "";
-  item.textContent = `${deal.seller || ""} ${deal.product_name || ""} ${won(deal.price)}${flag}`;
+  item.textContent = `${won(deal.price)} ${deal.product_name || ""}${flag}`;
   ticker.prepend(item);
   while (ticker.children.length > 8) ticker.removeChild(ticker.lastChild);
 }
