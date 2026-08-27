@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import sys
 from dataclasses import dataclass
 
 import httpx
@@ -105,8 +106,9 @@ class PoliteClient:
         raise RuntimeError(f"retries exhausted for {url}")
 
     async def _curl_get(self, url: str, encoding: str | None) -> FetchResult:
+        curl = "curl.exe" if sys.platform == "win32" else "curl"
         proc = await asyncio.create_subprocess_exec(
-            "curl.exe",
+            curl,
             "-sL",
             "-A",
             USER_AGENT,

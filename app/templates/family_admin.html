@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}패밀리세일 수동 등록{% endblock %}
+{% block body %}
+<p><a href="/family">← 패밀리세일</a></p>
+<h1>수동 등록</h1>
+{% if error %}<p class="down">{{ error }}</p>{% endif %}
+{% if not authed %}
+<form method="post" action="/family/admin" class="admin-form">
+  <input type="hidden" name="action" value="login">
+  <label>관리자 비밀번호<input type="password" name="password" required></label>
+  <button type="submit">로그인</button>
+  <p class="muted">Render Environment에 ADMIN_PASSWORD를 넣으세요. 비어 있으면 등록할 수 없습니다.</p>
+</form>
+{% else %}
+<form method="post" action="/family/admin" class="admin-form">
+  <input type="hidden" name="action" value="create">
+  <label>브랜드명 (쉼표 구분)<input name="brand_names" required placeholder="한섬, 마인"></label>
+  <label>제목<input name="title" required></label>
+  <label>유형
+    <select name="sale_type">
+      <option>오프라인</option>
+      <option selected>온라인</option>
+      <option>온오프병행</option>
+    </select>
+  </label>
+  <label>시작일<input type="date" name="start_date" required></label>
+  <label>종료일<input type="date" name="end_date" required></label>
+  <label>장소<input name="location" placeholder="SETEC 제1전시실"></label>
+  <label>입장코드<input name="entry_code"></label>
+  <label>카테고리
+    <select name="category">
+      {% for c in all_cats %}<option>{{ c }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>할인율 예: ~88%<input name="discount_label" placeholder="~88%"></label>
+  <label>원본 링크<input name="source_url" type="url" required></label>
+  <button type="submit">등록</button>
+</form>
+{% endif %}
+{% endblock %}

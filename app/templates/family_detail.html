@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}{{ sale.title }} · 패밀리세일{% endblock %}
+{% block body %}
+<p><a href="/family">← 패밀리세일</a></p>
+<h1>{{ sale.title }}</h1>
+<p class="muted">{{ sale.brands_label }} · {{ sale.status }} · {{ sale.sale_type }}{% if sale.sale_kind %} · {{ sale.sale_kind }}{% endif %}</p>
+
+<section class="stats">
+  <div class="stat"><div class="label">기간</div><div class="value small">{{ sale.start_date or "-" }} ~ {{ sale.end_date or "-" }}</div></div>
+  <div class="stat"><div class="label">할인</div><div class="value">{{ sale.discount_label or "-" }}</div></div>
+  <div class="stat"><div class="label">장소</div><div class="value small">{{ sale.location or "-" }}</div></div>
+  <div class="stat"><div class="label">입장코드</div><div class="value small">{% if sale.entry_code %}{{ sale.entry_code }}{% elif sale.has_entry_code %}있음{% else %}없음{% endif %}</div></div>
+</section>
+
+<p>카테고리 {{ sale.categories | join(", ") }} · 출처 {{ sale.source_name }} · 수집 {{ sale.collected_at | kst }}</p>
+<p>
+  <a class="btn" href="{{ sale.source_url }}" target="_blank" rel="noopener">원본 보기</a>
+  {% if sale.deal_url %}<a class="btn ghost" href="{{ sale.deal_url }}" target="_blank" rel="noopener">브랜드몰 링크</a>{% endif %}
+</p>
+{% if sale.siblings and sale.siblings|length > 1 %}
+<h2>같은 세일로 묶인 출처</h2>
+<ul>
+  {% for p in sale.siblings %}
+  <li><a href="/family/{{ p.id }}">[{{ p.source_name }}] {{ p.title }}</a></li>
+  {% endfor %}
+</ul>
+{% endif %}
+{% endblock %}

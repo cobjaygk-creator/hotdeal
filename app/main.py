@@ -4,17 +4,22 @@ import asyncio
 import json
 import logging
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timedelta
+from hashlib import sha256
 from pathlib import Path
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from fastapi import FastAPI, HTTPException, Query, Request
-from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
+from fastapi import FastAPI, Form, HTTPException, Query, Request
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from app.config import COLLECT_INTERVAL_MINUTES, PPOMPPU_INTERVAL_SECONDS
-from app.db import connect, get_meta
+from app.config import ADMIN_PASSWORD, COLLECT_INTERVAL_MINUTES, FAMILY_SALE_INTERVAL_MINUTES, PPOMPPU_INTERVAL_SECONDS
+from app.db import connect, get_meta, upsert_family_sale, utcnow_iso
+from app.events import EventHub
+from app.family.parse import parse_discount
+from app.family.pipeline import collect_family_sales
+from app.family.query import CATEGORIES, get_sale, list_sales, month_grid, parse_cats, parse_year_month
 from app.events import EventHub
 from app.http_client import PoliteClient
 from app.pipeline import collect_and_process
@@ -55,6 +60,15 @@ async def lifespan(app: FastAPI):
         max_instances=1,
         coalesce=True,
     )
+    scheduler.add_job(
+        _scheduled_family,
+        "interval",
+        minutes=FAMILY_SALE_INTERVAL_MINUTES,
+        id="collect_family",
+        max_instances=1,
+        coalesce=True,
+        next_run_time=datetime.now() + timedelta(seconds=25),
+    )
     scheduler.start()
     state["scheduler"] = scheduler
     try:
@@ -86,6 +100,14 @@ async def _scheduled_collect_others() -> None:
             "dealbada",
         ]
     )
+
+
+async def _scheduled_family() -> None:
+    async with state["collect_lock"]:
+        try:
+            await collect_family_sales(state["db"], state["http"])
+        except Exception:
+            log.exception("family collect failed")
 
 
 async def _run_collect(names: list[str] | None) -> dict:
@@ -136,6 +158,169 @@ async def index(
             "sources": sources,
         },
     )
+
+
+@app.get("/family", response_class=HTMLResponse)
+async def family_index(
+    request: Request,
+    year: int | None = None,
+    month: int | None = None,
+    day: str | None = None,
+    cat: list[str] | None = Query(None),
+    code: str | None = None,
+):
+    cats = parse_cats(cat or [])
+    entry_only = code == "1"
+    y, m = parse_year_month(year, month)
+    sales = await list_sales(_db(), categories=cats, entry_only=entry_only, include_ended=True)
+    live = [s for s in sales if s["status"] in ("진행중", "예정")]
+    grid = month_grid(y, m, sales)
+    if m == 1:
+        prev = {"year": y - 1, "month": 12}
+    else:
+        prev = {"year": y, "month": m - 1}
+    if m == 12:
+        nxt = {"year": y + 1, "month": 1}
+    else:
+        nxt = {"year": y, "month": m + 1}
+    if day:
+        day_sales = [
+            s
+            for s in sales
+            if s.get("start_date") and s.get("end_date") and s["start_date"][:10] <= day <= s["end_date"][:10]
+        ]
+        if entry_only:
+            day_sales = [s for s in day_sales if s.get("has_entry_code")]
+        if cats:
+            day_sales = [s for s in day_sales if set(s.get("categories") or []) & set(cats)]
+    else:
+        day_sales = live
+    last = await get_meta(_db(), "last_family_collect_at")
+    stats = {
+        "live": sum(1 for s in live if s["status"] == "진행중"),
+        "upcoming": sum(1 for s in live if s["status"] == "예정"),
+        "codes": sum(1 for s in live if s.get("has_entry_code")),
+        "last": last,
+    }
+    return TEMPLATES.TemplateResponse(
+        "family.html",
+        {
+            "request": request,
+            "nav": "family",
+            "grid": grid,
+            "prev": prev,
+            "next": nxt,
+            "sales": sales,
+            "day_sales": day_sales,
+            "selected": day or "",
+            "cats": cats,
+            "all_cats": CATEGORIES,
+            "entry_only": entry_only,
+            "stats": stats,
+        },
+    )
+
+
+@app.get("/family/admin", response_class=HTMLResponse)
+async def family_admin(request: Request):
+    return TEMPLATES.TemplateResponse(
+        "family_admin.html",
+        {
+            "request": request,
+            "nav": "family",
+            "authed": _is_admin(request),
+            "all_cats": CATEGORIES,
+            "error": None,
+        },
+    )
+
+
+@app.post("/family/admin")
+async def family_admin_post(
+    request: Request,
+    action: str = Form(...),
+    password: str | None = Form(None),
+    brand_names: str | None = Form(None),
+    title: str | None = Form(None),
+    sale_type: str | None = Form(None),
+    start_date: str | None = Form(None),
+    end_date: str | None = Form(None),
+    location: str | None = Form(None),
+    entry_code: str | None = Form(None),
+    category: str | None = Form(None),
+    discount_label: str | None = Form(None),
+    source_url: str | None = Form(None),
+):
+    if action == "login":
+        if ADMIN_PASSWORD and password == ADMIN_PASSWORD:
+            resp = RedirectResponse("/family/admin", status_code=303)
+            resp.set_cookie("family_admin", _admin_token(), httponly=True, samesite="lax")
+            return resp
+        return TEMPLATES.TemplateResponse(
+            "family_admin.html",
+            {
+                "request": request,
+                "nav": "family",
+                "authed": False,
+                "all_cats": CATEGORIES,
+                "error": "비밀번호가 없거나 틀립니다.",
+            },
+            status_code=401,
+        )
+    if not _is_admin(request):
+        return RedirectResponse("/family/admin", status_code=303)
+    brands = [b.strip() for b in (brand_names or "").split(",") if b.strip()]
+    label, mx = parse_discount(title or "", discount_label)
+    sale = {
+        "source_name": "manual",
+        "source_post_id": f"m-{utcnow_iso().replace(' ', '').replace(':', '')}",
+        "title": title or " ".join(brands),
+        "brand_names": brands,
+        "sale_type": sale_type or "온라인",
+        "sale_kind": None,
+        "start_date": start_date,
+        "end_date": end_date,
+        "location": location or None,
+        "has_entry_code": bool(entry_code),
+        "entry_code": entry_code or None,
+        "categories": [category] if category else ["기타"],
+        "discount_label": discount_label or label,
+        "discount_max": mx,
+        "source_url": source_url,
+    }
+    await upsert_family_sale(_db(), sale)
+    await _db().commit()
+    from app.family.pipeline import merge_family_groups
+
+    await merge_family_groups(_db())
+    await _db().commit()
+    return RedirectResponse("/family", status_code=303)
+
+
+@app.get("/family/{sale_id}", response_class=HTMLResponse)
+async def family_detail(request: Request, sale_id: int):
+    sale = await get_sale(_db(), sale_id)
+    if not sale:
+        raise HTTPException(404, "sale not found")
+    return TEMPLATES.TemplateResponse(
+        "family_detail.html",
+        {"request": request, "nav": "family", "sale": sale},
+    )
+
+
+@app.post("/api/family/collect")
+async def api_family_collect():
+    async with state["collect_lock"]:
+        summary = await collect_family_sales(state["db"], state["http"])
+    return JSONResponse(summary)
+
+
+def _admin_token() -> str:
+    return sha256(f"family-admin:{ADMIN_PASSWORD}".encode()).hexdigest()
+
+
+def _is_admin(request: Request) -> bool:
+    return bool(ADMIN_PASSWORD) and request.cookies.get("family_admin") == _admin_token()
 
 
 @app.get("/deal/{deal_id}", response_class=HTMLResponse)

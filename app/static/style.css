@@ -23,7 +23,17 @@ body {
   border-bottom: 1px solid var(--line);
 }
 .brand { font-weight: 700; font-size: 20px; color: var(--ink); text-decoration: none; }
-.sub { color: var(--muted); font-size: 13px; }
+.site-nav { display: flex; gap: 4px; }
+.site-nav a {
+  padding: 6px 10px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+}
+.site-nav a.on { background: var(--ink); color: #fff; }
+.sub { color: var(--muted); font-size: 13px; margin-left: auto; }
 .livebar {
   display: flex;
   align-items: center;
@@ -132,3 +142,31 @@ h2 { font-size: 16px; margin-top: 28px; }
 .modal-posts { padding-left: 18px; }
 .modal-posts li { margin: 8px 0; }
 body.modal-open { overflow: hidden; }
+.chip { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; background: var(--card); border: 1px solid var(--line); padding: 6px 8px; border-radius: 8px; }
+.ghost { display: inline-flex; align-items: center; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--ink); text-decoration: none; font-size: 14px; }
+.btn { display: inline-block; padding: 8px 12px; background: var(--ink); color: #fff !important; border-radius: 8px; text-decoration: none; }
+a.btn.ghost { background: var(--card); color: var(--ink) !important; border: 1px solid var(--line); }
+.cal-nav { display: flex; justify-content: space-between; align-items: center; margin: 8px 0 12px; }
+table.calendar { width: 100%; border-collapse: collapse; background: var(--card); table-layout: fixed; margin-bottom: 20px; }
+table.calendar th, table.calendar td { border: 1px solid var(--line); vertical-align: top; height: 88px; padding: 6px; }
+table.calendar td.out { background: #f3f1eb; color: #b0aa9e; }
+table.calendar td.sel { outline: 2px solid var(--accent); }
+.cal-num { color: inherit; text-decoration: none; font-weight: 600; }
+.cal-count { float: right; font-size: 11px; color: var(--muted); }
+.cal-count.code { color: var(--accent); font-weight: 700; }
+.cal-bars { display: flex; flex-direction: column; gap: 3px; margin-top: 6px; }
+.cal-bar { display: block; height: 6px; border-radius: 4px; background: #fdba74; }
+.cal-bar.code { background: var(--accent); }
+.sale-list { list-style: none; padding: 0; }
+.sale-list li { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; }
+.sale-list li.has-code { border-color: #fdba74; box-shadow: inset 3px 0 0 var(--accent); }
+.badge { display: inline-block; margin-left: 6px; font-size: 12px; background: #fff7ed; color: var(--accent); padding: 2px 6px; border-radius: 6px; }
+.badge.down { background: #fef3c7; }
+.admin-form { display: grid; gap: 10px; max-width: 520px; }
+.admin-form label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+.admin-form input, .admin-form select { padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); font: inherit; }
+@media (max-width: 800px) {
+  .top { flex-wrap: wrap; }
+  .sub { margin-left: 0; width: 100%; }
+  table.calendar td { height: 64px; font-size: 12px; }
+}

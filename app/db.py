@@ -68,6 +68,30 @@ CREATE TABLE IF NOT EXISTS price_points (
     UNIQUE(source, post_id)
 );
 
+CREATE TABLE IF NOT EXISTS family_sales (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    source_name TEXT NOT NULL,
+    source_post_id TEXT NOT NULL,
+    title TEXT NOT NULL,
+    brand_names TEXT NOT NULL,
+    sale_type TEXT NOT NULL,
+    sale_kind TEXT,
+    start_date TEXT,
+    end_date TEXT,
+    location TEXT,
+    has_entry_code INTEGER NOT NULL DEFAULT 0,
+    entry_code TEXT,
+    categories TEXT NOT NULL,
+    discount_label TEXT,
+    discount_max INTEGER,
+    source_url TEXT NOT NULL,
+    deal_url TEXT,
+    collected_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    group_id INTEGER,
+    UNIQUE(source_name, source_post_id)
+);
+
 CREATE TABLE IF NOT EXISTS meta (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
@@ -79,6 +103,8 @@ CREATE INDEX IF NOT EXISTS idx_deals_seen ON deals(last_seen_at);
 CREATE INDEX IF NOT EXISTS idx_deals_grade ON deals(grade);
 CREATE INDEX IF NOT EXISTS idx_deals_key ON deals(product_key);
 CREATE INDEX IF NOT EXISTS idx_price_key_time ON price_points(product_key, observed_at);
+CREATE INDEX IF NOT EXISTS idx_family_dates ON family_sales(start_date, end_date);
+CREATE INDEX IF NOT EXISTS idx_family_group ON family_sales(group_id);
 """
 
 
@@ -160,3 +186,76 @@ async def upsert_post(conn: aiosqlite.Connection, post: dict) -> tuple[int, bool
     )
     row = await cur.fetchone()
     return int(row["id"]), inserted
+
+
+async def upsert_family_sale(conn: aiosqlite.Connection, sale: dict) -> tuple[int, bool]:
+    now = utcnow_iso()
+    cur = await conn.execute(
+        "SELECT id FROM family_sales WHERE source_name=? AND source_post_id=?",
+        (sale["source_name"], str(sale["source_post_id"])),
+    )
+    existing = await cur.fetchone()
+    inserted = existing is None
+    brands = sale.get("brand_names") or []
+    cats = sale.get("categories") or []
+    if isinstance(brands, list):
+        brands = json.dumps(brands, ensure_ascii=False)
+    if isinstance(cats, list):
+        cats = json.dumps(cats, ensure_ascii=False)
+    await conn.execute(
+        """
+        INSERT INTO family_sales(
+            source_name, source_post_id, title, brand_names, sale_type, sale_kind,
+            start_date, end_date, location, has_entry_code, entry_code, categories,
+            discount_label, discount_max, source_url, deal_url, collected_at, updated_at, group_id
+        ) VALUES(
+            :source_name, :source_post_id, :title, :brand_names, :sale_type, :sale_kind,
+            :start_date, :end_date, :location, :has_entry_code, :entry_code, :categories,
+            :discount_label, :discount_max, :source_url, :deal_url, :collected_at, :updated_at, :group_id
+        )
+        ON CONFLICT(source_name, source_post_id) DO UPDATE SET
+            title=excluded.title,
+            brand_names=excluded.brand_names,
+            sale_type=COALESCE(excluded.sale_type, family_sales.sale_type),
+            sale_kind=COALESCE(excluded.sale_kind, family_sales.sale_kind),
+            start_date=COALESCE(excluded.start_date, family_sales.start_date),
+            end_date=COALESCE(excluded.end_date, family_sales.end_date),
+            location=COALESCE(excluded.location, family_sales.location),
+            has_entry_code=MAX(excluded.has_entry_code, family_sales.has_entry_code),
+            entry_code=COALESCE(excluded.entry_code, family_sales.entry_code),
+            categories=excluded.categories,
+            discount_label=COALESCE(excluded.discount_label, family_sales.discount_label),
+            discount_max=COALESCE(excluded.discount_max, family_sales.discount_max),
+            source_url=excluded.source_url,
+            deal_url=COALESCE(excluded.deal_url, family_sales.deal_url),
+            updated_at=excluded.updated_at
+        """,
+        {
+            "source_name": sale["source_name"],
+            "source_post_id": str(sale["source_post_id"]),
+            "title": sale["title"],
+            "brand_names": brands,
+            "sale_type": sale.get("sale_type") or "온라인",
+            "sale_kind": sale.get("sale_kind"),
+            "start_date": sale.get("start_date"),
+            "end_date": sale.get("end_date"),
+            "location": sale.get("location"),
+            "has_entry_code": 1 if sale.get("has_entry_code") else 0,
+            "entry_code": sale.get("entry_code"),
+            "categories": cats,
+            "discount_label": sale.get("discount_label"),
+            "discount_max": sale.get("discount_max"),
+            "source_url": sale["source_url"],
+            "deal_url": sale.get("deal_url"),
+            "collected_at": sale.get("collected_at") or now,
+            "updated_at": now,
+            "group_id": sale.get("group_id"),
+        },
+    )
+    cur = await conn.execute(
+        "SELECT id FROM family_sales WHERE source_name=? AND source_post_id=?",
+        (sale["source_name"], str(sale["source_post_id"])),
+    )
+    row = await cur.fetchone()
+    return int(row["id"]), inserted
+

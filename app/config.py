@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
@@ -12,6 +13,8 @@ USER_AGENT = (
 MIN_REQUEST_INTERVAL_SEC = 2.0
 COLLECT_INTERVAL_MINUTES = 3
 PPOMPPU_INTERVAL_SECONDS = 60
+FAMILY_SALE_INTERVAL_MINUTES = 30
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
 HTTP_TIMEOUT_SEC = 20.0
 MAX_RETRIES = 3
 
