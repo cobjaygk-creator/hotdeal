@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}{{ deal.product_name }} · 자동 핫딜 탐지기{% endblock %}
+{% block body %}
+<p><a href="/">← 목록</a></p>
+<h1>{{ deal.product_name }}</h1>
+<p class="muted">{{ deal.seller or "판매처 미상" }} · {{ deal.grade }} · {{ deal.status }}</p>
+
+<section class="stats">
+  <div class="stat"><div class="label">현재 가격</div><div class="value">{% if deal.price %}{{ "{:,}".format(deal.price) }}원{% else %}-{% endif %}</div></div>
+  <div class="stat"><div class="label">90일 중앙값</div><div class="value">{% if deal.baseline_price %}{{ "{:,}".format(deal.baseline_price) }}원{% else %}-{% endif %}</div></div>
+  <div class="stat"><div class="label">90일 최저가</div><div class="value">{% if deal.min_price %}{{ "{:,}".format(deal.min_price) }}원{% else %}-{% endif %}</div></div>
+  <div class="stat"><div class="label">하락률</div><div class="value">{% if deal.discount_rate is not none %}{{ "%.1f"|format(-deal.discount_rate * 100) }}%{% else %}-{% endif %}</div></div>
+</section>
+
+<p>단위가격: {% if deal.unit_price %}{{ deal.unit_price }}{% else %}-{% endif %}
+ · 표본 {{ deal.sample_count }}건
+ · 최종 수집 {{ deal.last_seen_at | kst }}</p>
+{% if deal.deal_url %}<p><a href="{{ deal.deal_url }}" target="_blank" rel="noopener">대표 게시글 열기</a></p>{% endif %}
+
+<h2>가격 이력</h2>
+<canvas id="chart" height="120"></canvas>
+
+<h2>원문</h2>
+<ul>
+  {% for p in posts %}
+  <li>
+    <a href="{{ p.url }}" target="_blank" rel="noopener">[{{ p.source }}] {{ p.title }}</a>
+    <span class="muted">{{ (p.posted_at or p.collected_at) | kst }} · 추천 {{ p.votes }} · 조회 {{ p.views }}</span>
+  </li>
+  {% endfor %}
+</ul>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const history = {{ history | tojson }};
+const labels = history.map(h => h.observed_at);
+const data = history.map(h => h.price);
+if (labels.length) {
+  new Chart(document.getElementById("chart"), {
+    type: "line",
+    data: {
+      labels,
+      datasets: [{
+        label: "딜 게시 가격",
+        data,
+        showLine: true,
+        pointRadius: 4,
+        borderWidth: 2,
+      }]
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: { y: { ticks: { callback: v => Number(v).toLocaleString() + "원" } } }
+    }
+  });
+}
+</script>
+{% endblock %}

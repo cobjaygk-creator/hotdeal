@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="livebar">
+  <span class="dot" id="live-dot"></span>
+  <span id="live-status">연결 중…</span>
+  <div class="ticker" id="ticker" aria-live="polite"></div>
+</div>
+
+<section class="stats">
+  <div class="stat"><div class="label">수집 게시글</div><div class="value" id="stat-posts">{{ stats.posts }}</div></div>
+  <div class="stat"><div class="label">오늘 신규 핫딜</div><div class="value" id="stat-hot">{{ stats.today_hot }}</div></div>
+  <div class="stat"><div class="label">강력 핫딜</div><div class="value" id="stat-strong">{{ stats.strong }}</div></div>
+  <div class="stat"><div class="label">마지막 수집</div><div class="value small" id="stat-last">{{ stats.last_collect_at | kst }}</div></div>
+</section>
+
+<form class="toolbar" method="get" action="/">
+  <select name="grade">
+    <option value="">등급 전체</option>
+    {% for g in ["핫딜", "특가", "초특가", "관심", "일반", "이력없음", "확인필요"] %}
+      <option value="{{ g }}" {% if grade == g %}selected{% endif %}>{{ g }}</option>
+    {% endfor %}
+  </select>
+  <select name="seller">
+    <option value="">판매처 전체</option>
+    {% for s in sellers %}
+      <option value="{{ s }}" {% if seller == s %}selected{% endif %}>{{ s }}</option>
+    {% endfor %}
+  </select>
+  <select name="source">
+    <option value="">출처 전체</option>
+    {% for s in sources %}
+      <option value="{{ s }}" {% if source == s %}selected{% endif %}>{{ s }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit">필터</button>
+  <button type="button" id="collect-btn">지금 전체 수집</button>
+</form>
+
+<table class="deals">
+  <thead>
+    <tr>
+      <th>상품</th>
+      <th>판매처</th>
+      <th class="num">현재가</th>
+      <th class="num">90일 중앙값</th>
+      <th class="num">하락률</th>
+      <th>등급</th>
+      <th>출처</th>
+    </tr>
+  </thead>
+  <tbody id="deal-body">
+    {% for d in deals %}
+    <tr data-id="{{ d.id }}">
+      <td><a href="/deal/{{ d.id }}" class="deal-link">{{ d.product_name }}</a></td>
+      <td>{{ d.seller or "-" }}</td>
+      <td class="num">{% if d.price %}{{ "{:,}".format(d.price) }}원{% else %}-{% endif %}</td>
+      <td class="num">{% if d.baseline_price %}{{ "{:,}".format(d.baseline_price) }}원{% else %}-{% endif %}</td>
+      <td class="num {% if d.discount_rate and d.discount_rate >= 0.15 %}down{% endif %}">
+        {% if d.discount_rate is not none %}{{ "%.1f"|format(-d.discount_rate * 100) }}%{% else %}-{% endif %}
+      </td>
+      <td>{{ d.grade }}</td>
+      <td class="muted">{{ d.sources or "-" }}</td>
+    </tr>
+    {% else %}
+    <tr class="empty-row"><td colspan="7" class="empty">아직 딜이 없습니다. 수집을 실행하세요.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+<script id="live-config" type="application/json">{{ {"grade": grade, "seller": seller, "source": source} | tojson | safe }}</script>
+<div id="deal-modal" class="modal" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <button type="button" class="modal-close" data-close aria-label="닫기">×</button>
+    <div id="modal-body"></div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="/static/live.js"></script>
+{% endblock %}

@@ -1,0 +1,1 @@
+"""Hotdeal aggregator utilities."""
