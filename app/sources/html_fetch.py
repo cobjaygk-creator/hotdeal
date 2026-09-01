@@ -14,6 +14,9 @@ _BLOCK_MARKERS = (
     "attention required",
     "access denied",
     "checking your browser",
+    "enable javascript and cookies to continue",
+    "please checking if the site connection is secure",
+    "cdn-cgi/l/email-protection",
 )
 
 
