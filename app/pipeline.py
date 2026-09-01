@@ -5,7 +5,7 @@ import logging
 from datetime import datetime, timezone
 
 from app.config import BASELINE_DAYS, RECENT_DEAL_HOURS
-from app.db import set_meta, utcnow_iso
+from app.db import get_meta, set_meta, utcnow_iso
 from app.engine.dedupe import jaccard, should_merge
 from app.engine.pricing import compute_baseline
 from app.engine.scoring import score_offer
@@ -318,26 +318,40 @@ async def collect_and_process(conn, sources, client) -> dict:
                     card = await fetch_deal_card(conn, deal_id)
                     if card:
                         summary["new_deals"].append(card)
-            summary["sources"][source.name] = {"fetched": len(posts), "new": new_count}
+            summary["sources"][source.name] = {
+                "fetched": len(posts),
+                "new": new_count,
+                "error": None,
+            }
             summary["new_posts"] += new_count
         except Exception as exc:  # noqa: BLE001
             log.exception("source %s failed", source.name)
             summary["errors"].append(f"{source.name}: {exc}")
-            summary["sources"][source.name] = {"fetched": 0, "new": 0}
-    await set_meta(conn, "last_collect_at", utcnow_iso())
-    await set_meta(
-        conn,
-        "last_collect_summary",
-        json.dumps(
-            {
-                "sources": summary["sources"],
-                "posts": summary["posts"],
-                "new_posts": summary["new_posts"],
-                "errors": summary["errors"],
-                "new_deal_count": len(summary["new_deals"]),
-            },
-            ensure_ascii=False,
-        ),
-    )
+            summary["sources"][source.name] = {
+                "fetched": 0,
+                "new": 0,
+                "error": str(exc),
+            }
+    now = utcnow_iso()
+    await set_meta(conn, "last_collect_at", now)
+    batch = {
+        "at": now,
+        "sources": summary["sources"],
+        "posts": summary["posts"],
+        "new_posts": summary["new_posts"],
+        "errors": summary["errors"],
+        "new_deal_count": len(summary["new_deals"]),
+    }
+    await set_meta(conn, "last_collect_summary", json.dumps(batch, ensure_ascii=False))
+    prev_raw = await get_meta(conn, "last_collect_by_source")
+    by_source: dict = {}
+    if prev_raw:
+        try:
+            by_source = json.loads(prev_raw)
+        except json.JSONDecodeError:
+            by_source = {}
+    for name, info in summary["sources"].items():
+        by_source[name] = {**info, "at": now}
+    await set_meta(conn, "last_collect_by_source", json.dumps(by_source, ensure_ascii=False))
     await conn.commit()
     return summary

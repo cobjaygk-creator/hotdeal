@@ -67,6 +67,7 @@ async def lifespan(app: FastAPI):
             id="collect_others",
             max_instances=1,
             coalesce=True,
+            next_run_time=datetime.now() + timedelta(seconds=15),
         )
         scheduler.add_job(
             _scheduled_family,
@@ -442,12 +443,19 @@ async def _stats() -> dict:
     strong = (await cur.fetchone())["c"]
     last = await get_meta(db, "last_collect_at")
     summary_raw = await get_meta(db, "last_collect_summary")
+    by_source_raw = await get_meta(db, "last_collect_by_source")
     last_collect = None
+    by_source = None
     if summary_raw:
         try:
             last_collect = json.loads(summary_raw)
         except json.JSONDecodeError:
             last_collect = {"raw": summary_raw}
+    if by_source_raw:
+        try:
+            by_source = json.loads(by_source_raw)
+        except json.JSONDecodeError:
+            by_source = {"raw": by_source_raw}
     return {
         "posts": posts,
         "deals": deals,
@@ -455,6 +463,7 @@ async def _stats() -> dict:
         "strong": strong,
         "last_collect_at": last,
         "last_collect": last_collect,
+        "collect_by_source": by_source,
     }
 
 
