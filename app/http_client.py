@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import shutil
 import sys
 from dataclasses import dataclass
 
@@ -54,8 +55,14 @@ class PoliteClient:
     async def aclose(self) -> None:
         await self._client.aclose()
 
-    async def get(self, url: str, encoding: str | None = None) -> FetchResult:
+    async def get(
+        self,
+        url: str,
+        encoding: str | None = None,
+        timeout: float | None = None,
+    ) -> FetchResult:
         host = httpx.URL(url).host or "default"
+        req_timeout = timeout if timeout is not None else HTTP_TIMEOUT_SEC
         extra: dict[str, str] = {}
         if url in self._etag:
             extra["If-None-Match"] = self._etag[url]
@@ -70,7 +77,7 @@ class PoliteClient:
                 if wait > 0:
                     await asyncio.sleep(wait)
                 try:
-                    resp = await self._client.get(url, headers=extra)
+                    resp = await self._client.get(url, headers=extra, timeout=req_timeout)
                 except httpx.HTTPError as exc:
                     last_error = exc
                     await asyncio.sleep(2 ** attempt)
@@ -83,7 +90,7 @@ class PoliteClient:
 
             if resp.status_code == 403:
                 log.warning("403 on %s, falling back to curl", url)
-                return await self._curl_get(url, encoding)
+                return await self._curl_get(url, encoding, timeout=req_timeout)
 
             if resp.status_code in (429, 500, 502, 503, 504):
                 delay = 2 ** attempt
@@ -105,15 +112,26 @@ class PoliteClient:
             raise last_error
         raise RuntimeError(f"retries exhausted for {url}")
 
-    async def _curl_get(self, url: str, encoding: str | None) -> FetchResult:
+    async def _curl_get(
+        self,
+        url: str,
+        encoding: str | None,
+        timeout: float | None = None,
+    ) -> FetchResult:
         curl = "curl.exe" if sys.platform == "win32" else "curl"
+        if shutil.which(curl) is None:
+            raise RuntimeError(
+                f"403 from {url} and curl is not installed; "
+                "install curl in the image for Cloudflare fallback"
+            )
+        max_time = str(int(timeout if timeout is not None else HTTP_TIMEOUT_SEC))
         proc = await asyncio.create_subprocess_exec(
             curl,
             "-sL",
             "-A",
             USER_AGENT,
             "--max-time",
-            str(int(HTTP_TIMEOUT_SEC)),
+            max_time,
             url,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,

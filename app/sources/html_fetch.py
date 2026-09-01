@@ -36,8 +36,9 @@ async def fetch_parsed(
     parse_fn: ParseFn,
     *,
     encoding: str | None = None,
+    timeout: float | None = None,
 ) -> list[RawPost]:
-    result = await client.get(url, encoding=encoding)
+    result = await client.get(url, encoding=encoding, timeout=timeout)
     if result.not_modified:
         return []
     reason = block_reason(result)
