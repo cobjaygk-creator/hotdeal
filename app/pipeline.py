@@ -326,11 +326,12 @@ async def collect_and_process(conn, sources, client) -> dict:
             summary["new_posts"] += new_count
         except Exception as exc:  # noqa: BLE001
             log.exception("source %s failed", source.name)
-            summary["errors"].append(f"{source.name}: {exc}")
+            detail = f"{type(exc).__name__}: {exc}".strip()
+            summary["errors"].append(f"{source.name}: {detail}")
             summary["sources"][source.name] = {
                 "fetched": 0,
                 "new": 0,
-                "error": str(exc),
+                "error": detail,
             }
     now = utcnow_iso()
     await set_meta(conn, "last_collect_at", now)

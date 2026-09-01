@@ -42,5 +42,8 @@ async def fetch_parsed(
         raise RuntimeError(f"{reason} ({url})")
     posts = parse_fn(result.text)
     if not posts:
-        raise RuntimeError(f"parsed 0 posts bytes={len(result.content)} ({url})")
+        head = " ".join((result.text or "")[:240].split())
+        raise RuntimeError(
+            f"parsed 0 posts bytes={len(result.content)} head={head!r} ({url})"
+        )
     return posts
