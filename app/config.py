@@ -25,8 +25,12 @@ def _env_flag(name: str) -> bool:
 
 
 # Local/company machines stay quiet unless ENABLE_COLLECT=1.
-# Render sets RENDER=true, so cloud collect stays on without extra config.
-ENABLE_COLLECT = _env_flag("ENABLE_COLLECT") or _env_flag("RENDER")
+# Render sets RENDER=true; Railway sets RAILWAY_ENVIRONMENT.
+ENABLE_COLLECT = (
+    _env_flag("ENABLE_COLLECT")
+    or _env_flag("RENDER")
+    or bool(os.environ.get("RAILWAY_ENVIRONMENT"))
+)
 HTTP_TIMEOUT_SEC = 20.0
 MAX_RETRIES = 3
 

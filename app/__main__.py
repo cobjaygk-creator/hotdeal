@@ -7,7 +7,9 @@ from app.main import app
 
 
 def main() -> None:
-    host = os.environ.get("HOST", "127.0.0.1")
+    # Cloud hosts inject PORT; bind all interfaces there.
+    default_host = "0.0.0.0" if os.environ.get("PORT") else "127.0.0.1"
+    host = os.environ.get("HOST", default_host)
     port = int(os.environ.get("PORT", "8000"))
     uvicorn.run(app, host=host, port=port, reload=False)
 
