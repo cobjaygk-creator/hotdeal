@@ -15,7 +15,8 @@
 <p>단위가격: {% if deal.unit_price %}{{ deal.unit_price }}{% else %}-{% endif %}
  · 표본 {{ deal.sample_count }}건
  · 최종 수집 {{ deal.last_seen_at | kst }}</p>
-{% if deal.deal_url %}<p><a href="{{ deal.deal_url }}" target="_blank" rel="noopener">대표 게시글 열기</a></p>{% endif %}
+{% if deal.mall_url %}<p><a class="btn" href="{{ deal.mall_url }}" target="_blank" rel="noopener">쇼핑몰 열기</a></p>{% endif %}
+{% if deal.deal_url %}<p><a href="{{ deal.deal_url }}" target="_blank" rel="noopener">커뮤니티 원문</a></p>{% endif %}
 
 <h2>가격 이력</h2>
 <canvas id="chart" height="120"></canvas>

@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS deals (
     shipping_fee INTEGER,
     unit_price REAL,
     deal_url TEXT,
+    mall_url TEXT,
     first_seen_at TEXT NOT NULL,
     last_seen_at TEXT NOT NULL,
     baseline_price INTEGER,
@@ -120,8 +121,16 @@ async def connect(path: Path | None = None) -> aiosqlite.Connection:
     await conn.execute("PRAGMA journal_mode=WAL")
     await conn.execute("PRAGMA foreign_keys=ON")
     await conn.executescript(SCHEMA)
+    await _ensure_columns(conn)
     await conn.commit()
     return conn
+
+
+async def _ensure_columns(conn: aiosqlite.Connection) -> None:
+    cur = await conn.execute("PRAGMA table_info(deals)")
+    cols = {row[1] for row in await cur.fetchall()}
+    if "mall_url" not in cols:
+        await conn.execute("ALTER TABLE deals ADD COLUMN mall_url TEXT")
 
 
 async def set_meta(conn: aiosqlite.Connection, key: str, value: str) -> None:

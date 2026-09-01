@@ -9,12 +9,11 @@
 <body>
   {% set current_nav = nav|default("hotdeal") %}
   <header class="top">
-    <a class="brand" href="/">{% if current_nav == "family" %}패밀리세일{% else %}자동 핫딜 탐지기{% endif %}</a>
+    <a class="brand" href="/">자동 핫딜 탐지기</a>
     <nav class="site-nav">
       <a href="/" class="{% if current_nav == 'hotdeal' %}on{% endif %}">핫딜</a>
       <a href="/family" class="{% if current_nav == 'family' %}on{% endif %}">패밀리세일</a>
     </nav>
-    <span class="sub">{% if current_nav == "family" %}딜링크 30분 · 어미새 입장코드{% else %}실시간 전광판 · 뽐뿌 1분 / 다른 커뮤니티 3분{% endif %}</span>
   </header>
   <main>
     {% block body %}{% endblock %}

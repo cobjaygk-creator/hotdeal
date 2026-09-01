@@ -8,6 +8,7 @@ from app.db import set_meta, utcnow_iso
 from app.engine.dedupe import jaccard, should_merge
 from app.engine.pricing import compute_baseline
 from app.engine.scoring import score_offer
+from app.parse.links import extract_mall_url
 from app.parse.title import parse_title
 from app.sources import RawPost
 from app.util.timeparse import to_iso
@@ -141,6 +142,7 @@ async def upsert_deal_from_post(conn, post_row: dict) -> int | None:
 
     now = utcnow_iso()
     posted = post_row.get("posted_at") or now
+    mall_url = extract_mall_url(post_row.get("body"), post_row.get("title"), post_row.get("raw_json"))
     if match:
         deal_id = match["id"]
         new_price = offer.price if offer.price is not None else match["price"]
@@ -158,6 +160,7 @@ async def upsert_deal_from_post(conn, post_row: dict) -> int | None:
                 shipping_fee=?,
                 unit_price=?,
                 deal_url=?,
+                mall_url=COALESCE(?, mall_url),
                 last_seen_at=?,
                 baseline_price=?,
                 min_price=?,
@@ -177,6 +180,7 @@ async def upsert_deal_from_post(conn, post_row: dict) -> int | None:
                 offer.shipping_fee,
                 offer.unit_price,
                 post_row["url"],
+                mall_url,
                 now,
                 baseline.median,
                 baseline.minimum,
@@ -195,10 +199,10 @@ async def upsert_deal_from_post(conn, post_row: dict) -> int | None:
             """
             INSERT INTO deals(
                 product_key, product_name, seller, price, shipping_fee, unit_price,
-                deal_url, first_seen_at, last_seen_at, baseline_price, min_price,
+                deal_url, mall_url, first_seen_at, last_seen_at, baseline_price, min_price,
                 sample_count, discount_rate, score, grade, status,
                 last_scored_at, last_scored_price
-            ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """,
             (
                 offer.product_key,
@@ -208,6 +212,7 @@ async def upsert_deal_from_post(conn, post_row: dict) -> int | None:
                 offer.shipping_fee,
                 offer.unit_price,
                 post_row["url"],
+                mall_url,
                 posted,
                 now,
                 baseline.median,
@@ -286,6 +291,15 @@ async def collect_and_process(conn, sources, client) -> dict:
                 await _upsert_price_point(conn, pid, post)
                 summary["posts"] += 1
                 if not inserted:
+                    mall = extract_mall_url(post.body, post.title)
+                    if mall:
+                        await conn.execute(
+                            """
+                            UPDATE deals SET mall_url=COALESCE(mall_url, ?)
+                            WHERE id IN (SELECT deal_id FROM deal_posts WHERE post_id=?)
+                            """,
+                            (mall, pid),
+                        )
                     continue
                 new_count += 1
                 deal_id = await upsert_deal_from_post(
@@ -294,6 +308,7 @@ async def collect_and_process(conn, sources, client) -> dict:
                         "id": pid,
                         "title": post.title,
                         "url": post.url,
+                        "body": post.body,
                         "votes": post.votes,
                         "posted_at": to_iso(post.posted_at) or utcnow_iso(),
                     },

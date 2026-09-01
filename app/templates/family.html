@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 {% block title %}패밀리세일{% endblock %}
 {% block body %}
-<section class="stats">
+<section class="stats stats-3">
   <div class="stat"><div class="label">진행중</div><div class="value">{{ stats.live }}</div></div>
   <div class="stat"><div class="label">예정</div><div class="value">{{ stats.upcoming }}</div></div>
   <div class="stat"><div class="label">입장코드</div><div class="value">{{ stats.codes }}</div></div>
-  <div class="stat"><div class="label">마지막 수집</div><div class="value small">{{ stats.last | kst }}</div></div>
 </section>
+<p class="muted" style="margin-top:-6px;margin-bottom:14px;font-size:13px">마지막 수집 {{ stats.last | kst }}</p>
 
 <form class="toolbar" method="get" action="/family">
   <input type="hidden" name="year" value="{{ grid.year }}">
@@ -15,53 +15,60 @@
   <label class="chip"><input type="checkbox" name="cat" value="{{ c }}" {% if c in cats %}checked{% endif %}> {{ c }}</label>
   {% endfor %}
   <label class="chip"><input type="checkbox" name="code" value="1" {% if entry_only %}checked{% endif %}> 입장코드만</label>
-  <button type="submit">필터</button>
-  <button type="button" id="family-collect">지금 수집</button>
+  <button type="submit">적용</button>
+  <button type="button" id="family-collect" class="btn-secondary">지금 수집</button>
   <a class="ghost" href="/family/admin">수동 등록</a>
 </form>
 
-<div class="cal-nav">
-  <a href="/family?year={{ prev.year }}&month={{ prev.month }}{% for c in cats %}&cat={{ c }}{% endfor %}{% if entry_only %}&code=1{% endif %}">← 이전달</a>
-  <strong>{{ grid.label }}</strong>
-  <a href="/family?year={{ next.year }}&month={{ next.month }}{% for c in cats %}&cat={{ c }}{% endfor %}{% if entry_only %}&code=1{% endif %}">다음달 →</a>
-</div>
-
-<table class="calendar">
-  <thead>
-    <tr><th>일</th><th>월</th><th>화</th><th>수</th><th>목</th><th>금</th><th>토</th></tr>
-  </thead>
-  <tbody>
-    {% for week in grid.weeks %}
-    <tr>
-      {% for d in week %}
-      <td class="cal-day {% if not d.in_month %}out{% endif %} {% if d.date == selected %}sel{% endif %}">
-        <a class="cal-num" href="/family?year={{ grid.year }}&month={{ grid.month }}&day={{ d.date }}{% for c in cats %}&cat={{ c }}{% endfor %}{% if entry_only %}&code=1{% endif %}">{{ d.day }}</a>
-        {% if d.count %}<span class="cal-count {% if d.has_code %}code{% endif %}">{{ d.count }}</span>{% endif %}
-        <div class="cal-bars">
-          {% for s in d.sales[:3] %}
-          <span class="cal-bar {% if s.has_entry_code %}code{% endif %}" title="{{ s.title }}"></span>
+<div class="family-layout">
+  <aside class="family-cal-panel">
+    <div class="cal-nav">
+      <a href="/family?year={{ prev.year }}&month={{ prev.month }}{% for c in cats %}&cat={{ c }}{% endfor %}{% if entry_only %}&code=1{% endif %}">‹</a>
+      <strong>{{ grid.label }}</strong>
+      <a href="/family?year={{ next.year }}&month={{ next.month }}{% for c in cats %}&cat={{ c }}{% endfor %}{% if entry_only %}&code=1{% endif %}">›</a>
+    </div>
+    <table class="calendar">
+      <thead>
+        <tr><th>일</th><th>월</th><th>화</th><th>수</th><th>목</th><th>금</th><th>토</th></tr>
+      </thead>
+      <tbody>
+        {% for week in grid.weeks %}
+        <tr>
+          {% for d in week %}
+          <td class="cal-day {% if not d.in_month %}out{% endif %} {% if d.date == selected %}sel{% endif %}">
+            <a class="cal-num" href="/family?year={{ grid.year }}&month={{ grid.month }}&day={{ d.date }}{% for c in cats %}&cat={{ c }}{% endfor %}{% if entry_only %}&code=1{% endif %}">{{ d.day }}</a>
+            {% if d.count %}<span class="cal-count {% if d.has_code %}code{% endif %}">{{ d.count }}</span>{% endif %}
+            <div class="cal-bars">
+              {% for s in d.sales[:3] %}
+              <span class="cal-bar {% if s.has_entry_code %}code{% endif %}" title="{{ s.title }}"></span>
+              {% endfor %}
+            </div>
+          </td>
           {% endfor %}
-        </div>
-      </td>
-      {% endfor %}
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </aside>
 
-<h2>{% if selected %}{{ selected }} 진행 세일{% else %}진행중 · 예정{% endif %}</h2>
-<ul class="sale-list">
-  {% for s in day_sales %}
-  <li class="{% if s.has_entry_code %}has-code{% endif %}">
-    <a href="/family/{{ s.id }}">{{ s.title }}</a>
-    <span class="muted">{{ s.start_date or "?" }} ~ {{ s.end_date or "?" }} · {{ s.sale_type }} · {{ s.cats_label }}</span>
-    {% if s.has_entry_code %}<span class="badge">입장코드 {{ s.entry_code or "있음" }}</span>{% endif %}
-    {% if s.discount_label %}<span class="badge down">{{ s.discount_label }}</span>{% endif %}
-  </li>
-  {% else %}
-  <li class="muted">해당 조건의 세일이 없습니다.</li>
-  {% endfor %}
-</ul>
+  <section>
+    <h2 style="margin-top:0">{% if selected %}{{ selected }} 세일{% else %}진행중 · 예정{% endif %}</h2>
+    <ul class="sale-list">
+      {% for s in day_sales %}
+      <li class="{% if s.has_entry_code %}has-code{% endif %}">
+        <a href="/family/{{ s.id }}">{{ s.title }}</a>
+        <div class="muted" style="margin-top:4px;font-size:12px">
+          {{ s.start_date or "?" }} ~ {{ s.end_date or "?" }} · {{ s.sale_type }} · {{ s.cats_label }}
+        </div>
+        {% if s.has_entry_code %}<span class="badge">입장코드 {{ s.entry_code or "있음" }}</span>{% endif %}
+        {% if s.discount_label %}<span class="badge down">{{ s.discount_label }}</span>{% endif %}
+      </li>
+      {% else %}
+      <li class="muted">해당 조건의 세일이 없습니다.</li>
+      {% endfor %}
+    </ul>
+  </section>
+</div>
 <script>
 document.getElementById("family-collect")?.addEventListener("click", async () => {
   const btn = document.getElementById("family-collect");
