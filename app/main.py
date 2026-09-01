@@ -441,12 +441,20 @@ async def _stats() -> dict:
     )
     strong = (await cur.fetchone())["c"]
     last = await get_meta(db, "last_collect_at")
+    summary_raw = await get_meta(db, "last_collect_summary")
+    last_collect = None
+    if summary_raw:
+        try:
+            last_collect = json.loads(summary_raw)
+        except json.JSONDecodeError:
+            last_collect = {"raw": summary_raw}
     return {
         "posts": posts,
         "deals": deals,
         "today_hot": today_hot,
         "strong": strong,
         "last_collect_at": last,
+        "last_collect": last_collect,
     }
 
 

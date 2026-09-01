@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 from datetime import datetime, timezone
 
@@ -324,5 +325,19 @@ async def collect_and_process(conn, sources, client) -> dict:
             summary["errors"].append(f"{source.name}: {exc}")
             summary["sources"][source.name] = {"fetched": 0, "new": 0}
     await set_meta(conn, "last_collect_at", utcnow_iso())
+    await set_meta(
+        conn,
+        "last_collect_summary",
+        json.dumps(
+            {
+                "sources": summary["sources"],
+                "posts": summary["posts"],
+                "new_posts": summary["new_posts"],
+                "errors": summary["errors"],
+                "new_deal_count": len(summary["new_deals"]),
+            },
+            ensure_ascii=False,
+        ),
+    )
     await conn.commit()
     return summary

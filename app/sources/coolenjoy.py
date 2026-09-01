@@ -6,6 +6,7 @@ from selectolax.parser import HTMLParser
 
 from app.http_client import PoliteClient
 from app.sources import RawPost
+from app.sources.html_fetch import fetch_parsed
 from app.util.timeparse import parse_int, parse_kr_datetime
 
 LIST_URL = "https://coolenjoy.net/bbs/jirum"
@@ -15,10 +16,7 @@ class CoolenjoySource:
     name = "coolenjoy"
 
     async def fetch_latest(self, client: PoliteClient) -> list[RawPost]:
-        result = await client.get(LIST_URL)
-        if result.not_modified:
-            return []
-        return parse_list(result.text)
+        return await fetch_parsed(client, LIST_URL, parse_list)
 
 
 def parse_list(html: str) -> list[RawPost]:
