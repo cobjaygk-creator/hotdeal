@@ -4,9 +4,10 @@ from __future__ import annotations
 import argparse
 import asyncio
 import logging
+import sys
 from datetime import datetime, timedelta, timezone
 
-from app.config import BASELINE_DAYS
+from app.config import BASELINE_DAYS, ENABLE_COLLECT
 from app.db import connect, get_meta, set_meta, utcnow_iso
 from app.http_client import PoliteClient
 from app.pipeline import ingest_posts, rebuild_recent_deals
@@ -60,6 +61,9 @@ async def run(days: int, max_pages: int, start_page: int | None) -> None:
 
 
 def main() -> None:
+    if not ENABLE_COLLECT:
+        print("collect disabled; set ENABLE_COLLECT=1 to crawl from this machine", file=sys.stderr)
+        raise SystemExit(1)
     parser = argparse.ArgumentParser()
     parser.add_argument("--days", type=int, default=BASELINE_DAYS)
     parser.add_argument("--max-pages", type=int, default=500)

@@ -14,7 +14,13 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Stre
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from app.config import ADMIN_PASSWORD, COLLECT_INTERVAL_MINUTES, FAMILY_SALE_INTERVAL_MINUTES, PPOMPPU_INTERVAL_SECONDS
+from app.config import (
+    ADMIN_PASSWORD,
+    COLLECT_INTERVAL_MINUTES,
+    ENABLE_COLLECT,
+    FAMILY_SALE_INTERVAL_MINUTES,
+    PPOMPPU_INTERVAL_SECONDS,
+)
 from app.db import connect, get_meta, upsert_family_sale, utcnow_iso
 from app.events import EventHub
 from app.family.parse import parse_discount
@@ -42,39 +48,45 @@ async def lifespan(app: FastAPI):
     state["http"] = PoliteClient()
     state["hub"] = EventHub()
     state["collect_lock"] = asyncio.Lock()
-    scheduler = AsyncIOScheduler()
-    scheduler.add_job(
-        _scheduled_collect,
-        "interval",
-        seconds=PPOMPPU_INTERVAL_SECONDS,
-        id="collect_ppomppu",
-        max_instances=1,
-        coalesce=True,
-        next_run_time=datetime.now(),
-    )
-    scheduler.add_job(
-        _scheduled_collect_others,
-        "interval",
-        minutes=COLLECT_INTERVAL_MINUTES,
-        id="collect_others",
-        max_instances=1,
-        coalesce=True,
-    )
-    scheduler.add_job(
-        _scheduled_family,
-        "interval",
-        minutes=FAMILY_SALE_INTERVAL_MINUTES,
-        id="collect_family",
-        max_instances=1,
-        coalesce=True,
-        next_run_time=datetime.now() + timedelta(seconds=25),
-    )
-    scheduler.start()
+    scheduler = None
+    if ENABLE_COLLECT:
+        scheduler = AsyncIOScheduler()
+        scheduler.add_job(
+            _scheduled_collect,
+            "interval",
+            seconds=PPOMPPU_INTERVAL_SECONDS,
+            id="collect_ppomppu",
+            max_instances=1,
+            coalesce=True,
+            next_run_time=datetime.now(),
+        )
+        scheduler.add_job(
+            _scheduled_collect_others,
+            "interval",
+            minutes=COLLECT_INTERVAL_MINUTES,
+            id="collect_others",
+            max_instances=1,
+            coalesce=True,
+        )
+        scheduler.add_job(
+            _scheduled_family,
+            "interval",
+            minutes=FAMILY_SALE_INTERVAL_MINUTES,
+            id="collect_family",
+            max_instances=1,
+            coalesce=True,
+            next_run_time=datetime.now() + timedelta(seconds=25),
+        )
+        scheduler.start()
+        log.info("scheduled collect enabled")
+    else:
+        log.info("scheduled collect disabled (set ENABLE_COLLECT=1 to crawl from this machine)")
     state["scheduler"] = scheduler
     try:
         yield
     finally:
-        scheduler.shutdown(wait=False)
+        if scheduler is not None:
+            scheduler.shutdown(wait=False)
         await state["http"].aclose()
         await state["db"].close()
 
@@ -308,8 +320,14 @@ async def family_detail(request: Request, sale_id: int):
     )
 
 
+def _require_collect() -> None:
+    if not ENABLE_COLLECT:
+        raise HTTPException(403, "collect disabled on this instance")
+
+
 @app.post("/api/family/collect")
 async def api_family_collect():
+    _require_collect()
     async with state["collect_lock"]:
         summary = await collect_family_sales(state["db"], state["http"])
     return JSONResponse(summary)
@@ -395,6 +413,7 @@ async def api_stream(request: Request):
 
 @app.post("/api/collect")
 async def api_collect(source: str | None = None):
+    _require_collect()
     names = [source] if source else None
     summary = await _run_collect(names)
     return JSONResponse(summary)

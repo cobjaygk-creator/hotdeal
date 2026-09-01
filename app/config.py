@@ -15,6 +15,18 @@ COLLECT_INTERVAL_MINUTES = 3
 PPOMPPU_INTERVAL_SECONDS = 60
 FAMILY_SALE_INTERVAL_MINUTES = 30
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
+
+
+def _env_flag(name: str) -> bool:
+    raw = os.environ.get(name)
+    if raw is None:
+        return False
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
+# Local/company machines stay quiet unless ENABLE_COLLECT=1.
+# Render sets RENDER=true, so cloud collect stays on without extra config.
+ENABLE_COLLECT = _env_flag("ENABLE_COLLECT") or _env_flag("RENDER")
 HTTP_TIMEOUT_SEC = 20.0
 MAX_RETRIES = 3
 

@@ -1,6 +1,8 @@
 import asyncio
 import json
+import sys
 
+from app.config import ENABLE_COLLECT
 from app.db import connect
 from app.http_client import PoliteClient
 from app.pipeline import collect_and_process
@@ -8,6 +10,9 @@ from app.sources.registry import get_sources
 
 
 async def main():
+    if not ENABLE_COLLECT:
+        print("collect disabled; set ENABLE_COLLECT=1 to crawl from this machine", file=sys.stderr)
+        raise SystemExit(1)
     conn = await connect()
     client = PoliteClient()
     try:
