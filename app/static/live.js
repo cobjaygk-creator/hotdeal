@@ -63,15 +63,18 @@ function gradeHtml(grade) {
   return `<span class="muted">${esc(g)}</span>`;
 }
 
+function isPostUrl(url) {
+  return typeof url === "string" && /^https?:\/\//i.test(url.trim());
+}
+
 function renderRow(deal) {
   const li = document.createElement("li");
   li.className = "deal-card" + (isHot(deal) ? " fresh hot-fresh" : " fresh");
   li.dataset.id = String(deal.id);
-  li.dataset.mallUrl = deal.mall_url || "";
-  const mall = deal.mall_url;
+  const postUrl = deal.deal_url;
   const title = deal.product_name || "(제목 없음)";
-  const titleHtml = mall
-    ? `<a class="deal-title" href="${esc(mall)}" target="_blank" rel="noopener">${esc(title)}</a>`
+  const titleHtml = isPostUrl(postUrl)
+    ? `<a class="deal-title" href="${esc(postUrl)}" target="_blank" rel="noopener">${esc(title)}</a>`
     : `<a class="deal-title deal-title-fallback" href="/deal/${deal.id}" data-deal-id="${deal.id}">${esc(title)}</a>`;
   let drop = "";
   if (deal.discount_rate != null) {
@@ -214,15 +217,22 @@ async function openModal(id) {
         )
         .join("")
     : "<li class='muted'>원문 없음</li>";
-  const mallBtn = deal.mall_url
-    ? `<p><a class="btn" href="${esc(deal.mall_url)}" target="_blank" rel="noopener">쇼핑몰 열기</a></p>`
-    : "";
+  const linkBtns = [
+    deal.mall_url
+      ? `<a class="btn" href="${esc(deal.mall_url)}" target="_blank" rel="noopener">쇼핑몰 열기</a>`
+      : "",
+    isPostUrl(deal.deal_url)
+      ? `<a class="btn ghost" href="${esc(deal.deal_url)}" target="_blank" rel="noopener">커뮤니티 원문</a>`
+      : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
   modalBody.innerHTML = `
     <p class="modal-price">${won(deal.price)} <span class="muted">${pct(deal.discount_rate)} · ${esc(deal.grade || "-")}</span></p>
     <h1 id="modal-title">${esc(deal.product_name)}</h1>
     <p class="muted">${esc(deal.seller || "판매처 미상")} · 표본 ${deal.sample_count || 0}건 · ${kst(deal.last_seen_at)}</p>
     <p class="modal-meta">중앙값 ${won(deal.baseline_price)} · 최저 ${won(deal.min_price)}</p>
-    ${mallBtn}
+    ${linkBtns ? `<p class="modal-actions">${linkBtns}</p>` : ""}
     <h2>가격 이력</h2>
     <canvas id="modal-chart" height="120"></canvas>
     <h2>원문</h2>

@@ -39,11 +39,11 @@
 
 <ul class="deal-cards" id="deal-body">
   {% for d in deals %}
-  <li class="deal-card" data-id="{{ d.id }}" data-mall-url="{{ d.mall_url or '' }}">
+  <li class="deal-card" data-id="{{ d.id }}">
     <div class="deal-price">{% if d.price %}{{ "{:,}".format(d.price) }}원{% else %}-{% endif %}</div>
     <div class="deal-main">
-      {% if d.mall_url %}
-      <a class="deal-title" href="{{ d.mall_url }}" target="_blank" rel="noopener">{{ d.product_name }}</a>
+      {% if d.deal_url and (d.deal_url.startswith("http://") or d.deal_url.startswith("https://")) %}
+      <a class="deal-title" href="{{ d.deal_url }}" target="_blank" rel="noopener">{{ d.product_name }}</a>
       {% else %}
       <a class="deal-title deal-title-fallback" href="/deal/{{ d.id }}" data-deal-id="{{ d.id }}">{{ d.product_name }}</a>
       {% endif %}
