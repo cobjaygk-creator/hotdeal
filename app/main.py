@@ -420,6 +420,15 @@ async def api_collect(source: str | None = None):
     return JSONResponse(summary)
 
 
+@app.get("/api/debug/probe/{source}")
+async def api_debug_probe(source: str):
+    """Temporary HTML-structure probe; only when collect is enabled (Render)."""
+    _require_collect()
+    from app.sources.probe import probe_source
+
+    return await probe_source(state["http"], source.lower())
+
+
 async def _stats() -> dict:
     db = _db()
     cur = await db.execute("SELECT COUNT(*) AS c FROM posts")
