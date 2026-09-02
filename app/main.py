@@ -451,19 +451,47 @@ async def api_debug_enrich(deal_id: int, apply: int = 0):
 
     # Extra diagnostics: raw outbound http(s) candidates from the detail HTML.
     candidates: list[str] = []
+    hrefs: list[str] = []
     encoding = "euc-kr" if "ppomppu.co.kr" in url else None
     try:
         fetched = await state["http"].get(url, encoding=encoding)
         html_text = fetched.text or ""
+        for m in re.finditer(r"""href\s*=\s*["']([^"']+)["']""", html_text, re.I):
+            href = m.group(1).replace("&amp;", "&").strip()
+            low = href.lower()
+            if any(
+                k in low
+                for k in (
+                    "gmarket",
+                    "coupang",
+                    "smartstore",
+                    "11st",
+                    "ssg",
+                    "auction",
+                    "ohou",
+                    "link.php",
+                    "out.php",
+                    "goto",
+                    "goodscode",
+                    "url=",
+                )
+            ):
+                hrefs.append(href[:300])
+            if len(hrefs) >= 30:
+                break
         for m in re.finditer(r"https?://[^\s<>\"']+", html_text):
             u = m.group(0).rstrip(").,;]'\"}")
             if any(k in u.lower() for k in ("gmarket", "coupang", "smartstore", "11st", "ssg", "auction", "ohou", "naver")):
                 candidates.append(u)
             if len(candidates) >= 20:
                 break
+        # Product id crumbs even when URL is truncated in display text.
+        codes = re.findall(r"goodscode[=:](\d{5,})", html_text, re.I)
     except Exception as exc:  # noqa: BLE001
         html_text = ""
         candidates = [f"fetch_error:{exc}"]
+        hrefs = []
+        codes = []
 
     applied = False
     if apply and (detail.mall_url or detail.thumbnail_url):
@@ -494,6 +522,8 @@ async def api_debug_enrich(deal_id: int, apply: int = 0):
         "thumbnail_url": detail.thumbnail_url,
         "applied": applied,
         "mall_candidates": candidates,
+        "href_candidates": hrefs,
+        "goodscodes": codes[:10] if html_text else [],
         "candidate_accepted": [u for u in candidates if is_mall_url(u)][:10],
         "extract_from_html": extract_mall_url(html_text[:80000]) if html_text else None,
     }
