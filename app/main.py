@@ -534,7 +534,7 @@ async def robots():
 @app.get("/sitemap.xml")
 async def sitemap():
     cur = await _db().execute(
-        "SELECT id FROM deals ORDER BY COALESCE(last_scored_at, last_seen_at) DESC LIMIT 400"
+        "SELECT id FROM deals ORDER BY last_seen_at DESC, id DESC LIMIT 400"
     )
     rows = await cur.fetchall()
     chunks = [
@@ -834,7 +834,7 @@ async def _list_deals(
                 " OR (COALESCE(d.last_scored_at, d.last_seen_at) = ? AND d.id < ?))"
             )
             params.extend([cursor["sort_at"], cursor["sort_at"], cursor["id"]])
-    sql += " GROUP BY d.id ORDER BY COALESCE(d.last_scored_at, d.last_seen_at) DESC, d.id DESC LIMIT ?"
+    sql += " GROUP BY d.id ORDER BY COALESCE(d.last_seen_at, d.first_seen_at) DESC, d.id DESC LIMIT ?"
     params.append(limit)
     cur = await db.execute(sql, params)
     return [dict(r) for r in await cur.fetchall()]
@@ -891,7 +891,7 @@ async def _search_deals(q: str, limit: int = 50) -> list[dict]:
         LEFT JOIN posts p ON p.id=dp.post_id
         WHERE d.product_name LIKE ? OR IFNULL(d.seller, '') LIKE ?
         GROUP BY d.id
-        ORDER BY COALESCE(d.last_scored_at, d.last_seen_at) DESC, d.id DESC
+        ORDER BY d.last_seen_at DESC, d.id DESC
         LIMIT ?
         """,
         (like, like, limit),
