@@ -47,11 +47,7 @@
     {% endif %}
     <div class="deal-price">{% if d.price %}{{ "{:,}".format(d.price) }}원{% else %}-{% endif %}</div>
     <div class="deal-main">
-      {% if d.deal_url and (d.deal_url.startswith("http://") or d.deal_url.startswith("https://")) %}
-      <a class="deal-title" href="{{ d.deal_url }}" target="_blank" rel="noopener">{{ d.product_name }}</a>
-      {% else %}
-      <a class="deal-title deal-title-fallback" href="/deal/{{ d.id }}" data-deal-id="{{ d.id }}">{{ d.product_name }}</a>
-      {% endif %}
+      <a class="deal-title" href="/deal/{{ d.id }}" data-deal-id="{{ d.id }}">{{ d.product_name }}</a>
       <div class="deal-meta">
         <span>{{ d.seller or "-" }}</span>
         <span>{{ d.sources or "-" }}</span>

@@ -71,11 +71,8 @@ function renderRow(deal) {
   const li = document.createElement("li");
   li.className = "deal-card" + (isHot(deal) ? " fresh hot-fresh" : " fresh");
   li.dataset.id = String(deal.id);
-  const postUrl = deal.deal_url;
   const title = deal.product_name || "(제목 없음)";
-  const titleHtml = isPostUrl(postUrl)
-    ? `<a class="deal-title" href="${esc(postUrl)}" target="_blank" rel="noopener">${esc(title)}</a>`
-    : `<a class="deal-title deal-title-fallback" href="/deal/${deal.id}" data-deal-id="${deal.id}">${esc(title)}</a>`;
+  const titleHtml = `<a class="deal-title" href="/deal/${deal.id}" data-deal-id="${deal.id}">${esc(title)}</a>`;
   let drop = "";
   if (deal.discount_rate != null) {
     const cls = deal.discount_rate >= 0.15 ? "down" : "";
@@ -283,11 +280,12 @@ document.addEventListener("click", (e) => {
     openModal(detail.dataset.dealId);
     return;
   }
-  const fallback = e.target.closest("a.deal-title-fallback");
-  if (fallback) {
+  const title = e.target.closest("a.deal-title[data-deal-id]");
+  if (title) {
+    // Allow modified-clicks to open the SSR detail page in a new tab.
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     e.preventDefault();
-    openModal(fallback.dataset.dealId);
+    openModal(title.dataset.dealId);
   }
 });
 
