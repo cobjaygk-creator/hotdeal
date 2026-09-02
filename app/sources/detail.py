@@ -8,9 +8,14 @@ from urllib.parse import urljoin
 from selectolax.parser import HTMLParser
 
 from app.http_client import PoliteClient
-from app.parse.links import extract_mall_url
+from app.parse.links import extract_mall_url, is_mall_url
 
 log = logging.getLogger(__name__)
+
+OUTBOUND_HREF_RE = re.compile(
+    r"""href\s*=\s*["']([^"']*(?:link\.php|out\.php|/link/|redirect)[^"']*)["']""",
+    re.I,
+)
 
 TITLE_SELECTORS = (
     "h1",
@@ -74,6 +79,10 @@ async def enrich_post(client: PoliteClient, source: str, url: str) -> DetailEnri
                 log.warning("detail enrich blocked source=%s url=%s", source, candidate)
                 continue
             parsed = parse_detail(result.text, candidate)
+            if not parsed.mall_url:
+                resolved = await resolve_outbound_mall(client, candidate, result.text)
+                if resolved:
+                    parsed.mall_url = resolved
             if parsed.title or parsed.mall_url or parsed.thumbnail_url:
                 return parsed
         except Exception as exc:  # noqa: BLE001
@@ -82,6 +91,50 @@ async def enrich_post(client: PoliteClient, source: str, url: str) -> DetailEnri
     if last_err:
         log.warning("detail enrich exhausted source=%s url=%s", source, url)
     return DetailEnrichment()
+
+
+async def resolve_outbound_mall(
+    client: PoliteClient, page_url: str, html: str
+) -> str | None:
+    """Follow community redirectors (e.g. dealbada link.php) to the mall URL."""
+    seen: set[str] = set()
+    for m in OUTBOUND_HREF_RE.finditer(html or ""):
+        href = (m.group(1) or "").replace("&amp;", "&").strip()
+        if not href or href.startswith("#") or href.lower().startswith("javascript:"):
+            continue
+        abs_url = urljoin(page_url, href)
+        if abs_url in seen:
+            continue
+        seen.add(abs_url)
+        # Only follow same-community outbound helpers, not random links.
+        host = (abs_url.split("/")[2] if "://" in abs_url else "").lower()
+        if not any(
+            part in host
+            for part in (
+                "dealbada.com",
+                "clien.net",
+                "eomisae.co.kr",
+                "ruliweb.com",
+                "ppomppu.co.kr",
+                "coolenjoy.net",
+                "quasarzone.com",
+            )
+        ):
+            continue
+        try:
+            result = await client.get(abs_url, timeout=15.0)
+            final = result.url or ""
+            if is_mall_url(final):
+                return final
+            # Some boards return a tiny HTML interstitial with the real href.
+            nested = extract_mall_url(result.text or "", final)
+            if nested:
+                return nested
+        except Exception as exc:  # noqa: BLE001
+            log.debug("outbound resolve failed %s: %s", abs_url, exc)
+        if len(seen) >= 3:
+            break
+    return None
 
 
 def parse_detail(html: str, page_url: str = "") -> DetailEnrichment:

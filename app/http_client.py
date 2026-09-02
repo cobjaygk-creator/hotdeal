@@ -106,7 +106,8 @@ class PoliteClient:
                 self._etag[url] = etag
             if lm := resp.headers.get("Last-Modified"):
                 self._modified[url] = lm
-            decoded = self._decode(url, resp.status_code, resp.content, encoding, resp.encoding)
+            final_url = str(resp.url) if resp.url else url
+            decoded = self._decode(final_url, resp.status_code, resp.content, encoding, resp.encoding)
             # Some boards return HTTP 200 with an HTML 403 body to datacenter IPs.
             head = decoded.text[:800].lower()
             if "403 forbidden" in head or "just a moment" in head:
