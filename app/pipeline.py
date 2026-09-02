@@ -319,11 +319,22 @@ async def collect_and_process(conn, sources, client) -> dict:
                         need_detail = True
                     elif backfill_left > 0:
                         cur = await conn.execute(
-                            "SELECT thumbnail_url FROM posts WHERE id=?",
+                            """
+                            SELECT p.thumbnail_url AS thumb,
+                                   (
+                                     SELECT d.mall_url FROM deal_posts dp
+                                     JOIN deals d ON d.id=dp.deal_id
+                                     WHERE dp.post_id=p.id
+                                     LIMIT 1
+                                   ) AS mall
+                            FROM posts p
+                            WHERE p.id=?
+                            """,
                             (pid,),
                         )
                         prow = await cur.fetchone()
-                        if prow and not prow["thumbnail_url"]:
+                        # Keep retrying until both thumbnail and mall are filled.
+                        if prow and (not prow["thumb"] or not prow["mall"]):
                             need_detail = True
 
                 if need_detail:

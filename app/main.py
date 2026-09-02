@@ -430,8 +430,11 @@ async def api_debug_probe(source: str):
 
 
 @app.get("/api/debug/enrich/{deal_id}")
-async def api_debug_enrich(deal_id: int):
-    """Fetch community detail for a deal on the server and show parse result."""
+async def api_debug_enrich(deal_id: int, apply: int = 0):
+    """Fetch community detail for a deal on the server and show parse result.
+
+    Pass apply=1 to persist mall_url/thumbnail_url onto the deal/post.
+    """
     _require_collect()
     from app.sources.detail import enrich_post
 
@@ -440,6 +443,25 @@ async def api_debug_enrich(deal_id: int):
         raise HTTPException(404, "deal posts not found")
     post = posts[0]
     detail = await enrich_post(state["http"], post.get("source") or "", post.get("url") or "")
+    applied = False
+    if apply and (detail.mall_url or detail.thumbnail_url):
+        db = _db()
+        if detail.thumbnail_url:
+            await db.execute(
+                "UPDATE posts SET thumbnail_url=COALESCE(?, thumbnail_url) WHERE id=?",
+                (detail.thumbnail_url, post["id"]),
+            )
+        await db.execute(
+            """
+            UPDATE deals
+            SET mall_url=COALESCE(?, mall_url),
+                thumbnail_url=COALESCE(?, thumbnail_url)
+            WHERE id=?
+            """,
+            (detail.mall_url, detail.thumbnail_url, deal_id),
+        )
+        await db.commit()
+        applied = True
     return {
         "deal_id": deal_id,
         "source": post.get("source"),
@@ -448,6 +470,7 @@ async def api_debug_enrich(deal_id: int):
         "enriched_title": detail.title,
         "mall_url": detail.mall_url,
         "thumbnail_url": detail.thumbnail_url,
+        "applied": applied,
     }
 
 

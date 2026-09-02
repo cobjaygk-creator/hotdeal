@@ -62,5 +62,5 @@ NAVER_SEED_ENABLED = bool(NAVER_CLIENT_ID and NAVER_CLIENT_SECRET)
 NAVER_SEED_CACHE_DAYS = 7
 NAVER_SEED_MIN_SIMILARITY = 0.35
 DETAIL_ENRICH_ENABLED = True
-# Re-enrich already-seen posts that still lack a thumbnail (per source, per collect).
-DETAIL_BACKFILL_PER_SOURCE = 5
+# Re-enrich already-seen posts that still lack thumbnail or mall_url.
+DETAIL_BACKFILL_PER_SOURCE = 8
