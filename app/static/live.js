@@ -3,9 +3,18 @@ const bodyEl = document.getElementById("deal-body");
 const ticker = document.getElementById("ticker");
 const statusEl = document.getElementById("live-status");
 const dot = document.getElementById("live-dot");
+const chipRow = document.getElementById("source-chips");
+const moreBtn = document.getElementById("more-btn");
+const filterEmpty = document.getElementById("filter-empty");
+const STORAGE_KEY = "hotdeal.sourceChips";
+const sourceLabels = config.sourceLabels || {};
 const seen = new Set(
   [...bodyEl.querySelectorAll("[data-id]")].map((row) => row.dataset.id)
 );
+
+let selectedSources = null;
+let hasMore = !!config.hasMore;
+let loadingMore = false;
 
 function kst(s) {
   if (!s) return "-";
@@ -27,6 +36,30 @@ function kst(s) {
     .replace("T", " ");
 }
 
+function relativeTime(s) {
+  if (!s) return "-";
+  const iso = String(s).includes("T") ? String(s) : String(s).replace(" ", "T");
+  const aware = /Z$|[+-]\d{2}:?\d{2}$/.test(iso) ? iso : iso + "Z";
+  const d = new Date(aware);
+  if (Number.isNaN(d.getTime())) return String(s);
+  const secs = Math.floor((Date.now() - d.getTime()) / 1000);
+  if (secs < 45) return "방금";
+  if (secs < 3600) return Math.max(1, Math.floor(secs / 60)) + "분 전";
+  if (secs < 86400) return Math.floor(secs / 3600) + "시간 전";
+  if (secs < 86400 * 7) return Math.floor(secs / 86400) + "일 전";
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Asia/Seoul",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
+}
+
+function refreshTimes() {
+  bodyEl.querySelectorAll(".time-rel[data-ts]").forEach((el) => {
+    el.textContent = relativeTime(el.dataset.ts);
+  });
+}
+
 function won(n) {
   return n == null ? "-" : Number(n).toLocaleString("ko-KR") + "원";
 }
@@ -43,10 +76,29 @@ function esc(s) {
     .replace(/"/g, "&quot;");
 }
 
+function sourceTokens(raw) {
+  return String(raw || "")
+    .split(",")
+    .map((x) => x.trim())
+    .filter(Boolean);
+}
+
+function labelSources(raw) {
+  const toks = sourceTokens(raw);
+  if (!toks.length) return "-";
+  return toks.map((s) => sourceLabels[s] || s).join(", ");
+}
+
+function matchesSources(raw) {
+  if (!selectedSources || !selectedSources.length) return true;
+  const toks = sourceTokens(raw);
+  return selectedSources.some((s) => toks.includes(s));
+}
+
 function matchesFilter(deal) {
   if (config.grade && !(deal.grade || "").includes(config.grade)) return false;
   if (config.seller && deal.seller !== config.seller) return false;
-  if (config.source && !(deal.sources || "").includes(config.source)) return false;
+  if (!matchesSources(deal.sources)) return false;
   return true;
 }
 
@@ -72,6 +124,8 @@ function renderRow(deal) {
   const li = document.createElement("li");
   li.className = "deal-card" + (isHot(deal) ? " fresh hot-fresh" : " fresh");
   li.dataset.id = String(deal.id);
+  li.dataset.sources = deal.sources || "";
+  li.dataset.ts = deal.last_seen_at || "";
   const title = deal.product_name || "(제목 없음)";
   const titleHtml = `<a class="deal-title" href="/deal/${deal.id}" data-deal-id="${deal.id}">${esc(title)}</a>`;
   let drop = "";
@@ -86,19 +140,135 @@ function renderRow(deal) {
   const thumb = deal.thumbnail_url
     ? `<img class="deal-thumb" src="${esc(deal.thumbnail_url)}" alt="" loading="lazy" referrerpolicy="no-referrer">`
     : `<div class="deal-thumb placeholder" aria-hidden="true"></div>`;
+  const ts = deal.last_seen_at || "";
   li.innerHTML =
     thumb +
     `<div class="deal-price">${won(deal.price)}</div>` +
     `<div class="deal-main">${titleHtml}` +
     `<div class="deal-meta">` +
+    `<time class="time-rel" datetime="${esc(ts)}" data-ts="${esc(ts)}">${esc(relativeTime(ts))}</time>` +
     `<span>${esc(deal.seller || "-")}</span>` +
-    `<span>${esc(deal.sources || "-")}</span>` +
+    `<span>${esc(labelSources(deal.sources))}</span>` +
     drop +
     gradeHtml(deal.grade) +
     base +
     `</div></div>` +
     `<button type="button" class="detail-btn" data-deal-id="${deal.id}">상세</button>`;
+  applyChipClass(li);
   return li;
+}
+
+function applyChipClass(el) {
+  el.classList.toggle("is-filtered-out", !matchesSources(el.dataset.sources));
+}
+
+function visibleCount() {
+  return [...bodyEl.querySelectorAll("[data-id]")].filter(
+    (el) => !el.classList.contains("is-filtered-out")
+  ).length;
+}
+
+function applySourceFilter() {
+  bodyEl.querySelectorAll("[data-id]").forEach(applyChipClass);
+  const cards = bodyEl.querySelectorAll("[data-id]").length;
+  if (filterEmpty) {
+    filterEmpty.hidden = !(cards && visibleCount() === 0);
+  }
+  paintChips();
+}
+
+function paintChips() {
+  if (!chipRow) return;
+  const all = !selectedSources || !selectedSources.length;
+  chipRow.querySelectorAll("[data-source]").forEach((btn) => {
+    const src = btn.dataset.source;
+    const on = src === "*" ? all : all || selectedSources.includes(src);
+    btn.classList.toggle("on", on);
+    btn.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+}
+
+function persistSources() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(selectedSources || []));
+  } catch (e) {}
+}
+
+function loadSavedSources() {
+  const fromUrl = (config.source || "").trim();
+  if (fromUrl) {
+    selectedSources = [fromUrl];
+    persistSources();
+    return;
+  }
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    if (Array.isArray(raw) && raw.length) selectedSources = raw;
+    else selectedSources = null;
+  } catch (e) {
+    selectedSources = null;
+  }
+}
+
+function setMoreVisible() {
+  if (moreBtn) moreBtn.hidden = !hasMore;
+}
+
+async function loadMore() {
+  if (loadingMore || !hasMore) return 0;
+  const last = [...bodyEl.querySelectorAll("[data-id]")].pop();
+  if (!last) return 0;
+  loadingMore = true;
+  if (moreBtn) {
+    moreBtn.disabled = true;
+    moreBtn.textContent = "불러오는 중…";
+  }
+  try {
+    const params = new URLSearchParams({
+      limit: String(config.pageSize || 40),
+      before_id: last.dataset.id,
+    });
+    if (config.grade) params.set("grade", config.grade);
+    if (config.seller) params.set("seller", config.seller);
+    const res = await fetch("/api/deals?" + params.toString());
+    const items = await res.json();
+    if (!Array.isArray(items) || !items.length) {
+      hasMore = false;
+      setMoreVisible();
+      return 0;
+    }
+    let added = 0;
+    for (const deal of items) {
+      const id = String(deal.id);
+      if (seen.has(id)) continue;
+      seen.add(id);
+      bodyEl.append(renderRow(deal));
+      added += 1;
+    }
+    if (items.length < (config.pageSize || 40)) hasMore = false;
+    setMoreVisible();
+    applySourceFilter();
+    return added;
+  } catch (e) {
+    setLive(false, "더보기 실패");
+    return 0;
+  } finally {
+    loadingMore = false;
+    if (moreBtn) {
+      moreBtn.disabled = false;
+      moreBtn.textContent = "더보기";
+    }
+  }
+}
+
+async function ensureVisible(min) {
+  let guard = 0;
+  while (visibleCount() < min && hasMore && guard < 6) {
+    guard += 1;
+    const n = await loadMore();
+    if (!n) break;
+  }
+  applySourceFilter();
 }
 
 function pushTicker(deal) {
@@ -130,14 +300,13 @@ function ingest(items) {
   for (const deal of items) {
     const id = String(deal.id);
     if (seen.has(id)) continue;
-    if (!matchesFilter(deal)) continue;
+    if (config.grade && !(deal.grade || "").includes(config.grade)) continue;
+    if (config.seller && deal.seller !== config.seller) continue;
     seen.add(id);
     bodyEl.prepend(renderRow(deal));
-    pushTicker(deal);
+    if (matchesSources(deal.sources)) pushTicker(deal);
   }
-  while (bodyEl.querySelectorAll("[data-id]").length > 200) {
-    bodyEl.removeChild(bodyEl.lastElementChild);
-  }
+  applySourceFilter();
 }
 
 function setLive(ok, text) {
@@ -183,6 +352,37 @@ document.getElementById("collect-btn").addEventListener("click", async (e) => {
   }
 });
 
+if (chipRow) {
+  chipRow.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-source]");
+    if (!btn) return;
+    const src = btn.dataset.source;
+    if (src === "*") {
+      selectedSources = null;
+    } else if (!selectedSources || !selectedSources.length) {
+      selectedSources = [src];
+    } else if (selectedSources.includes(src)) {
+      selectedSources = selectedSources.filter((s) => s !== src);
+      if (!selectedSources.length) selectedSources = null;
+    } else {
+      selectedSources = [...selectedSources, src];
+    }
+    persistSources();
+    applySourceFilter();
+    if (selectedSources && selectedSources.length) ensureVisible(12);
+  });
+}
+
+if (moreBtn) {
+  moreBtn.addEventListener("click", () => loadMore());
+}
+
+loadSavedSources();
+applySourceFilter();
+setMoreVisible();
+if (selectedSources && selectedSources.length) ensureVisible(12);
+refreshTimes();
+setInterval(refreshTimes, 30000);
 connect();
 
 const modal = document.getElementById("deal-modal");
@@ -283,7 +483,6 @@ document.addEventListener("click", (e) => {
   }
   const title = e.target.closest("a.deal-title[data-deal-id]");
   if (title) {
-    // Allow modified-clicks to open the SSR detail page in a new tab.
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     e.preventDefault();
     openModal(title.dataset.dealId);

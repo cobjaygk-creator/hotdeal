@@ -94,6 +94,32 @@ def to_iso(dt: datetime | None) -> str | None:
     return dt.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
 
 
+def format_relative(value: str | None, now: datetime | None = None) -> str:
+    """Short Korean relative time for feed cards."""
+    dt = parse_iso(value)
+    if dt is None and value:
+        raw = str(value).strip()
+        try:
+            dt = datetime.strptime(raw[:19], "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
+        except ValueError:
+            dt = None
+    if dt is None:
+        return format_kst(value)
+    now = now or datetime.now(timezone.utc)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+    secs = int((now.astimezone(timezone.utc) - dt.astimezone(timezone.utc)).total_seconds())
+    if secs < 45:
+        return "방금"
+    if secs < 3600:
+        return f"{max(1, secs // 60)}분 전"
+    if secs < 86400:
+        return f"{secs // 3600}시간 전"
+    if secs < 86400 * 7:
+        return f"{secs // 86400}일 전"
+    return dt.astimezone(KST).strftime("%m-%d")
+
+
 def format_kst(value: str | None) -> str:
     """Render stored UTC timestamps as Korea time."""
     if not value:

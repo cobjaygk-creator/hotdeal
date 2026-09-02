@@ -4,12 +4,21 @@ from app.engine.scoring import grade_from_discount, score_offer
 from datetime import datetime, timezone
 
 from app.parse.title import parse_title
-from app.util.timeparse import format_kst
+from app.util.timeparse import format_kst, format_relative
 
 
 def test_format_kst():
     assert format_kst("2026-08-27 05:49:10") == "2026-08-27 14:49:10"
     assert format_kst(None) == "-"
+
+
+def test_format_relative():
+    now = datetime(2026, 8, 27, 6, 0, 0, tzinfo=timezone.utc)
+    assert format_relative("2026-08-27 05:59:30", now=now) == "방금"
+    assert format_relative("2026-08-27 05:48:00", now=now) == "12분 전"
+    assert format_relative("2026-08-27 03:00:00", now=now) == "3시간 전"
+    assert format_relative("2026-08-25 06:00:00", now=now) == "2일 전"
+    assert format_relative("2026-08-01 06:00:00", now=now) == "08-01"
 
 
 def test_primary_title():

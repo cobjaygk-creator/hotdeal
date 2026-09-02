@@ -22,22 +22,23 @@ from app.config import (
     PPOMPPU_INTERVAL_SECONDS,
 )
 from app.db import connect, get_meta, upsert_family_sale, utcnow_iso
-from app.events import EventHub
 from app.family.parse import parse_discount
 from app.family.pipeline import collect_family_sales
 from app.family.query import CATEGORIES, get_sale, list_sales, month_grid, parse_cats, parse_year_month
 from app.events import EventHub
 from app.http_client import PoliteClient
 from app.pipeline import collect_and_process
-from app.sources.registry import get_sources
-from app.util.timeparse import format_kst
+from app.sources.registry import SOURCE_LABELS, get_sources
+from app.util.timeparse import format_kst, format_relative
 
 log = logging.getLogger("hotdeal")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 
 TEMPLATES = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 TEMPLATES.env.filters["kst"] = format_kst
+TEMPLATES.env.filters["reltime"] = format_relative
 STATIC_DIR = Path(__file__).parent / "static"
+PAGE_SIZE = 40
 
 state: dict = {}
 
@@ -155,9 +156,13 @@ async def index(
     source: str | None = None,
 ):
     stats = await _stats()
-    deals = await _list_deals(grade=grade, seller=seller, source=source, limit=200)
+    deals = await _list_deals(grade=grade, seller=seller, source=None, limit=PAGE_SIZE)
     sellers = await _distinct("seller")
     sources = await _distinct_sources()
+    ordered_sources = [s.name for s in get_sources() if s.name in set(sources)]
+    for name in sources:
+        if name not in ordered_sources:
+            ordered_sources.append(name)
     return TEMPLATES.TemplateResponse(
         "index.html",
         {
@@ -168,7 +173,10 @@ async def index(
             "seller": seller or "",
             "source": source or "",
             "sellers": sellers,
-            "sources": sources,
+            "sources": ordered_sources,
+            "source_labels": SOURCE_LABELS,
+            "page_size": PAGE_SIZE,
+            "has_more": len(deals) >= PAGE_SIZE,
             "nav": "hotdeal",
         },
     )
@@ -367,9 +375,12 @@ async def api_deals(
     grade: str | None = None,
     seller: str | None = None,
     source: str | None = None,
-    limit: int = Query(100, le=500),
+    limit: int = Query(PAGE_SIZE, le=500),
+    before_id: int | None = None,
 ):
-    return await _list_deals(grade=grade, seller=seller, source=source, limit=limit)
+    return await _list_deals(
+        grade=grade, seller=seller, source=source, limit=limit, before_id=before_id
+    )
 
 
 @app.get("/api/deals/{deal_id}")
@@ -610,7 +621,7 @@ async def _stats() -> dict:
     }
 
 
-async def _list_deals(grade=None, seller=None, source=None, limit=100) -> list[dict]:
+async def _list_deals(grade=None, seller=None, source=None, limit=100, before_id=None) -> list[dict]:
     db = _db()
     sql = """
         SELECT d.*, GROUP_CONCAT(DISTINCT p.source) AS sources
@@ -629,6 +640,18 @@ async def _list_deals(grade=None, seller=None, source=None, limit=100) -> list[d
     if source:
         sql += " AND p.source = ?"
         params.append(source)
+    if before_id:
+        cur = await db.execute(
+            "SELECT id, COALESCE(last_scored_at, last_seen_at) AS sort_at FROM deals WHERE id=?",
+            (before_id,),
+        )
+        cursor = await cur.fetchone()
+        if cursor:
+            sql += (
+                " AND (COALESCE(d.last_scored_at, d.last_seen_at) < ?"
+                " OR (COALESCE(d.last_scored_at, d.last_seen_at) = ? AND d.id < ?))"
+            )
+            params.extend([cursor["sort_at"], cursor["sort_at"], cursor["id"]])
     sql += " GROUP BY d.id ORDER BY COALESCE(d.last_scored_at, d.last_seen_at) DESC, d.id DESC LIMIT ?"
     params.append(limit)
     cur = await db.execute(sql, params)

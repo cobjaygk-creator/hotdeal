@@ -1,6 +1,13 @@
 {% extends "base.html" %}
 {% block title %}실시간 핫딜모음{% endblock %}
 {% block body %}
+{% macro source_label_text(raw) -%}
+{%- if not raw -%}-{%- else -%}
+{%- for s in raw.split(",") -%}
+{{- source_labels.get(s.strip(), s.strip()) -}}{% if not loop.last %}, {% endif %}
+{%- endfor -%}
+{%- endif -%}
+{%- endmacro %}
 <section class="hero">
   <h1>실시간 핫딜모음</h1>
   <p>여러 커뮤니티 특가를 한곳에 모으고, 가격 이력으로 진짜 싼지 가려줍니다.</p>
@@ -33,22 +40,20 @@
       <option value="{{ s }}" {% if seller == s %}selected{% endif %}>{{ s }}</option>
     {% endfor %}
   </select>
-  <select name="source">
-    <option value="">출처 전체</option>
-    {% for s in sources %}
-      <option value="{{ s }}" {% if source == s %}selected{% endif %}>{{ s }}</option>
-    {% endfor %}
-  </select>
   <button type="submit">적용</button>
   <button type="button" id="collect-btn" class="btn-secondary">지금 수집</button>
 </form>
 
-{# Phase 1 will swap the source select for interactive chips; markup reserved. #}
-<div class="chip-row" id="source-chips" hidden aria-hidden="true"></div>
+<div class="chip-row" id="source-chips" role="group" aria-label="커뮤니티">
+  <button type="button" class="filter-chip on" data-source="*">전체</button>
+  {% for s in sources %}
+  <button type="button" class="filter-chip on" data-source="{{ s }}">{{ source_labels.get(s, s) }}</button>
+  {% endfor %}
+</div>
 
 <ul class="deal-cards" id="deal-body">
   {% for d in deals %}
-  <li class="deal-card" data-id="{{ d.id }}">
+  <li class="deal-card" data-id="{{ d.id }}" data-sources="{{ d.sources or '' }}" data-ts="{{ d.last_seen_at or '' }}">
     {% if d.thumbnail_url %}
     <img class="deal-thumb" src="{{ d.thumbnail_url }}" alt="" loading="lazy" referrerpolicy="no-referrer">
     {% else %}
@@ -58,8 +63,9 @@
     <div class="deal-main">
       <a class="deal-title" href="/deal/{{ d.id }}" data-deal-id="{{ d.id }}">{{ d.product_name }}</a>
       <div class="deal-meta">
+        <time class="time-rel" datetime="{{ d.last_seen_at or '' }}" data-ts="{{ d.last_seen_at or '' }}">{{ d.last_seen_at | reltime }}</time>
         <span>{{ d.seller or "-" }}</span>
-        <span>{{ d.sources or "-" }}</span>
+        <span>{{ source_label_text(d.sources) }}</span>
         {% if d.discount_rate is not none and d.discount_rate >= 0.15 %}
         <span class="down">{{ "%.1f"|format(-d.discount_rate * 100) }}%</span>
         {% elif d.discount_rate is not none %}
@@ -87,7 +93,19 @@
   <li class="empty-row empty">아직 딜이 없습니다. 수집을 실행하세요.</li>
   {% endfor %}
 </ul>
-<script id="live-config" type="application/json">{{ {"grade": grade, "seller": seller, "source": source} | tojson | safe }}</script>
+<p id="filter-empty" class="empty" hidden>선택한 커뮤니티의 딜이 이 목록에 없습니다. 아래에서 더 불러보세요.</p>
+<div class="more-wrap">
+  <button type="button" id="more-btn" class="btn-secondary" {% if not has_more %}hidden{% endif %}>더보기</button>
+</div>
+<script id="live-config" type="application/json">{{ {
+  "grade": grade,
+  "seller": seller,
+  "source": source,
+  "pageSize": page_size,
+  "hasMore": has_more,
+  "sourceLabels": source_labels,
+  "sources": sources
+} | tojson | safe }}</script>
 <div id="deal-modal" class="modal" hidden>
   <div class="modal-backdrop" data-close></div>
   <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="modal-title">

@@ -153,6 +153,22 @@ a.btn.ghost, .ghost {
   border-color: var(--ink);
   color: var(--card);
 }
+.filter-chip {
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  min-height: 36px;
+  padding: 6px 12px;
+}
+.is-filtered-out { display: none !important; }
+.more-wrap {
+  display: flex;
+  justify-content: center;
+  margin: 18px 0 8px;
+}
+#more-btn {
+  min-width: 160px;
+}
 .chip-row {
   display: flex;
   flex-wrap: wrap;
