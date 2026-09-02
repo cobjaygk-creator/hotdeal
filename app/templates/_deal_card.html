@@ -10,18 +10,18 @@
     <div class="deal-meta">
       <time class="time-rel" datetime="{{ d.last_seen_at or '' }}" data-ts="{{ d.last_seen_at or '' }}">{{ d.last_seen_at | reltime }}</time>
       <span>{{ d.seller or "-" }}</span>
-      <span>{% if d.sources %}{% for s in d.sources.split(",") %}{{ source_labels.get(s.strip(), s.strip()) }}{% if not loop.last %}, {% endif %}{% endfor %}{% else %}-{% endif %}</span>
+      <span>{% if d.sources is string and d.sources %}{% for s in d.sources.split(",") %}{{ source_labels.get(s.strip(), s.strip()) }}{% if not loop.last %}, {% endif %}{% endfor %}{% else %}-{% endif %}</span>
       {% if d.category %}<span>{{ d.category }}</span>{% endif %}
-      {% if d.discount_rate is not none and d.discount_rate >= 0.15 %}
+      {% if d.discount_rate is number and d.discount_rate >= 0.15 %}
       <span class="down">{{ "%.1f"|format(-d.discount_rate * 100) }}%</span>
-      {% elif d.discount_rate is not none %}
+      {% elif d.discount_rate is number %}
       <span>{{ "%.1f"|format(-d.discount_rate * 100) }}%</span>
       {% endif %}
-      {% if d.grade and ("초특가" in d.grade) %}
+      {% if d.grade is string and ("초특가" in d.grade) %}
       <span class="grade-chip grade-super">{{ d.grade }}</span>
-      {% elif d.grade and ("특가" in d.grade) %}
+      {% elif d.grade is string and ("특가" in d.grade) %}
       <span class="grade-chip grade-special">{{ d.grade }}</span>
-      {% elif d.grade and ("핫딜" in d.grade) %}
+      {% elif d.grade is string and ("핫딜" in d.grade) %}
       <span class="grade-chip grade-hot">{{ d.grade }}</span>
       {% elif d.grade == "관심" %}
       <span class="grade-chip grade-watch">{{ d.grade }}</span>

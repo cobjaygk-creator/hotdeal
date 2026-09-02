@@ -96,6 +96,8 @@ def to_iso(dt: datetime | None) -> str | None:
 
 def format_relative(value: str | None, now: datetime | None = None) -> str:
     """Short Korean relative time for feed cards."""
+    if value is not None and not isinstance(value, str):
+        value = str(value)
     dt = parse_iso(value)
     if dt is None and value:
         raw = str(value).strip()

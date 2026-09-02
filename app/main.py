@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import html
 import json
 import logging
 import math
@@ -179,32 +180,53 @@ async def index(
 ):
     stats = await _stats()
     category = cat if cat in DEAL_CATEGORIES else ""
-    deals = await _list_deals(grade=grade, seller=seller, source=None, category=category or None, limit=PAGE_SIZE)
-    sellers = await _distinct("seller")
-    sources = await _distinct_sources()
+    try:
+        deals = await _list_deals(
+            grade=grade, seller=seller, source=None, category=category or None, limit=PAGE_SIZE
+        )
+    except Exception:
+        log.exception("index list failed")
+        deals = []
+    try:
+        sellers = await _distinct("seller")
+        sources = await _distinct_sources()
+    except Exception:
+        log.exception("index filters failed")
+        sellers, sources = [], []
     ordered_sources = [s.name for s in get_sources() if s.name in set(sources)]
     for name in sources:
         if name not in ordered_sources:
             ordered_sources.append(name)
-    return TEMPLATES.TemplateResponse(
-        "index.html",
-        {
-            "request": request,
-            "stats": stats,
-            "deals": deals,
-            "grade": grade or "",
-            "seller": seller or "",
-            "source": source or "",
-            "category": category,
-            "categories": DEAL_CATEGORIES,
-            "sellers": sellers,
-            "sources": ordered_sources,
-            "source_labels": SOURCE_LABELS,
-            "page_size": PAGE_SIZE,
-            "has_more": len(deals) >= PAGE_SIZE,
-            "nav": "hotdeal",
-        },
-    )
+    ctx = {
+        "request": request,
+        "stats": stats,
+        "deals": deals,
+        "grade": grade or "",
+        "seller": seller or "",
+        "source": source or "",
+        "category": category,
+        "categories": DEAL_CATEGORIES,
+        "sellers": sellers,
+        "sources": ordered_sources,
+        "source_labels": SOURCE_LABELS,
+        "page_size": PAGE_SIZE,
+        "has_more": len(deals) >= PAGE_SIZE,
+        "nav": "hotdeal",
+    }
+    try:
+        return TEMPLATES.TemplateResponse("index.html", ctx)
+    except Exception:
+        log.exception("index template failed")
+        items = []
+        for d in deals:
+            name = html.escape(str(d.get("product_name") or "(제목 없음)"))
+            items.append(f"<li>{name}</li>")
+        return HTMLResponse(
+            "<!doctype html><html lang='ko'><meta charset='utf-8'><title>핫딜모음</title>"
+            "<body><p><a href='/family'>패밀리세일</a></p><h1>핫딜</h1><ul>"
+            + "".join(items)
+            + "</ul></body></html>"
+        )
 
 
 @app.get("/family", response_class=HTMLResponse)
@@ -492,15 +514,23 @@ async def api_deals(
 ):
     category = cat if cat in DEAL_CATEGORIES else None
     id_list = _parse_ids(ids)
-    return await _list_deals(
-        grade=grade,
-        seller=seller,
-        source=source,
-        category=category,
-        ids=id_list,
-        limit=limit,
-        before_id=None if id_list else before_id,
-    )
+    try:
+        items = await _list_deals(
+            grade=grade,
+            seller=seller,
+            source=source,
+            category=category,
+            ids=id_list,
+            limit=limit,
+            before_id=None if id_list else before_id,
+        )
+        return Response(
+            json.dumps(items, ensure_ascii=False, default=str, allow_nan=False),
+            media_type="application/json",
+        )
+    except Exception as exc:
+        log.exception("api deals failed")
+        return JSONResponse({"error": f"{type(exc).__name__}: {exc}"}, status_code=500)
 
 
 @app.get("/search", response_class=HTMLResponse)
@@ -607,15 +637,17 @@ async def api_collect(source: str | None = None):
 
 
 @app.get("/api/debug/feed")
-async def api_debug_feed():
+async def api_debug_feed(limit: int = 40):
     try:
-        rows = await _list_deals(limit=1)
+        rows = await _list_deals(limit=limit)
         sample = rows[0] if rows else {}
+        dumped = json.dumps(rows[:3], ensure_ascii=False, default=str, allow_nan=False)
         return {
             "ok": True,
             "n": len(rows),
             "keys": sorted(sample.keys()),
-            "id": sample.get("id"),
+            "ids": [r.get("id") for r in rows[:10]],
+            "dump_len": len(dumped),
         }
     except Exception as exc:
         log.exception("debug feed")
@@ -844,18 +876,99 @@ async def _list_deals(
             params.extend([cursor["last_seen_at"], cursor["last_seen_at"], cursor["id"]])
     sql += " ORDER BY last_seen_at DESC, id DESC LIMIT ?"
     params.append(limit)
-    cur = await db.execute(sql, params)
-    deals = [_clean_deal(dict(r)) for r in await cur.fetchall()]
-    return await _attach_sources(db, deals)
+    id_sql = "SELECT id FROM deals" + sql[len("SELECT * FROM deals") :]
+    cur = await db.execute(id_sql, params)
+    deal_ids = [int(r["id"]) for r in await cur.fetchall()]
+    deals: list[dict] = []
+    for deal_id in deal_ids:
+        try:
+            row_cur = await db.execute("SELECT * FROM deals WHERE id=?", (deal_id,))
+            row = await row_cur.fetchone()
+            if row:
+                deals.append(_clean_deal(dict(row)))
+        except Exception:
+            log.exception("skip deal %s", deal_id)
+    try:
+        return await _attach_sources(db, deals)
+    except Exception:
+        log.exception("attach sources failed")
+        for deal in deals:
+            deal.setdefault("sources", "")
+        return deals
+
+
+def _json_safe(value):
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        if math.isnan(value) or math.isinf(value):
+            return None
+        return value
+    if isinstance(value, bytes):
+        return value.decode("utf-8", "replace").replace("\x00", "")
+    if isinstance(value, str):
+        return value.replace("\x00", "")
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, memoryview):
+        return _json_safe(value.tobytes())
+    return str(value)
+
+
+def _as_int(value) -> int | None:
+    value = _json_safe(value)
+    if value is None or isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        return int(value)
+    if isinstance(value, str):
+        digits = re.sub(r"[^\d-]", "", value)
+        if digits in ("", "-"):
+            return None
+        try:
+            return int(digits)
+        except ValueError:
+            return None
+    return None
+
+
+def _as_float(value) -> float | None:
+    value = _json_safe(value)
+    if value is None or isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    if isinstance(value, str):
+        try:
+            return float(value.replace("%", "").strip())
+        except ValueError:
+            return None
+    return None
 
 
 def _clean_deal(deal: dict) -> dict:
-    out = {}
-    for key, value in deal.items():
-        if isinstance(value, float) and (math.isnan(value) or math.isinf(value)):
-            out[key] = None
-        else:
-            out[key] = value
+    out = {key: _json_safe(value) for key, value in deal.items()}
+    out["price"] = _as_int(out.get("price"))
+    out["baseline_price"] = _as_int(out.get("baseline_price"))
+    out["unit_price"] = _as_int(out.get("unit_price"))
+    out["discount_rate"] = _as_float(out.get("discount_rate"))
+    if out.get("grade") is not None:
+        out["grade"] = str(out["grade"])
+    if out.get("product_name") is not None:
+        out["product_name"] = str(out["product_name"])
+    if out.get("seller") is not None:
+        out["seller"] = str(out["seller"])
+    if out.get("sources") is not None:
+        out["sources"] = str(out["sources"])
+    for ts_key in ("last_seen_at", "first_seen_at", "last_scored_at", "created_at", "updated_at"):
+        if out.get(ts_key) is not None:
+            out[ts_key] = str(out[ts_key])
     return out
 
 
