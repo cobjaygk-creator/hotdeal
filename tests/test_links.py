@@ -19,3 +19,22 @@ def test_coupang_ok():
 def test_reject_bare_mall_homepage():
     assert not is_mall_url("https://www.coupang.com/")
     assert not is_mall_url("https://www.coupang.com")
+
+
+def test_reject_truncated_gmarket_url():
+    bad = "https://item.gmarket.co.kr/Item?spm=gmktpc.pdp.0.0.26d36188DIXkWJ&good…"
+    assert not is_mall_url(bad)
+    assert extract_mall_url(bad) is None
+
+
+def test_accept_full_gmarket_goodscode():
+    good = "https://item.gmarket.co.kr/Item?goodscode=4828575079"
+    assert is_mall_url(good)
+
+
+def test_unwrap_community_redirect():
+    html = (
+        '<a href="https://www.dealbada.com/bbs/link.php?'
+        'url=https%3A%2F%2Fitem.gmarket.co.kr%2FItem%3Fgoodscode%3D4828575079">buy</a>'
+    )
+    assert extract_mall_url(html) == "https://item.gmarket.co.kr/Item?goodscode=4828575079"

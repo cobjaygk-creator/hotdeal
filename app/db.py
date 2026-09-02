@@ -153,6 +153,19 @@ async def _ensure_columns(conn: aiosqlite.Connection) -> None:
         )
         await set_meta(conn, "cleaned_sub1000_prices", "1")
 
+    # Clear display-truncated mall links that 404 when clicked (… / ...).
+    bad_malls = await get_meta(conn, "cleaned_truncated_mall_urls")
+    if bad_malls != "1":
+        await conn.execute(
+            """
+            UPDATE deals
+            SET mall_url=NULL
+            WHERE mall_url LIKE '%…%'
+               OR mall_url LIKE '%...%'
+            """
+        )
+        await set_meta(conn, "cleaned_truncated_mall_urls", "1")
+
 
 async def set_meta(conn: aiosqlite.Connection, key: str, value: str) -> None:
     await conn.execute(

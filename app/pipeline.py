@@ -357,14 +357,19 @@ async def collect_and_process(conn, sources, client) -> dict:
                         post_to_row(post, thumbnail_url=thumbnail_url),
                     )
                     if mall_url or thumbnail_url:
+                        # Overwrite mall_url when we have a validated one so
+                        # truncated/bad links saved earlier can be replaced.
                         await conn.execute(
                             """
                             UPDATE deals
-                            SET mall_url=COALESCE(?, mall_url),
+                            SET mall_url=CASE
+                                    WHEN ? IS NOT NULL THEN ?
+                                    ELSE mall_url
+                                END,
                                 thumbnail_url=COALESCE(?, thumbnail_url)
                             WHERE id IN (SELECT deal_id FROM deal_posts WHERE post_id=?)
                             """,
-                            (mall_url, thumbnail_url, pid),
+                            (mall_url, mall_url, thumbnail_url, pid),
                         )
 
                 if not inserted:

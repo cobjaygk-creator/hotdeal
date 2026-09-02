@@ -2,10 +2,16 @@ from __future__ import annotations
 
 import html
 import re
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 
 HREF_RE = re.compile(r"""href\s*=\s*["']([^"']+)["']""", re.I)
 URL_RE = re.compile(r"https?://[^\s<>\"']+", re.I)
+# Nested destination inside community redirectors / tracking wrappers.
+NESTED_URL_RE = re.compile(
+    r"(?:url|target_url|u|href|link|redirect)=((?:https?|https?%3A%2F%2F)[^&\s\"'<>]+)",
+    re.I,
+)
+TRUNCATED_RE = re.compile(r"(?:\.{3}|…|%E2%80%A6)")
 
 MALL_HOST_PARTS = (
     "smartstore.naver.com",
@@ -71,8 +77,9 @@ def extract_mall_url(*texts: str | None) -> str | None:
         if not text:
             continue
         for url in _candidate_urls(text):
-            if is_mall_url(url):
-                return url
+            for candidate in _expand_candidates(url):
+                if is_mall_url(candidate):
+                    return candidate
     return None
 
 
@@ -81,6 +88,9 @@ def is_mall_url(url: str | None) -> bool:
         return False
     raw = html.unescape(url.strip())
     if not raw.startswith(("http://", "https://")):
+        return False
+    # Display-truncated URLs from community pages (… / ...) are never clickable.
+    if TRUNCATED_RE.search(raw):
         return False
     try:
         parsed = urlparse(raw)
@@ -97,7 +107,33 @@ def is_mall_url(url: str | None) -> bool:
     path = (parsed.path or "").rstrip("/")
     if not path:
         return False
+    # Gmarket/Auction item links without a product id are useless.
+    if "gmarket.co.kr" in host or "auction.co.kr" in host:
+        qs = parse_qs(parsed.query)
+        code = (qs.get("goodscode") or qs.get("itemno") or [""])[0]
+        if not str(code).isdigit():
+            return False
     return True
+
+
+def _expand_candidates(url: str) -> list[str]:
+    raw = html.unescape(url.strip())
+    out = [raw]
+    for m in NESTED_URL_RE.finditer(raw):
+        nested = unquote(m.group(1).strip())
+        if nested.startswith("http"):
+            out.append(nested)
+    # Common pattern: ?url=https%3A%2F%2F...
+    try:
+        qs = parse_qs(urlparse(raw).query)
+        for key in ("url", "target_url", "u", "href", "link", "redirect"):
+            for val in qs.get(key) or []:
+                val = unquote(val.strip())
+                if val.startswith("http"):
+                    out.append(val)
+    except ValueError:
+        pass
+    return out
 
 
 def _candidate_urls(text: str) -> list[str]:
@@ -105,6 +141,8 @@ def _candidate_urls(text: str) -> list[str]:
     found: list[str] = []
     for m in HREF_RE.finditer(decoded):
         found.append(m.group(1).strip())
+    for m in NESTED_URL_RE.finditer(decoded):
+        found.append(unquote(m.group(1).strip()))
     for m in URL_RE.finditer(decoded):
         found.append(m.group(0).rstrip(").,;]'\"}"))
     # de-dupe preserve order
