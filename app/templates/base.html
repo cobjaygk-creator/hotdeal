@@ -11,7 +11,8 @@
   <meta property="og:locale" content="ko_KR">
   {% block extra_head %}{% endblock %}
   <script type="application/ld+json">{{ website_jsonld | tojson }}</script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+  <link rel="preload" href="/static/fonts/PretendardVariable.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/static/fonts.css">
   <link rel="stylesheet" href="/static/tokens.css">
   <link rel="stylesheet" href="/static/base.css">
   <link rel="stylesheet" href="/static/components.css">

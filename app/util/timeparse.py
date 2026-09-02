@@ -114,12 +114,35 @@ def format_relative(value: str | None, now: datetime | None = None) -> str:
     if secs < 45:
         return "방금"
     if secs < 3600:
-        return f"{max(1, secs // 60)}분 전"
+        return f"{max(1, secs // 60)}분전"
     if secs < 86400:
-        return f"{secs // 3600}시간 전"
+        return f"{secs // 3600}시간전"
     if secs < 86400 * 7:
-        return f"{secs // 86400}일 전"
+        return f"{secs // 86400}일전"
     return dt.astimezone(KST).strftime("%m-%d")
+
+
+def format_clock(value: str | None) -> str:
+    """HH:MM in Korea time for list rows."""
+    if not value:
+        return ""
+    raw = str(value).strip()
+    try:
+        if raw.endswith("Z"):
+            dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        else:
+            dt = datetime.fromisoformat(raw)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(KST).strftime("%H:%M")
+    except ValueError:
+        try:
+            dt = datetime.strptime(raw[:19], "%Y-%m-%d %H:%M:%S").replace(
+                tzinfo=timezone.utc
+            )
+            return dt.astimezone(KST).strftime("%H:%M")
+        except ValueError:
+            return ""
 
 
 def format_kst(value: str | None) -> str:

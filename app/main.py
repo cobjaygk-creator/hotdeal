@@ -43,7 +43,7 @@ from app.events import EventHub
 from app.http_client import PoliteClient
 from app.pipeline import collect_and_process
 from app.sources.registry import SOURCE_LABELS, get_sources
-from app.util.timeparse import format_kst, format_relative
+from app.util.timeparse import format_clock, format_kst, format_relative
 
 log = logging.getLogger("hotdeal")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
@@ -51,6 +51,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 TEMPLATES = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 TEMPLATES.env.filters["kst"] = format_kst
 TEMPLATES.env.filters["reltime"] = format_relative
+TEMPLATES.env.filters["clock"] = format_clock
 TEMPLATES.env.globals["site_url"] = SITE_URL
 TEMPLATES.env.globals["website_jsonld"] = {
     "@context": "https://schema.org",
@@ -1222,6 +1223,7 @@ def _clean_deal(deal: dict) -> dict:
     out["price"] = _as_int(out.get("price"))
     out["baseline_price"] = _as_int(out.get("baseline_price"))
     out["unit_price"] = _as_int(out.get("unit_price"))
+    out["comments"] = _as_int(out.get("comments")) or 0
     out["discount_rate"] = _as_float(out.get("discount_rate"))
     if out.get("grade") is not None:
         out["grade"] = str(out["grade"])
@@ -1244,7 +1246,7 @@ async def _attach_sources(db, deals: list[dict]) -> list[dict]:
     placeholders = ",".join("?" for _ in ids)
     cur = await db.execute(
         f"""
-        SELECT dp.deal_id, p.source
+        SELECT dp.deal_id, p.source, IFNULL(p.comments, 0) AS comments
         FROM deal_posts dp
         JOIN posts p ON p.id=dp.post_id
         WHERE dp.deal_id IN ({placeholders})
@@ -1252,15 +1254,23 @@ async def _attach_sources(db, deals: list[dict]) -> list[dict]:
         ids,
     )
     buckets: dict[int, list[str]] = {}
+    comments: dict[int, int] = {}
     for row in await cur.fetchall():
+        deal_id = row["deal_id"]
         src = row["source"]
-        if not src:
-            continue
-        bucket = buckets.setdefault(row["deal_id"], [])
-        if src not in bucket:
-            bucket.append(src)
+        if src:
+            bucket = buckets.setdefault(deal_id, [])
+            if src not in bucket:
+                bucket.append(src)
+        try:
+            c = int(row["comments"] or 0)
+        except (TypeError, ValueError):
+            c = 0
+        if c > comments.get(deal_id, 0):
+            comments[deal_id] = c
     for deal in deals:
         deal["sources"] = ",".join(buckets.get(deal["id"], []))
+        deal["comments"] = comments.get(deal["id"], 0)
     return deals
 
 
@@ -1289,7 +1299,8 @@ async def _search_deals(q: str, limit: int = 50) -> list[dict]:
         try:
             cur = await db.execute(
                 """
-                SELECT d.*, GROUP_CONCAT(DISTINCT p.source) AS sources
+                SELECT d.*, GROUP_CONCAT(DISTINCT p.source) AS sources,
+                       MAX(IFNULL(p.comments, 0)) AS comments
                 FROM deals_fts f
                 JOIN deals d ON d.id = f.rowid
                 LEFT JOIN deal_posts dp ON dp.deal_id=d.id
@@ -1301,7 +1312,7 @@ async def _search_deals(q: str, limit: int = 50) -> list[dict]:
                 """,
                 (fts, limit),
             )
-            rows = [dict(r) for r in await cur.fetchall()]
+            rows = [_clean_deal(dict(r)) for r in await cur.fetchall()]
             if rows:
                 return rows
         except Exception:
@@ -1309,7 +1320,8 @@ async def _search_deals(q: str, limit: int = 50) -> list[dict]:
     like = f"%{q}%"
     cur = await db.execute(
         """
-        SELECT d.*, GROUP_CONCAT(DISTINCT p.source) AS sources
+        SELECT d.*, GROUP_CONCAT(DISTINCT p.source) AS sources,
+               MAX(IFNULL(p.comments, 0)) AS comments
         FROM deals d
         LEFT JOIN deal_posts dp ON dp.deal_id=d.id
         LEFT JOIN posts p ON p.id=dp.post_id
@@ -1320,7 +1332,7 @@ async def _search_deals(q: str, limit: int = 50) -> list[dict]:
         """,
         (like, like, limit),
     )
-    return [dict(r) for r in await cur.fetchall()]
+    return [_clean_deal(dict(r)) for r in await cur.fetchall()]
 
 
 def _deal_jsonld(deal: dict) -> dict:

@@ -18,8 +18,8 @@
   --danger: #c0473f;
   --shadow: 0 1px 2px #171b230a, 0 6px 20px #171b230f;
   --radius: 8px;
-  --font: "Pretendard", "Pretendard Variable", -apple-system, BlinkMacSystemFont,
-    "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", sans-serif;
+  --font: "Pretendard", "Pretendard Variable", "Apple SD Gothic Neo",
+    "Noto Sans KR", sans-serif;
 
   /* aliases used across hotdeal CSS */
   --bg-elevated: var(--surface);

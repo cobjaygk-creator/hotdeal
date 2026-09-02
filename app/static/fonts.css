@@ -1,0 +1,16 @@
+/* Self-hosted Pretendard (same family as dealink.co.kr/hotdeal). */
+@font-face {
+  font-family: "Pretendard Variable";
+  font-weight: 45 920;
+  font-style: normal;
+  font-display: swap;
+  src: url("/static/fonts/PretendardVariable.woff2") format("woff2-variations");
+}
+
+@font-face {
+  font-family: "Pretendard";
+  font-weight: 45 920;
+  font-style: normal;
+  font-display: swap;
+  src: url("/static/fonts/PretendardVariable.woff2") format("woff2-variations");
+}

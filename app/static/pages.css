@@ -127,7 +127,11 @@ table.calendar td.sel {
   min-height: 140px;
 }
 .sale-cards .empty { grid-column: 1 / -1; }
-.deal-cards .empty-row { grid-column: 1 / -1; }
+.deal-cards .empty-row {
+  padding: 40px 16px;
+  border: 0;
+  text-align: center;
+}
 .deal-detail-card {
   background: #fff;
   border: 1px solid #dedede;

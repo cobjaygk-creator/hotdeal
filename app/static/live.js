@@ -124,9 +124,9 @@ function relativeTime(s) {
   if (Number.isNaN(d.getTime())) return String(s);
   const secs = Math.floor((Date.now() - d.getTime()) / 1000);
   if (secs < 45) return "방금";
-  if (secs < 3600) return Math.max(1, Math.floor(secs / 60)) + "분 전";
-  if (secs < 86400) return Math.floor(secs / 3600) + "시간 전";
-  if (secs < 86400 * 7) return Math.floor(secs / 86400) + "일 전";
+  if (secs < 3600) return Math.max(1, Math.floor(secs / 60)) + "분전";
+  if (secs < 86400) return Math.floor(secs / 3600) + "시간전";
+  if (secs < 86400 * 7) return Math.floor(secs / 86400) + "일전";
   return new Intl.DateTimeFormat("sv-SE", {
     timeZone: "Asia/Seoul",
     month: "2-digit",
@@ -134,10 +134,27 @@ function relativeTime(s) {
   }).format(d);
 }
 
+function clockTime(s) {
+  if (!s) return "";
+  const iso = String(s).includes("T") ? String(s) : String(s).replace(" ", "T");
+  const aware = /Z$|[+-]\d{2}:?\d{2}$/.test(iso) ? iso : iso + "Z";
+  const d = new Date(aware);
+  if (Number.isNaN(d.getTime())) return "";
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Seoul",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(d);
+}
+
 function refreshTimes() {
   if (!bodyEl) return;
   bodyEl.querySelectorAll(".time-rel[data-ts]").forEach((el) => {
     el.textContent = relativeTime(el.dataset.ts);
+  });
+  bodyEl.querySelectorAll(".time-abs[data-ts]").forEach((el) => {
+    el.textContent = clockTime(el.dataset.ts);
   });
 }
 
@@ -182,7 +199,7 @@ function tagsHtml(deal) {
     const label = sourceLabels[key] || key;
     const initial = label.slice(0, 1) || "?";
     parts.push(
-      `<span class="deal-tag deal-tag-source"><span class="deal-tag-ico" aria-hidden="true">${esc(initial)}</span>${esc(label)}</span>`
+      `<span class="deal-tag deal-tag-source" data-source="${esc(key)}"><span class="deal-tag-ico" aria-hidden="true">${esc(initial)}</span>${esc(label)}</span>`
     );
   }
   return `<div class="deal-tags">${parts.join("")}</div>`;
@@ -228,29 +245,27 @@ function renderRow(deal) {
   li.dataset.category = deal.category || "";
   const starred = isBookmarked(deal.id);
   const title = deal.product_name || "(제목 없음)";
-  let drop = "";
-  if (deal.discount_rate != null) {
-    const cls = deal.discount_rate >= 0.15 ? "down" : "muted";
-    drop = `<span class="${cls}">${pct(deal.discount_rate)}</span>`;
-  }
   const thumb = deal.thumbnail_url
     ? `<img class="deal-thumb" src="${esc(deal.thumbnail_url)}" alt="" loading="lazy" referrerpolicy="no-referrer">`
     : `<div class="deal-thumb placeholder" aria-hidden="true"></div>`;
   const ts = deal.last_seen_at || "";
-  const cta = deal.mall_url
-    ? `<a class="deal-cta-btn" href="${esc(deal.mall_url)}" target="_blank" rel="noopener">구매하기</a>`
-    : `<button type="button" class="deal-cta-btn detail-btn" data-deal-id="${deal.id}">상세보기</button>`;
+  const comments =
+    deal.comments && Number(deal.comments) > 0
+      ? `<span class="deal-comments" aria-label="댓글 ${Number(deal.comments)}">💬 ${Number(deal.comments)}</span>`
+      : "";
   li.innerHTML =
-    `<div class="deal-thumb-wrap">${thumb}` +
-    `<div class="deal-badge-row">${gradeHtml(deal.grade)}</div>` +
-    `<button type="button" class="bookmark-btn${starred ? " on" : ""}" data-deal-id="${deal.id}" aria-label="북마크">${starred ? "★" : "☆"}</button>` +
-    `</div>` +
+    `<a class="deal-row-main" href="/deal/${deal.id}" data-deal-id="${deal.id}">` +
+    `<div class="deal-thumb-wrap">${thumb}</div>` +
     `<div class="deal-body">` +
     tagsHtml(deal) +
-    `<a class="deal-title" href="/deal/${deal.id}" data-deal-id="${deal.id}">${esc(title)}</a>` +
-    `<div class="deal-price-row"><div class="deal-price">${won(deal.price)}</div>${drop}` +
-    `<time class="time-rel" datetime="${esc(ts)}" data-ts="${esc(ts)}">${esc(relativeTime(ts))}</time></div>` +
-    `<div class="deal-foot">${cta}</div></div>`;
+    `<span class="deal-title">${esc(title)}</span>` +
+    `<div class="deal-price-row"><div class="deal-price">${won(deal.price)}</div>` +
+    `<time class="time-rel" datetime="${esc(ts)}" data-ts="${esc(ts)}">${esc(relativeTime(ts))}</time>${comments}</div>` +
+    `</div></a>` +
+    `<div class="deal-row-side">` +
+    `<time class="time-abs" datetime="${esc(ts)}" data-ts="${esc(ts)}">${esc(clockTime(ts))}</time>` +
+    `<button type="button" class="bookmark-btn${starred ? " on" : ""}" data-deal-id="${deal.id}" aria-label="북마크">${starred ? "★" : "☆"}</button>` +
+    `</div>`;
   applyChipClass(li);
   return li;
 }
@@ -630,11 +645,11 @@ document.addEventListener("click", (e) => {
     openModal(detail.dataset.dealId);
     return;
   }
-  const title = e.target.closest("a.deal-title[data-deal-id]");
-  if (title) {
+  const row = e.target.closest("a.deal-row-main[data-deal-id]");
+  if (row) {
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     e.preventDefault();
-    openModal(title.dataset.dealId);
+    openModal(row.dataset.dealId);
   }
 });
 
