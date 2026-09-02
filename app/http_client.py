@@ -42,6 +42,7 @@ class PoliteClient:
             timeout=HTTP_TIMEOUT_SEC,
             follow_redirects=True,
         )
+        self._proxy_clients: dict[str, httpx.AsyncClient] = {}
         self._locks: dict[str, asyncio.Lock] = {}
         self._last: dict[str, float] = {}
         self._etag: dict[str, str] = {}
@@ -52,8 +53,23 @@ class PoliteClient:
             self._locks[host] = asyncio.Lock()
         return self._locks[host]
 
+    def _client_for(self, proxy: str | None) -> httpx.AsyncClient:
+        if not proxy:
+            return self._client
+        if proxy not in self._proxy_clients:
+            self._proxy_clients[proxy] = httpx.AsyncClient(
+                headers=BROWSER_HEADERS,
+                timeout=HTTP_TIMEOUT_SEC,
+                follow_redirects=True,
+                proxy=proxy,
+            )
+        return self._proxy_clients[proxy]
+
     async def aclose(self) -> None:
         await self._client.aclose()
+        for client in self._proxy_clients.values():
+            await client.aclose()
+        self._proxy_clients.clear()
 
     async def get(
         self,
@@ -63,15 +79,19 @@ class PoliteClient:
         *,
         curl_fallback: bool = True,
         max_retries: int | None = None,
+        proxy: str | None = None,
     ) -> FetchResult:
         host = httpx.URL(url).host or "default"
         req_timeout = timeout if timeout is not None else HTTP_TIMEOUT_SEC
         retries = MAX_RETRIES if max_retries is None else max(1, max_retries)
+        http = self._client_for(proxy)
         extra: dict[str, str] = {}
-        if url in self._etag:
-            extra["If-None-Match"] = self._etag[url]
-        if url in self._modified:
-            extra["If-Modified-Since"] = self._modified[url]
+        # Conditional GETs are only useful for the direct (non-proxy) client.
+        if not proxy:
+            if url in self._etag:
+                extra["If-None-Match"] = self._etag[url]
+            if url in self._modified:
+                extra["If-Modified-Since"] = self._modified[url]
 
         last_error: Exception | None = None
         for attempt in range(retries):
@@ -81,7 +101,7 @@ class PoliteClient:
                 if wait > 0:
                     await asyncio.sleep(wait)
                 try:
-                    resp = await self._client.get(url, headers=extra, timeout=req_timeout)
+                    resp = await http.get(url, headers=extra, timeout=req_timeout)
                 except httpx.HTTPError as exc:
                     last_error = exc
                     await asyncio.sleep(2 ** attempt)
@@ -93,10 +113,10 @@ class PoliteClient:
                 return FetchResult(url, 304, "", b"", not_modified=True)
 
             if resp.status_code == 403:
-                if curl_fallback:
+                if curl_fallback and not proxy:
                     log.warning("403 on %s, falling back to curl", url)
                     return await self._curl_get(url, encoding, timeout=req_timeout)
-                log.warning("403 on %s (curl fallback disabled)", url)
+                log.warning("403 on %s (proxy=%s curl_fallback=%s)", url, bool(proxy), curl_fallback)
                 return self._decode(url, 403, resp.content, encoding, resp.encoding)
 
             if resp.status_code in (429, 500, 502, 503, 504):
@@ -109,19 +129,20 @@ class PoliteClient:
                 continue
 
             resp.raise_for_status()
-            if etag := resp.headers.get("ETag"):
-                self._etag[url] = etag
-            if lm := resp.headers.get("Last-Modified"):
-                self._modified[url] = lm
+            if not proxy:
+                if etag := resp.headers.get("ETag"):
+                    self._etag[url] = etag
+                if lm := resp.headers.get("Last-Modified"):
+                    self._modified[url] = lm
             final_url = str(resp.url) if resp.url else url
             decoded = self._decode(final_url, resp.status_code, resp.content, encoding, resp.encoding)
             # Some boards return HTTP 200 with an HTML 403 body to datacenter IPs.
             head = decoded.text[:800].lower()
             if "403 forbidden" in head or "just a moment" in head:
-                if curl_fallback:
+                if curl_fallback and not proxy:
                     log.warning("soft-block body on %s, falling back to curl", url)
                     return await self._curl_get(url, encoding, timeout=req_timeout)
-                log.warning("soft-block body on %s (curl fallback disabled)", url)
+                log.warning("soft-block body on %s (proxy=%s)", url, bool(proxy))
             return decoded
 
         if last_error:

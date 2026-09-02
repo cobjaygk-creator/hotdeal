@@ -10,6 +10,7 @@ from app.config import (
     DETAIL_ENRICH_ENABLED,
     NAVER_SEED_ENABLED,
     PPOMPPU_DETAIL_PER_TICK,
+    PPOMPPU_PROXY_URL,
     RECENT_DEAL_HOURS,
 )
 from app.db import get_meta, set_meta, utcnow_iso
@@ -311,9 +312,15 @@ async def collect_and_process(conn, sources, client) -> dict:
             posts = await source.fetch_latest(client)
             new_count = 0
             backfill_left = DETAIL_BACKFILL_PER_SOURCE if DETAIL_ENRICH_ENABLED else 0
+            # When a residential proxy + background enrich worker is configured,
+            # keep the RSS tick free of ppomppu detail fetches.
             pp_detail_left = (
                 PPOMPPU_DETAIL_PER_TICK
-                if DETAIL_ENRICH_ENABLED and source.name == "ppomppu"
+                if (
+                    DETAIL_ENRICH_ENABLED
+                    and source.name == "ppomppu"
+                    and not PPOMPPU_PROXY_URL
+                )
                 else 0
             )
             for post in posts:

@@ -7,6 +7,7 @@ from urllib.parse import urljoin
 
 from selectolax.parser import HTMLParser
 
+from app.config import PPOMPPU_PROXY_URL
 from app.http_client import PoliteClient
 from app.parse.links import extract_mall_url, is_mall_url
 
@@ -67,9 +68,13 @@ async def enrich_post(client: PoliteClient, source: str, url: str) -> DetailEnri
     # Prefer https; ppomppu RSS still emits http:// links that bounce via script.
     if url.startswith("http://"):
         url = "https://" + url[len("http://") :]
-    # One short attempt for ppomppu — no mobile hop / curl fallback (those stall collect).
+    proxy = PPOMPPU_PROXY_URL if is_ppomppu and PPOMPPU_PROXY_URL else None
+    # Without a proxy: one short direct attempt (collect must stay fast).
+    # With residential proxy: allow a fuller fetch like hotdeal.zip-style scrapers.
     urls = [url]
-    timeout = 5.0 if is_ppomppu else None
+    if is_ppomppu and proxy and "www.ppomppu.co.kr" in url:
+        urls.append(url.replace("www.ppomppu.co.kr", "m.ppomppu.co.kr", 1))
+    timeout = 20.0 if proxy else (5.0 if is_ppomppu else None)
     encoding = "euc-kr" if is_ppomppu else None
     last_err: Exception | None = None
     for candidate in urls:
@@ -78,8 +83,9 @@ async def enrich_post(client: PoliteClient, source: str, url: str) -> DetailEnri
                 candidate,
                 encoding=encoding,
                 timeout=timeout,
-                curl_fallback=not is_ppomppu,
-                max_retries=1 if is_ppomppu else None,
+                curl_fallback=(not is_ppomppu) or bool(proxy),
+                max_retries=2 if proxy else (1 if is_ppomppu else None),
+                proxy=proxy,
             )
             if result.not_modified or not result.text:
                 continue

@@ -64,9 +64,16 @@ NAVER_SEED_MIN_SIMILARITY = 0.35
 DETAIL_ENRICH_ENABLED = True
 # Re-enrich already-seen posts that still lack thumbnail or mall_url.
 DETAIL_BACKFILL_PER_SOURCE = 8
-# Ppomppu detail pages are often blocked from datacenter IPs; keep attempts tiny
-# so the 60s RSS tick cannot stall behind enrich.
+# Ppomppu detail pages are often blocked from datacenter IPs; keep in-tick attempts tiny
+# so the 60s RSS collect cannot stall. Prefer PPOMPPU_PROXY_URL + background enrich.
 PPOMPPU_DETAIL_PER_TICK = 2
+# Residential / Korea proxy for ppomppu detail HTML (buy-link extraction).
+# Example: http://user:pass@host:port  or  socks5://host:port
+PPOMPPU_PROXY_URL = (os.environ.get("PPOMPPU_PROXY_URL") or "").strip()
+PPOMPPU_ENRICH_INTERVAL_MINUTES = int(
+    (os.environ.get("PPOMPPU_ENRICH_INTERVAL_MINUTES") or "5").strip() or "5"
+)
+PPOMPPU_ENRICH_BATCH = int((os.environ.get("PPOMPPU_ENRICH_BATCH") or "12").strip() or "12")
 
 SITE_URL = (os.environ.get("SITE_URL") or "").strip().rstrip("/")
 if not SITE_URL:

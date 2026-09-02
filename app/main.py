@@ -23,13 +23,16 @@ from app.config import (
     COLLECT_INTERVAL_MINUTES,
     ENABLE_COLLECT,
     FAMILY_SALE_INTERVAL_MINUTES,
+    PPOMPPU_ENRICH_INTERVAL_MINUTES,
     PPOMPPU_INTERVAL_SECONDS,
+    PPOMPPU_PROXY_URL,
     SITE_URL,
 )
 from app.db import connect, get_meta, upsert_family_sale, utcnow_iso
 from app.engine import auth as user_auth
 from app.engine.alerts import add_sub, channels_ready, default_target, delete_sub, list_subs
 from app.engine.category import CATEGORIES as DEAL_CATEGORIES
+from app.engine.ppomppu_enrich import enrich_missing_ppomppu_malls
 from app.family.parse import parse_discount
 from app.family.pipeline import collect_family_sales
 from app.family.query import CATEGORIES, get_sale, list_sales, month_grid, parse_cats, parse_year_month
@@ -87,6 +90,7 @@ async def lifespan(app: FastAPI):
     state["http"] = PoliteClient()
     state["hub"] = EventHub()
     state["collect_lock"] = asyncio.Lock()
+    state["ppomppu_enrich_lock"] = asyncio.Lock()
     scheduler = None
     if ENABLE_COLLECT:
         scheduler = AsyncIOScheduler()
@@ -117,6 +121,19 @@ async def lifespan(app: FastAPI):
             coalesce=True,
             next_run_time=datetime.now() + timedelta(seconds=25),
         )
+        if PPOMPPU_PROXY_URL:
+            scheduler.add_job(
+                _scheduled_ppomppu_mall_enrich,
+                "interval",
+                minutes=max(1, PPOMPPU_ENRICH_INTERVAL_MINUTES),
+                id="enrich_ppomppu_malls",
+                max_instances=1,
+                coalesce=True,
+                next_run_time=datetime.now() + timedelta(seconds=45),
+            )
+            log.info("ppomppu mall enrich worker enabled (proxy configured)")
+        else:
+            log.info("ppomppu mall enrich worker idle (set PPOMPPU_PROXY_URL to enable)")
         scheduler.start()
         log.info("scheduled collect enabled")
     else:
@@ -171,6 +188,17 @@ async def _scheduled_family() -> None:
             await collect_family_sales(state["db"], state["http"])
         except Exception:
             log.exception("family collect failed")
+
+
+async def _scheduled_ppomppu_mall_enrich() -> None:
+    lock = state.get("ppomppu_enrich_lock")
+    if lock is None:
+        return
+    async with lock:
+        try:
+            await enrich_missing_ppomppu_malls(state["db"], state["http"])
+        except Exception:
+            log.exception("ppomppu mall enrich failed")
 
 
 async def _run_collect(names: list[str] | None) -> dict:
@@ -804,6 +832,21 @@ async def api_collect(source: str | None = None):
     return JSONResponse(summary)
 
 
+@app.post("/api/ppomppu/enrich-malls")
+async def api_ppomppu_enrich_malls(limit: int = 12):
+    """Manually run ppomppu buy-link enrich (requires PPOMPPU_PROXY_URL)."""
+    _require_collect()
+    if not PPOMPPU_PROXY_URL:
+        raise HTTPException(400, "PPOMPPU_PROXY_URL is not configured")
+    lock = state.get("ppomppu_enrich_lock")
+    if lock is None:
+        raise HTTPException(503, "enrich lock unavailable")
+    async with lock:
+        return await enrich_missing_ppomppu_malls(
+            state["db"], state["http"], limit=limit
+        )
+
+
 @app.get("/api/debug/feed")
 async def api_debug_feed(limit: int = 40):
     try:
@@ -982,8 +1025,10 @@ async def _stats() -> dict:
     last = await get_meta(db, "last_collect_at")
     summary_raw = await get_meta(db, "last_collect_summary")
     by_source_raw = await get_meta(db, "last_collect_by_source")
+    pp_enrich_raw = await get_meta(db, "last_ppomppu_mall_enrich")
     last_collect = None
     by_source = None
+    pp_enrich = None
     if summary_raw:
         try:
             last_collect = json.loads(summary_raw)
@@ -994,6 +1039,11 @@ async def _stats() -> dict:
             by_source = json.loads(by_source_raw)
         except json.JSONDecodeError:
             by_source = {"raw": by_source_raw}
+    if pp_enrich_raw:
+        try:
+            pp_enrich = json.loads(pp_enrich_raw)
+        except json.JSONDecodeError:
+            pp_enrich = {"raw": pp_enrich_raw}
     return {
         "posts": posts,
         "deals": deals,
@@ -1002,6 +1052,8 @@ async def _stats() -> dict:
         "last_collect_at": last,
         "last_collect": last_collect,
         "collect_by_source": by_source,
+        "ppomppu_proxy_configured": bool(PPOMPPU_PROXY_URL),
+        "last_ppomppu_mall_enrich": pp_enrich,
     }
 
 
