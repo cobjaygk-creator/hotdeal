@@ -31,7 +31,11 @@ def parse_list(html: str) -> list[RawPost]:
         post_id = (id_td.text() or "").strip()
         if not post_id.isdigit():
             continue
-        title = " ".join((title_a.text() or "").split())
+        title = (title_a.attributes.get("title") or "").strip()
+        if not title:
+            title = " ".join((title_a.text() or "").split())
+        else:
+            title = " ".join(title.split())
         writer = row.css_first("td.writer a")
         rec = row.css_first("td.recomd")
         hit = row.css_first("td.hit")

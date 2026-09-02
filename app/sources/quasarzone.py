@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import re
+from urllib.parse import urljoin
+
 from selectolax.parser import HTMLParser
 
 from app.http_client import PoliteClient
@@ -8,6 +11,7 @@ from app.sources.html_fetch import fetch_parsed
 from app.util.timeparse import parse_int, parse_kr_datetime
 
 LIST_URL = "https://quasarzone.com/bbs/qb_saleinfo"
+VIEWS_RE = re.compile(r"/bbs/qb_saleinfo/views/(\d+)")
 
 
 class QuasarzoneSource:
@@ -19,10 +23,17 @@ class QuasarzoneSource:
 
 def parse_list(html: str) -> list[RawPost]:
     tree = HTMLParser(html)
+    posts = _parse_market_cards(tree)
+    if posts:
+        return posts
+    return _parse_view_links(tree)
+
+
+def _parse_market_cards(tree: HTMLParser) -> list[RawPost]:
     posts: list[RawPost] = []
     seen: set[str] = set()
-    for item in tree.css("div.market-info-list"):
-        link = item.css_first("a.subject-link")
+    for item in tree.css("div.market-info-list, li.market-info-list, div.market-info-list-cont"):
+        link = item.css_first("a.subject-link, a[href*='/views/']")
         if not link:
             continue
         href = link.attributes.get("href") or ""
@@ -34,7 +45,9 @@ def parse_list(html: str) -> list[RawPost]:
             continue
         seen.add(post_id)
         title = " ".join((link.text() or "").split())
-        price_el = item.css_first("span.text-orange")
+        if not title:
+            title = (link.attributes.get("title") or "").strip()
+        price_el = item.css_first("span.text-orange, span.price")
         brand_el = item.css_first("span.brand")
         seller = " ".join((brand_el.text() or "").split()) if brand_el else None
         if price_el:
@@ -62,7 +75,42 @@ def parse_list(html: str) -> list[RawPost]:
     return posts
 
 
+def _parse_view_links(tree: HTMLParser) -> list[RawPost]:
+    """Fallback when card markup changes: harvest /views/{id} anchors."""
+    posts: list[RawPost] = []
+    seen: set[str] = set()
+    for link in tree.css("a[href*='/bbs/qb_saleinfo/views/']"):
+        href = link.attributes.get("href") or ""
+        m = VIEWS_RE.search(href)
+        if not m:
+            continue
+        post_id = m.group(1)
+        if post_id in seen:
+            continue
+        title = " ".join((link.text() or "").split())
+        if not title or len(title) < 4:
+            title = (link.attributes.get("title") or "").strip()
+        if not title or "공지" in title:
+            continue
+        # Skip tiny nav/pagination labels
+        if title.isdigit() or title in {"다음", "이전", "댓글"}:
+            continue
+        seen.add(post_id)
+        posts.append(
+            RawPost(
+                source="quasarzone",
+                source_post_id=post_id,
+                url=urljoin("https://quasarzone.com", href.split("?")[0]),
+                title=title,
+            )
+        )
+    return posts
+
+
 def _id_from_href(href: str) -> str | None:
+    m = VIEWS_RE.search(href or "")
+    if m:
+        return m.group(1)
     parts = href.split("?")[0].rstrip("/").split("/")
     if "views" in parts:
         idx = parts.index("views")

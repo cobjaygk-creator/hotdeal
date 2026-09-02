@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+from app.config import MIN_SANE_PRICE
 from app.parse.normalize import (
     Quantity,
     canonical_seller,
@@ -23,6 +24,7 @@ BRACKET_THEN_WON = re.compile(
 )
 ANY_WON = re.compile(r"(\d[\d,]*)\s*원")
 FREE_SHIP = re.compile(r"(무료배송|무료|무배|무배송)")
+TRUNCATED = re.compile(r"(?:\.{2,}|…)\s*$")
 
 
 @dataclass
@@ -42,14 +44,23 @@ class ParsedOffer:
 
 def parse_title(title: str) -> ParsedOffer:
     title = _clean_title(title)
+    truncated = bool(TRUNCATED.search(title))
     seller, name, price_blob, conf = _split(title)
     price, shipping_fee, shipping_free, raw = _parse_price_blob(price_blob, title)
-    if price is None:
+    if price is None and not truncated:
         m = ANY_WON.findall(title)
         if m:
             price = _to_int(m[-1])
             raw = m[-1] + "원"
             conf = max(conf - 0.15, 0.4)
+    if truncated:
+        # List pages often cut mid-price ("273,6..."); wait for detail enrich.
+        price = None
+        raw = None
+        conf = min(conf, 0.45)
+    if price is not None and price < MIN_SANE_PRICE:
+        price = None
+        conf = min(conf, 0.35)
     if not name:
         name = title
     qty = extract_quantity(name)

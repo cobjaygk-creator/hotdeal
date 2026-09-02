@@ -2,7 +2,18 @@ import os
 from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
-DATA_DIR = ROOT_DIR / "data"
+
+
+def _resolve_data_dir() -> Path:
+    # Prefer explicit override, then Railway volume mount, then repo-local data/.
+    for key in ("DATA_DIR", "RAILWAY_VOLUME_MOUNT_PATH"):
+        raw = (os.environ.get(key) or "").strip()
+        if raw:
+            return Path(raw)
+    return ROOT_DIR / "data"
+
+
+DATA_DIR = _resolve_data_dir()
 DATABASE_PATH = DATA_DIR / "hotdeal.db"
 
 USER_AGENT = (
@@ -44,3 +55,10 @@ RECENT_DEAL_HOURS = 48
 
 ANOMALY_DROP_RATIO = 0.70
 MIN_SANE_PRICE = 1000
+
+NAVER_CLIENT_ID = os.environ.get("NAVER_CLIENT_ID", "").strip()
+NAVER_CLIENT_SECRET = os.environ.get("NAVER_CLIENT_SECRET", "").strip()
+NAVER_SEED_ENABLED = bool(NAVER_CLIENT_ID and NAVER_CLIENT_SECRET)
+NAVER_SEED_CACHE_DAYS = 7
+NAVER_SEED_MIN_SIMILARITY = 0.35
+DETAIL_ENRICH_ENABLED = True

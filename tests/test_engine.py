@@ -111,3 +111,15 @@ def test_grade_buckets():
     assert "핫딜" in grade_from_discount(0.18)
     assert "특가" in grade_from_discount(0.22)
     assert "초특가" in grade_from_discount(0.31)
+
+
+def test_truncated_title_drops_price():
+    offer = parse_title("[네이버] BOSE QC 울트라 이어버드 2세대 색상 다양 / 273,6...")
+    assert offer.price is None
+    assert "273" not in offer.product_key
+    assert "bose" in offer.product_key
+
+
+def test_reject_sub_1000_price():
+    offer = parse_title("[딜바다] 테스트 상품 (500원/무료)")
+    assert offer.price is None

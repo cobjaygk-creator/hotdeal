@@ -2,8 +2,21 @@
 {% block title %}{{ deal.product_name }} · 자동 핫딜 탐지기{% endblock %}
 {% block body %}
 <p><a href="/">← 목록</a></p>
+{% if deal.thumbnail_url %}
+<div class="modal-thumb-wrap"><img class="modal-thumb" src="{{ deal.thumbnail_url }}" alt="" referrerpolicy="no-referrer"></div>
+{% endif %}
+<p class="modal-price">{% if deal.price %}{{ "{:,}".format(deal.price) }}원{% else %}-{% endif %}
+  <span class="muted">{% if deal.discount_rate is not none %}{{ "%.1f"|format(-deal.discount_rate * 100) }}% · {% endif %}{{ deal.grade or "-" }}</span>
+</p>
 <h1>{{ deal.product_name }}</h1>
-<p class="muted">{{ deal.seller or "판매처 미상" }} · {{ deal.grade }} · {{ deal.status }}</p>
+<p class="muted">{{ deal.seller or "판매처 미상" }} · 표본 {{ deal.sample_count }}건 · {{ deal.last_seen_at | kst }}</p>
+<p class="modal-meta">중앙값 {% if deal.baseline_price %}{{ "{:,}".format(deal.baseline_price) }}원{% else %}-{% endif %}
+ · 최저 {% if deal.min_price %}{{ "{:,}".format(deal.min_price) }}원{% else %}-{% endif %}</p>
+
+<p class="modal-actions">
+{% if deal.mall_url %}<a class="btn" href="{{ deal.mall_url }}" target="_blank" rel="noopener">구매하기</a>{% endif %}
+{% if deal.deal_url %}<a class="btn ghost" href="{{ deal.deal_url }}" target="_blank" rel="noopener">원문 보기</a>{% endif %}
+</p>
 
 <section class="stats">
   <div class="stat"><div class="label">현재 가격</div><div class="value">{% if deal.price %}{{ "{:,}".format(deal.price) }}원{% else %}-{% endif %}</div></div>
@@ -12,17 +25,11 @@
   <div class="stat"><div class="label">하락률</div><div class="value">{% if deal.discount_rate is not none %}{{ "%.1f"|format(-deal.discount_rate * 100) }}%{% else %}-{% endif %}</div></div>
 </section>
 
-<p>단위가격: {% if deal.unit_price %}{{ deal.unit_price }}{% else %}-{% endif %}
- · 표본 {{ deal.sample_count }}건
- · 최종 수집 {{ deal.last_seen_at | kst }}</p>
-{% if deal.mall_url %}<p><a class="btn" href="{{ deal.mall_url }}" target="_blank" rel="noopener">쇼핑몰 열기</a></p>{% endif %}
-{% if deal.deal_url %}<p><a href="{{ deal.deal_url }}" target="_blank" rel="noopener">커뮤니티 원문</a></p>{% endif %}
-
 <h2>가격 이력</h2>
 <canvas id="chart" height="120"></canvas>
 
 <h2>원문</h2>
-<ul>
+<ul class="modal-posts">
   {% for p in posts %}
   <li>
     <a href="{{ p.url }}" target="_blank" rel="noopener">[{{ p.source }}] {{ p.title }}</a>

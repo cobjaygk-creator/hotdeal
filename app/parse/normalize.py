@@ -87,12 +87,23 @@ def extract_quantity(name: str) -> Quantity:
     return qty
 
 
+_PRICE_FRAGMENT = re.compile(r"^\d{1,3}(?:,\d{3})+$|^\d+$")
+_ELLIPSIS = re.compile(r"\.{2,}|…")
+
+
 def tokenize(name: str) -> set[str]:
     cleaned = re.sub(r"[\[\]()（）{}<>]", " ", name)
     cleaned = re.sub(r"[^0-9A-Za-z가-힣+\.]+", " ", cleaned)
     tokens: set[str] = set()
     for tok in cleaned.lower().split():
         if tok in STOPWORDS or len(tok) < 2:
+            continue
+        if _ELLIPSIS.search(tok):
+            continue
+        # Price / numeric fragments pollute product_key and break matching.
+        if _PRICE_FRAGMENT.match(tok.replace(".", "")):
+            continue
+        if tok.replace(",", "").replace(".", "").isdigit():
             continue
         tok = re.sub(r"(\d+)(?:개입|입|t)$", r"\1개", tok, flags=re.I)
         tokens.add(tok)

@@ -4,20 +4,22 @@ import json
 import logging
 from datetime import datetime, timezone
 
-from app.config import BASELINE_DAYS, RECENT_DEAL_HOURS
+from app.config import BASELINE_DAYS, DETAIL_ENRICH_ENABLED, NAVER_SEED_ENABLED, RECENT_DEAL_HOURS
 from app.db import get_meta, set_meta, utcnow_iso
 from app.engine.dedupe import jaccard, should_merge
+from app.engine.naver_seed import seed_baseline_if_needed
 from app.engine.pricing import compute_baseline
 from app.engine.scoring import score_offer
 from app.parse.links import extract_mall_url
 from app.parse.title import parse_title
 from app.sources import RawPost
+from app.sources.detail import enrich_post
 from app.util.timeparse import to_iso
 
 log = logging.getLogger(__name__)
 
 
-def post_to_row(post: RawPost) -> dict:
+def post_to_row(post: RawPost, *, thumbnail_url: str | None = None) -> dict:
     return {
         "source": post.source,
         "source_post_id": post.source_post_id,
@@ -31,6 +33,7 @@ def post_to_row(post: RawPost) -> dict:
         "comments": post.comments,
         "collected_at": utcnow_iso(),
         "raw_json": post.extra or None,
+        "thumbnail_url": thumbnail_url or (post.extra or {}).get("thumbnail_url"),
     }
 
 
@@ -113,9 +116,6 @@ async def upsert_deal_from_post(conn, post_row: dict) -> int | None:
             match = existing
             break
 
-    prices = await _load_prices(conn, offer)
-    baseline = compute_baseline(prices)
-
     source_count = 1
     last_scored_at = None
     last_scored_price = None
@@ -132,6 +132,11 @@ async def upsert_deal_from_post(conn, post_row: dict) -> int | None:
                 last_scored_at = None
         last_scored_price = match.get("last_scored_price")
 
+    if NAVER_SEED_ENABLED:
+        await seed_baseline_if_needed(conn, offer)
+
+    prices = await _load_prices(conn, offer)
+    baseline = compute_baseline(prices)
     result = score_offer(
         offer,
         baseline,
@@ -143,7 +148,10 @@ async def upsert_deal_from_post(conn, post_row: dict) -> int | None:
 
     now = utcnow_iso()
     posted = post_row.get("posted_at") or now
-    mall_url = extract_mall_url(post_row.get("body"), post_row.get("title"), post_row.get("raw_json"))
+    mall_url = post_row.get("mall_url") or extract_mall_url(
+        post_row.get("body"), post_row.get("title"), post_row.get("raw_json")
+    )
+    thumbnail_url = post_row.get("thumbnail_url")
     if match:
         deal_id = match["id"]
         new_price = offer.price if offer.price is not None else match["price"]
@@ -162,6 +170,7 @@ async def upsert_deal_from_post(conn, post_row: dict) -> int | None:
                 unit_price=?,
                 deal_url=?,
                 mall_url=COALESCE(?, mall_url),
+                thumbnail_url=COALESCE(?, thumbnail_url),
                 last_seen_at=?,
                 baseline_price=?,
                 min_price=?,
@@ -182,6 +191,7 @@ async def upsert_deal_from_post(conn, post_row: dict) -> int | None:
                 offer.unit_price,
                 post_row["url"],
                 mall_url,
+                thumbnail_url,
                 now,
                 baseline.median,
                 baseline.minimum,
@@ -200,10 +210,10 @@ async def upsert_deal_from_post(conn, post_row: dict) -> int | None:
             """
             INSERT INTO deals(
                 product_key, product_name, seller, price, shipping_fee, unit_price,
-                deal_url, mall_url, first_seen_at, last_seen_at, baseline_price, min_price,
+                deal_url, mall_url, thumbnail_url, first_seen_at, last_seen_at, baseline_price, min_price,
                 sample_count, discount_rate, score, grade, status,
                 last_scored_at, last_scored_price
-            ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """,
             (
                 offer.product_key,
@@ -214,6 +224,7 @@ async def upsert_deal_from_post(conn, post_row: dict) -> int | None:
                 offer.unit_price,
                 post_row["url"],
                 mall_url,
+                thumbnail_url,
                 posted,
                 now,
                 baseline.median,
@@ -289,7 +300,6 @@ async def collect_and_process(conn, sources, client) -> dict:
             new_count = 0
             for post in posts:
                 pid, inserted = await upsert_post(conn, post_to_row(post))
-                await _upsert_price_point(conn, pid, post)
                 summary["posts"] += 1
                 if not inserted:
                     mall = extract_mall_url(post.body, post.title)
@@ -303,6 +313,24 @@ async def collect_and_process(conn, sources, client) -> dict:
                         )
                     continue
                 new_count += 1
+                mall_url = extract_mall_url(post.body, post.title)
+                thumbnail_url = None
+                if DETAIL_ENRICH_ENABLED:
+                    detail = await enrich_post(client, post.source, post.url)
+                    if detail.title and (
+                        len(detail.title) > len(post.title or "")
+                        or (post.title or "").rstrip().endswith(("...", "…"))
+                    ):
+                        post.title = detail.title
+                    if detail.mall_url:
+                        mall_url = detail.mall_url
+                    if detail.thumbnail_url:
+                        thumbnail_url = detail.thumbnail_url
+                    await upsert_post(
+                        conn,
+                        post_to_row(post, thumbnail_url=thumbnail_url),
+                    )
+                await _upsert_price_point(conn, pid, post)
                 deal_id = await upsert_deal_from_post(
                     conn,
                     {
@@ -312,6 +340,8 @@ async def collect_and_process(conn, sources, client) -> dict:
                         "body": post.body,
                         "votes": post.votes,
                         "posted_at": to_iso(post.posted_at) or utcnow_iso(),
+                        "mall_url": mall_url,
+                        "thumbnail_url": thumbnail_url,
                     },
                 )
                 if deal_id:

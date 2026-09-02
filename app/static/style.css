@@ -104,7 +104,7 @@ button { background: var(--ink); color: #fff; border-color: var(--ink); }
 .deal-cards { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
 .deal-card {
   display: grid;
-  grid-template-columns: 7.5em 1fr auto;
+  grid-template-columns: 64px 7.5em 1fr auto;
   gap: 12px 14px;
   align-items: start;
   background: var(--card);
@@ -112,6 +112,25 @@ button { background: var(--ink); color: #fff; border-color: var(--ink); }
   border-radius: 12px;
   padding: 14px 16px;
 }
+.deal-thumb {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 10px;
+  background: #efebe3;
+  border: 1px solid var(--line);
+}
+.deal-thumb.placeholder { display: block; }
+.modal-thumb-wrap { margin: 0 0 12px; }
+.modal-thumb {
+  width: min(100%, 280px);
+  max-height: 200px;
+  object-fit: contain;
+  border-radius: 12px;
+  background: #efebe3;
+  border: 1px solid var(--line);
+}
+.modal-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 4px; }
 .deal-card.fresh { animation: flash-in 3s ease; }
 .deal-card.hot-fresh .deal-title { font-weight: 650; }
 @keyframes flash-in {
@@ -293,7 +312,8 @@ table.calendar td.sel { outline: 2px solid var(--accent); outline-offset: -2px; 
   .stats, .stats-3 { grid-template-columns: 1fr 1fr; }
   .stat .value { font-size: 18px; }
   .toolbar select, .toolbar button { flex: 1 1 calc(50% - 6px); min-height: 42px; }
-  .deal-card { grid-template-columns: 6.5em 1fr; }
+  .deal-card { grid-template-columns: 56px 5.5em 1fr; }
+  .deal-thumb { width: 56px; height: 56px; }
   .deal-card .detail-btn { grid-column: 1 / -1; width: 100%; }
   .deal-price { font-size: 17px; }
   .family-layout { grid-template-columns: 1fr; }

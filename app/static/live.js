@@ -85,7 +85,11 @@ function renderRow(deal) {
     deal.baseline_price != null
       ? `<span class="muted">중앙 ${won(deal.baseline_price)}</span>`
       : "";
+  const thumb = deal.thumbnail_url
+    ? `<img class="deal-thumb" src="${esc(deal.thumbnail_url)}" alt="" loading="lazy" referrerpolicy="no-referrer">`
+    : `<div class="deal-thumb placeholder" aria-hidden="true"></div>`;
   li.innerHTML =
+    thumb +
     `<div class="deal-price">${won(deal.price)}</div>` +
     `<div class="deal-main">${titleHtml}` +
     `<div class="deal-meta">` +
@@ -219,15 +223,19 @@ async function openModal(id) {
     : "<li class='muted'>원문 없음</li>";
   const linkBtns = [
     deal.mall_url
-      ? `<a class="btn" href="${esc(deal.mall_url)}" target="_blank" rel="noopener">쇼핑몰 열기</a>`
+      ? `<a class="btn" href="${esc(deal.mall_url)}" target="_blank" rel="noopener">구매하기</a>`
       : "",
     isPostUrl(deal.deal_url)
-      ? `<a class="btn ghost" href="${esc(deal.deal_url)}" target="_blank" rel="noopener">커뮤니티 원문</a>`
+      ? `<a class="btn ghost" href="${esc(deal.deal_url)}" target="_blank" rel="noopener">원문 보기</a>`
       : "",
   ]
     .filter(Boolean)
     .join(" ");
+  const thumb = deal.thumbnail_url
+    ? `<div class="modal-thumb-wrap"><img class="modal-thumb" src="${esc(deal.thumbnail_url)}" alt="" referrerpolicy="no-referrer"></div>`
+    : "";
   modalBody.innerHTML = `
+    ${thumb}
     <p class="modal-price">${won(deal.price)} <span class="muted">${pct(deal.discount_rate)} · ${esc(deal.grade || "-")}</span></p>
     <h1 id="modal-title">${esc(deal.product_name)}</h1>
     <p class="muted">${esc(deal.seller || "판매처 미상")} · 표본 ${deal.sample_count || 0}건 · ${kst(deal.last_seen_at)}</p>

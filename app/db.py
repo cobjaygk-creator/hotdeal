@@ -128,9 +128,30 @@ async def connect(path: Path | None = None) -> aiosqlite.Connection:
 
 async def _ensure_columns(conn: aiosqlite.Connection) -> None:
     cur = await conn.execute("PRAGMA table_info(deals)")
-    cols = {row[1] for row in await cur.fetchall()}
-    if "mall_url" not in cols:
+    deal_cols = {row[1] for row in await cur.fetchall()}
+    if "mall_url" not in deal_cols:
         await conn.execute("ALTER TABLE deals ADD COLUMN mall_url TEXT")
+    if "thumbnail_url" not in deal_cols:
+        await conn.execute("ALTER TABLE deals ADD COLUMN thumbnail_url TEXT")
+
+    cur = await conn.execute("PRAGMA table_info(posts)")
+    post_cols = {row[1] for row in await cur.fetchall()}
+    if "thumbnail_url" not in post_cols:
+        await conn.execute("ALTER TABLE posts ADD COLUMN thumbnail_url TEXT")
+
+    # One-time cleanup of price pollution from truncated list titles.
+    cleaned = await get_meta(conn, "cleaned_sub1000_prices")
+    if cleaned != "1":
+        await conn.execute("DELETE FROM price_points WHERE price < 1000")
+        await conn.execute(
+            """
+            UPDATE deals
+            SET price=NULL, unit_price=NULL, discount_rate=NULL, score=0,
+                grade='확인필요', status='needs_review', last_scored_price=NULL
+            WHERE price IS NOT NULL AND price < 1000
+            """
+        )
+        await set_meta(conn, "cleaned_sub1000_prices", "1")
 
 
 async def set_meta(conn: aiosqlite.Connection, key: str, value: str) -> None:
@@ -159,12 +180,14 @@ async def upsert_post(conn: aiosqlite.Connection, post: dict) -> tuple[int, bool
     await conn.execute(
         """
         INSERT INTO posts(source, source_post_id, url, title, body, author, posted_at,
-                          votes, views, comments, collected_at, raw_json)
+                          votes, views, comments, collected_at, raw_json, thumbnail_url)
         VALUES(:source, :source_post_id, :url, :title, :body, :author, :posted_at,
-               :votes, :views, :comments, :collected_at, :raw_json)
+               :votes, :views, :comments, :collected_at, :raw_json, :thumbnail_url)
         ON CONFLICT(source, source_post_id) DO UPDATE SET
             url=excluded.url,
-            title=excluded.title,
+            title=CASE
+                WHEN length(COALESCE(excluded.title, '')) > length(COALESCE(posts.title, ''))
+                THEN excluded.title ELSE posts.title END,
             body=COALESCE(excluded.body, posts.body),
             author=COALESCE(excluded.author, posts.author),
             posted_at=COALESCE(excluded.posted_at, posts.posted_at),
@@ -172,7 +195,8 @@ async def upsert_post(conn: aiosqlite.Connection, post: dict) -> tuple[int, bool
             views=excluded.views,
             comments=excluded.comments,
             collected_at=excluded.collected_at,
-            raw_json=COALESCE(excluded.raw_json, posts.raw_json)
+            raw_json=COALESCE(excluded.raw_json, posts.raw_json),
+            thumbnail_url=COALESCE(excluded.thumbnail_url, posts.thumbnail_url)
         """,
         {
             "source": post["source"],
@@ -187,6 +211,7 @@ async def upsert_post(conn: aiosqlite.Connection, post: dict) -> tuple[int, bool
             "comments": post.get("comments") or 0,
             "collected_at": post.get("collected_at") or utcnow_iso(),
             "raw_json": raw,
+            "thumbnail_url": post.get("thumbnail_url"),
         },
     )
     cur = await conn.execute(

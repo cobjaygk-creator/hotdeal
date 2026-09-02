@@ -17,7 +17,7 @@ class CoolenjoySource:
 
     async def fetch_latest(self, client: PoliteClient) -> list[RawPost]:
         # coolenjoy often stalls on cloud hosts; allow a longer read.
-        return await fetch_parsed(client, LIST_URL, parse_list, timeout=45.0)
+        return await fetch_parsed(client, LIST_URL, parse_list, timeout=60.0)
 
 
 def parse_list(html: str) -> list[RawPost]:
