@@ -436,13 +436,35 @@ async def api_debug_enrich(deal_id: int, apply: int = 0):
     Pass apply=1 to persist mall_url/thumbnail_url onto the deal/post.
     """
     _require_collect()
+    import re
+
+    from app.parse.links import extract_mall_url, is_mall_url
     from app.sources.detail import enrich_post
 
     posts = await _deal_posts(deal_id)
     if not posts:
         raise HTTPException(404, "deal posts not found")
     post = posts[0]
-    detail = await enrich_post(state["http"], post.get("source") or "", post.get("url") or "")
+    source = post.get("source") or ""
+    url = post.get("url") or ""
+    detail = await enrich_post(state["http"], source, url)
+
+    # Extra diagnostics: raw outbound http(s) candidates from the detail HTML.
+    candidates: list[str] = []
+    encoding = "euc-kr" if "ppomppu.co.kr" in url else None
+    try:
+        fetched = await state["http"].get(url, encoding=encoding)
+        html_text = fetched.text or ""
+        for m in re.finditer(r"https?://[^\s<>\"']+", html_text):
+            u = m.group(0).rstrip(").,;]'\"}")
+            if any(k in u.lower() for k in ("gmarket", "coupang", "smartstore", "11st", "ssg", "auction", "ohou", "naver")):
+                candidates.append(u)
+            if len(candidates) >= 20:
+                break
+    except Exception as exc:  # noqa: BLE001
+        html_text = ""
+        candidates = [f"fetch_error:{exc}"]
+
     applied = False
     if apply and (detail.mall_url or detail.thumbnail_url):
         db = _db()
@@ -454,23 +476,26 @@ async def api_debug_enrich(deal_id: int, apply: int = 0):
         await db.execute(
             """
             UPDATE deals
-            SET mall_url=COALESCE(?, mall_url),
+            SET mall_url=CASE WHEN ? IS NOT NULL THEN ? ELSE mall_url END,
                 thumbnail_url=COALESCE(?, thumbnail_url)
             WHERE id=?
             """,
-            (detail.mall_url, detail.thumbnail_url, deal_id),
+            (detail.mall_url, detail.mall_url, detail.thumbnail_url, deal_id),
         )
         await db.commit()
         applied = True
     return {
         "deal_id": deal_id,
-        "source": post.get("source"),
-        "url": post.get("url"),
+        "source": source,
+        "url": url,
         "list_title": post.get("title"),
         "enriched_title": detail.title,
         "mall_url": detail.mall_url,
         "thumbnail_url": detail.thumbnail_url,
         "applied": applied,
+        "mall_candidates": candidates,
+        "candidate_accepted": [u for u in candidates if is_mall_url(u)][:10],
+        "extract_from_html": extract_mall_url(html_text[:80000]) if html_text else None,
     }
 
 
