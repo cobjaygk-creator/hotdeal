@@ -170,6 +170,24 @@ function labelSources(raw) {
   return toks.map((s) => sourceLabels[s] || s).join(", ");
 }
 
+function tagsHtml(deal) {
+  const parts = [];
+  if (deal.category) {
+    parts.push(`<span class="deal-tag">${esc(deal.category)}</span>`);
+  }
+  if (deal.seller) {
+    parts.push(`<span class="deal-tag">${esc(deal.seller)}</span>`);
+  }
+  for (const key of sourceTokens(deal.sources)) {
+    const label = sourceLabels[key] || key;
+    const initial = label.slice(0, 1) || "?";
+    parts.push(
+      `<span class="deal-tag deal-tag-source"><span class="deal-tag-ico" aria-hidden="true">${esc(initial)}</span>${esc(label)}</span>`
+    );
+  }
+  return `<div class="deal-tags">${parts.join("")}</div>`;
+}
+
 function matchesSources(raw) {
   if (!selectedSources || !selectedSources.length) return true;
   const toks = sourceTokens(raw);
@@ -220,24 +238,19 @@ function renderRow(deal) {
     : `<div class="deal-thumb placeholder" aria-hidden="true"></div>`;
   const ts = deal.last_seen_at || "";
   const cta = deal.mall_url
-    ? `<a class="deal-cta" href="${esc(deal.mall_url)}" target="_blank" rel="noopener">구매하기 ></a>`
-    : `<button type="button" class="deal-cta detail-btn" data-deal-id="${deal.id}">상세 ></button>`;
+    ? `<a class="deal-cta-btn" href="${esc(deal.mall_url)}" target="_blank" rel="noopener">구매하기</a>`
+    : `<button type="button" class="deal-cta-btn detail-btn" data-deal-id="${deal.id}">상세보기</button>`;
   li.innerHTML =
     `<div class="deal-thumb-wrap">${thumb}` +
-    `<div class="deal-badge-row">${gradeHtml(deal.grade)}</div></div>` +
-    `<div class="deal-body">` +
-    `<div class="deal-topline"><span>${esc(deal.seller || "판매처 미상")}</span>` +
-    `<time class="time-rel" datetime="${esc(ts)}" data-ts="${esc(ts)}">${esc(relativeTime(ts))}</time></div>` +
-    `<a class="deal-title" href="/deal/${deal.id}" data-deal-id="${deal.id}">${esc(title)}</a>` +
-    `<div class="deal-price-row"><div class="deal-price">${won(deal.price)}</div>${drop}</div>` +
-    `<div class="deal-meta"><span>${esc(labelSources(deal.sources))}</span>` +
-    (deal.category ? `<span>${esc(deal.category)}</span>` : "") +
-    (deal.baseline_price != null ? `<span>중앙 ${won(deal.baseline_price)}</span>` : "") +
-    `</div>` +
-    `<div class="deal-foot">` +
+    `<div class="deal-badge-row">${gradeHtml(deal.grade)}</div>` +
     `<button type="button" class="bookmark-btn${starred ? " on" : ""}" data-deal-id="${deal.id}" aria-label="북마크">${starred ? "★" : "☆"}</button>` +
-    cta +
-    `</div></div>`;
+    `</div>` +
+    `<div class="deal-body">` +
+    tagsHtml(deal) +
+    `<a class="deal-title" href="/deal/${deal.id}" data-deal-id="${deal.id}">${esc(title)}</a>` +
+    `<div class="deal-price-row"><div class="deal-price">${won(deal.price)}</div>${drop}` +
+    `<time class="time-rel" datetime="${esc(ts)}" data-ts="${esc(ts)}">${esc(relativeTime(ts))}</time></div>` +
+    `<div class="deal-foot">${cta}</div></div>`;
   applyChipClass(li);
   return li;
 }

@@ -9,6 +9,8 @@ body {
   font-size: 14px;
   line-height: 1.45;
   -webkit-font-smoothing: antialiased;
+  display: flex;
+  flex-direction: column;
 }
 a { color: var(--accent); }
 a:hover { opacity: 1; }
@@ -17,15 +19,151 @@ h2 { font-size: 12px; margin-top: 22px; color: var(--ink-muted); font-weight: 70
 .muted { color: var(--ink-muted); }
 .empty { text-align: center; color: var(--ink-muted); padding: 40px 16px; list-style: none; }
 
-.app-shell {
+/* Top bar — UX Insight style */
+.app-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
   display: flex;
-  min-height: 100vh;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: var(--header-h);
+  padding: 0 20px;
+  background: #fff;
+  border-bottom: 1px solid #eceef2;
+}
+.topbar-left,
+.topbar-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.topbar-brand {
+  color: #171b23;
+  text-decoration: none;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  white-space: nowrap;
+}
+.menu-btn,
+.icon-btn {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: 6px;
+  width: 34px;
+  height: 34px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+.theme-toggle {
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--ink-muted);
+  border-radius: 999px;
+  width: 34px;
+  height: 34px;
+  cursor: pointer;
+  font-size: 13px;
+  flex-shrink: 0;
 }
 
-/* LNB — event-bench / UX Insight */
+.account-menu {
+  position: relative;
+}
+.account-menu > summary {
+  list-style: none;
+}
+.account-menu > summary::-webkit-details-marker { display: none; }
+.account-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 4px 10px 4px 4px;
+  border: 1px solid #e2e5ea;
+  border-radius: 999px;
+  background: #fff;
+  color: #171b23;
+  cursor: pointer;
+  user-select: none;
+  max-width: 220px;
+}
+.account-pill:hover { border-color: #ccd1d9; }
+.account-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #deebff;
+  color: #0052cc;
+  font-size: 12px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+.account-pill-name {
+  font-size: 13px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 120px;
+}
+.account-caret {
+  color: #8891a0;
+  font-size: 11px;
+  line-height: 1;
+  margin-right: 2px;
+}
+.account-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 160px;
+  padding: 6px;
+  background: #fff;
+  border: 1px solid #e2e5ea;
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  z-index: 60;
+}
+.account-dropdown a {
+  display: block;
+  padding: 9px 12px;
+  border-radius: 7px;
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+}
+.account-dropdown a:hover {
+  background: var(--surface-sunken);
+  opacity: 1;
+}
+
+.app-shell {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+
+/* LNB — under topbar */
 .sidebar {
   position: fixed;
-  inset: 0 auto 0 0;
+  top: var(--header-h);
+  bottom: 0;
+  left: 0;
   z-index: 40;
   width: var(--sidebar-w);
   display: flex;
@@ -35,32 +173,9 @@ h2 { font-size: 12px; margin-top: 22px; color: var(--ink-muted); font-weight: 70
   border-right: 1px solid var(--border);
   transform: translateX(-105%);
   transition: transform 0.2s ease;
+  overflow-y: auto;
 }
 .sidebar.open { transform: translateX(0); }
-.sidebar-brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 4px 10px 14px;
-  text-decoration: none;
-  color: var(--ink);
-  font-weight: 800;
-  font-size: 16px;
-  letter-spacing: -0.03em;
-}
-.brand-mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 6px;
-  background: var(--accent);
-  color: var(--accent-ink);
-  font-size: 12px;
-  font-weight: 800;
-  flex-shrink: 0;
-}
 .sidebar-label {
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -101,82 +216,15 @@ h2 { font-size: 12px; margin-top: 22px; color: var(--ink-muted); font-weight: 70
   opacity: 0.9;
   flex: none;
 }
-.sidebar-foot {
-  margin-top: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 12px 8px 4px;
-  border-top: 1px solid var(--border);
-}
-.account {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 13px;
-  font-weight: 600;
-}
-.account a {
-  color: var(--ink-muted);
-  text-decoration: none;
-}
-.account-name { color: var(--ink); overflow: hidden; text-overflow: ellipsis; }
-.theme-toggle {
-  border: 1px solid var(--border-strong);
-  background: var(--surface);
-  color: var(--ink-muted);
-  border-radius: 999px;
-  width: 34px;
-  height: 34px;
-  cursor: pointer;
-  font-size: 13px;
-}
 
 .sidebar-backdrop {
   display: none;
   position: fixed;
-  inset: 0;
+  inset: var(--header-h) 0 0 0;
   z-index: 35;
   background: rgba(23, 27, 35, 0.35);
 }
 .sidebar-backdrop.show { display: block; }
-
-.mobile-top {
-  position: sticky;
-  top: 0;
-  z-index: 30;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: var(--header-h);
-  padding: 8px 14px;
-  background: color-mix(in srgb, var(--surface) 92%, transparent);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--border);
-}
-.menu-btn,
-.icon-btn {
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--ink);
-  border-radius: 6px;
-  width: 34px;
-  height: 34px;
-  cursor: pointer;
-  font-size: 15px;
-  font-weight: 700;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  text-decoration: none;
-}
-.mobile-brand {
-  font-weight: 800;
-  color: var(--ink);
-  text-decoration: none;
-  letter-spacing: -0.03em;
-  flex: 1;
-}
 
 .app-main {
   flex: 1;
@@ -239,15 +287,34 @@ h2 { font-size: 12px; margin-top: 22px; color: var(--ink-muted); font-weight: 70
   color: #fff;
 }
 
+[data-theme="dark"] .app-topbar {
+  background: var(--surface);
+  border-bottom-color: var(--border);
+}
+[data-theme="dark"] .topbar-brand { color: var(--ink); }
+[data-theme="dark"] .theme-toggle,
+[data-theme="dark"] .account-pill,
+[data-theme="dark"] .account-dropdown {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--ink);
+}
+[data-theme="dark"] .account-avatar {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
 @media (min-width: 960px) {
-  .mobile-top { display: none; }
+  .menu-btn { display: none; }
   .sidebar-backdrop { display: none !important; }
   .sidebar {
     position: sticky;
-    top: 0;
-    height: 100vh;
+    top: var(--header-h);
+    height: calc(100vh - var(--header-h));
     transform: none;
     flex-shrink: 0;
   }
+  .app-topbar { padding: 0 28px; }
   .main-inner { padding: 28px 32px 44px; }
+  .account-pill-name { max-width: 160px; }
 }

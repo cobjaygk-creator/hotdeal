@@ -18,11 +18,18 @@
       <span class="grade-quiet" style="background:var(--quiet-bg);padding:2px 8px;border-radius:999px">{{ d.grade }}</span>
       {% endif %}
     </div>
+    <button type="button" class="bookmark-btn" data-deal-id="{{ d.id }}" aria-label="북마크" title="북마크">☆</button>
   </div>
   <div class="deal-body">
-    <div class="deal-topline">
-      <span>{{ d.seller or "판매처 미상" }}</span>
-      <time class="time-rel" datetime="{{ d.last_seen_at or '' }}" data-ts="{{ d.last_seen_at or '' }}">{{ d.last_seen_at | reltime }}</time>
+    <div class="deal-tags">
+      {% if d.category %}<span class="deal-tag">{{ d.category }}</span>{% endif %}
+      {% if d.seller %}<span class="deal-tag">{{ d.seller }}</span>{% endif %}
+      {% if d.sources is string and d.sources %}
+      {% for s in d.sources.split(",") if s.strip() %}
+      {% set label = source_labels.get(s.strip(), s.strip()) %}
+      <span class="deal-tag deal-tag-source"><span class="deal-tag-ico" aria-hidden="true">{{ label[:1] }}</span>{{ label }}</span>
+      {% endfor %}
+      {% endif %}
     </div>
     <a class="deal-title" href="/deal/{{ d.id }}" data-deal-id="{{ d.id }}">{{ d.product_name }}</a>
     <div class="deal-price-row">
@@ -32,18 +39,13 @@
       {% elif d.discount_rate is number %}
       <span class="muted">{{ "%.1f"|format(-d.discount_rate * 100) }}%</span>
       {% endif %}
-    </div>
-    <div class="deal-meta">
-      <span>{% if d.sources is string and d.sources %}{% for s in d.sources.split(",") %}{{ source_labels.get(s.strip(), s.strip()) }}{% if not loop.last %}, {% endif %}{% endfor %}{% else %}-{% endif %}</span>
-      {% if d.category %}<span>{{ d.category }}</span>{% endif %}
-      {% if d.baseline_price %}<span>중앙 {{ "{:,}".format(d.baseline_price) }}원</span>{% endif %}
+      <time class="time-rel" datetime="{{ d.last_seen_at or '' }}" data-ts="{{ d.last_seen_at or '' }}">{{ d.last_seen_at | reltime }}</time>
     </div>
     <div class="deal-foot">
-      <button type="button" class="bookmark-btn" data-deal-id="{{ d.id }}" aria-label="북마크" title="북마크">☆</button>
       {% if d.mall_url %}
-      <a class="deal-cta" href="{{ d.mall_url }}" target="_blank" rel="noopener">구매하기 ></a>
+      <a class="deal-cta-btn" href="{{ d.mall_url }}" target="_blank" rel="noopener">구매하기</a>
       {% else %}
-      <button type="button" class="deal-cta detail-btn" data-deal-id="{{ d.id }}">상세 ></button>
+      <button type="button" class="deal-cta-btn detail-btn" data-deal-id="{{ d.id }}">상세보기</button>
       {% endif %}
     </div>
   </div>

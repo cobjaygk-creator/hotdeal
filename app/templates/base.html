@@ -27,13 +27,37 @@
 </head>
 <body>
   {% set current_nav = nav|default("hotdeal") %}
+  {% set account_label = (user.display_name if user else "로그인") %}
+  {% set account_initial = (account_label[:1] if account_label else "U") %}
   <div class="sidebar-backdrop" id="sidebar-backdrop" hidden></div>
+
+  <header class="app-topbar">
+    <div class="topbar-left">
+      <button type="button" class="menu-btn" id="menu-btn" aria-label="메뉴 열기">☰</button>
+      <a class="topbar-brand" href="/">핫딜모음</a>
+    </div>
+    <div class="topbar-right">
+      <button type="button" class="theme-toggle" id="theme-toggle" aria-label="테마 전환" title="테마 전환">◐</button>
+      <details class="account-menu">
+        <summary class="account-pill" aria-label="계정 메뉴">
+          <span class="account-avatar" aria-hidden="true">{{ account_initial }}</span>
+          <span class="account-pill-name">{{ account_label }}</span>
+          <span class="account-caret" aria-hidden="true">▾</span>
+        </summary>
+        <div class="account-dropdown" role="menu">
+          {% if user %}
+          <a href="/alerts" role="menuitem">알림 설정</a>
+          <a href="/logout" role="menuitem">로그아웃</a>
+          {% else %}
+          <a href="/login" role="menuitem">로그인</a>
+          {% endif %}
+        </div>
+      </details>
+    </div>
+  </header>
+
   <div class="app-shell">
     <aside class="sidebar" id="sidebar" aria-label="메뉴">
-      <a class="sidebar-brand" href="/">
-        <span class="brand-mark">H</span>
-        핫딜모음
-      </a>
       <div class="sidebar-label">메뉴</div>
       <nav class="sidebar-nav">
         <a href="/" class="{% if current_nav == 'hotdeal' %}on{% endif %}"><span class="nav-ico">⚡</span> 핫딜</a>
@@ -42,25 +66,9 @@
         <a href="/alerts" class="{% if current_nav == 'alerts' %}on{% endif %}"><span class="nav-ico">🔔</span> 알림</a>
         <a href="/family/admin" class="{% if current_nav == 'admin' %}on{% endif %}"><span class="nav-ico">＋</span> 세일 등록</a>
       </nav>
-      <div class="sidebar-foot">
-        <div class="account">
-          {% if user %}
-          <a href="/alerts" class="account-name">{{ user.display_name }}</a>
-          <a href="/logout">로그아웃</a>
-          {% else %}
-          <a href="/login">로그인</a>
-          {% endif %}
-        </div>
-        <button type="button" class="theme-toggle" id="theme-toggle" aria-label="테마 전환" title="테마 전환">◐</button>
-      </div>
     </aside>
 
     <div class="app-main">
-      <header class="mobile-top">
-        <button type="button" class="menu-btn" id="menu-btn" aria-label="메뉴 열기">☰</button>
-        <a class="mobile-brand" href="/">핫딜모음</a>
-        <a class="icon-btn" href="/search" aria-label="검색">⌕</a>
-      </header>
       <div class="main-inner">
         {% block body %}{% endblock %}
       </div>
@@ -107,6 +115,10 @@
           a.addEventListener("click", closeNav);
         });
       }
+      document.addEventListener("click", function (e) {
+        var menu = document.querySelector(".account-menu");
+        if (menu && menu.open && !menu.contains(e.target)) menu.open = false;
+      });
     })();
   </script>
 </body>
