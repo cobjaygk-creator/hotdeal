@@ -322,7 +322,10 @@ async def collect_and_process(conn, sources, client) -> dict:
                 )
 
                 need_detail = False
-                if DETAIL_ENRICH_ENABLED:
+                # Ppomppu detail pages are blocked from datacenter IPs; skip the
+                # wasted enrich round-trip (thumbs come from CDN / list HTML).
+                allow_detail = post.source != "ppomppu"
+                if DETAIL_ENRICH_ENABLED and allow_detail:
                     if inserted:
                         need_detail = True
                     elif backfill_left > 0:

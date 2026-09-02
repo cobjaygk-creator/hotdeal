@@ -313,7 +313,7 @@ a.btn.ghost, .ghost {
 }
 .down { color: var(--down); font-weight: 800; }
 
-/* Deal cards — fixed card size; columns grow with viewport */
+/* Deal cards — fixed card width; more columns as the area widens */
 .deal-cards {
   list-style: none;
   padding: 0;
@@ -321,10 +321,11 @@ a.btn.ghost, .ghost {
   display: grid;
   grid-template-columns: 1fr;
   gap: 12px;
+  justify-content: start;
 }
 @media (min-width: 640px) {
   .deal-cards {
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    grid-template-columns: repeat(auto-fill, 260px);
     gap: 14px;
   }
 }

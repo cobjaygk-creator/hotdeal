@@ -233,8 +233,9 @@ h2 { font-size: 12px; margin-top: 22px; color: var(--ink-muted); font-weight: 70
   width: 100%;
 }
 .main-inner {
-  max-width: var(--maxw);
-  margin: 0 auto;
+  width: 100%;
+  max-width: none;
+  margin: 0;
   padding: 16px 16px 44px;
 }
 

@@ -16,32 +16,38 @@ log = logging.getLogger(__name__)
 RSS_URL = "https://www.ppomppu.co.kr/rss.php?id=ppomppu"
 LIST_URL = "https://www.ppomppu.co.kr/zboard/zboard.php?id=ppomppu"
 CDN_BASE = "https://cdn2.ppomppu.co.kr"
+# List HTML is often blocked/slow from datacenter IPs; keep it best-effort.
+LIST_TIMEOUT_SEC = 6.0
+RSS_TIMEOUT_SEC = 12.0
 
 
 class PpomppuSource:
     name = "ppomppu"
 
     async def fetch_latest(self, client: PoliteClient) -> list[RawPost]:
-        """Prefer list HTML (thumbnails) and merge RSS bodies (mall link text)."""
+        """RSS is the reliable path; list HTML is optional for richer thumbs/meta."""
         list_posts: list[RawPost] = []
         rss_posts: list[RawPost] = []
+        # Fetch RSS first so a hung list request cannot starve the collect tick.
         try:
-            result = await client.get(LIST_URL, encoding="euc-kr")
-            if not result.not_modified and result.text:
-                list_posts = parse_list_html(result.text)
-        except Exception as exc:  # noqa: BLE001
-            log.warning("ppomppu list fetch failed: %s", exc)
-        try:
-            result = await client.get(RSS_URL)
+            result = await client.get(RSS_URL, timeout=RSS_TIMEOUT_SEC)
             if not result.not_modified and result.text:
                 rss_posts = parse_rss(result.text)
         except Exception as exc:  # noqa: BLE001
             log.warning("ppomppu rss fetch failed: %s", exc)
+        try:
+            result = await client.get(
+                LIST_URL, encoding="euc-kr", timeout=LIST_TIMEOUT_SEC
+            )
+            if not result.not_modified and result.text and not _looks_blocked(result.text):
+                list_posts = parse_list_html(result.text)
+        except Exception as exc:  # noqa: BLE001
+            log.warning("ppomppu list fetch failed: %s", exc)
         return merge_list_and_rss(list_posts, rss_posts)
 
     async def fetch_page(self, client: PoliteClient, page: int) -> list[RawPost]:
         url = LIST_URL if page <= 1 else f"{LIST_URL}&page={page}"
-        result = await client.get(url, encoding="euc-kr")
+        result = await client.get(url, encoding="euc-kr", timeout=LIST_TIMEOUT_SEC)
         if result.not_modified:
             return []
         return parse_list_html(result.text)
@@ -63,6 +69,12 @@ def merge_list_and_rss(list_posts: list[RawPost], rss_posts: list[RawPost]) -> l
             post.votes = rss.votes
         if rss and rss.views and not post.views:
             post.views = rss.views
+        # Keep list thumb when present; otherwise CDN guess from RSS path.
+        if not (post.extra or {}).get("thumbnail_url"):
+            post.extra = {
+                **(post.extra or {}),
+                "thumbnail_url": thumbnail_for_post_id(post.source_post_id),
+            }
         out.append(post)
         seen.add(post.source_post_id)
     for rss in rss_posts:
@@ -102,6 +114,7 @@ def parse_rss(xml_text: str) -> list[RawPost]:
                 posted_at=posted,
                 votes=votes,
                 views=views,
+                extra={"thumbnail_url": thumbnail_for_post_id(post_id)},
             )
         )
     return posts
@@ -129,8 +142,7 @@ def parse_list_html(html: str) -> list[RawPost]:
         comments_el = row.css_first("span.baseList-c")
         rec_text = rec.text() if rec else ""
         votes = parse_int(rec_text.split("-")[0] if rec_text else "0")
-        thumb = _row_thumbnail(row)
-        extra = {"thumbnail_url": thumb} if thumb else {}
+        thumb = _row_thumbnail(row) or thumbnail_for_post_id(post_id)
         posts.append(
             RawPost(
                 source="ppomppu",
@@ -142,10 +154,25 @@ def parse_list_html(html: str) -> list[RawPost]:
                 votes=votes,
                 views=parse_int(views_el.text() if views_el else None),
                 comments=parse_int(comments_el.text() if comments_el else None),
-                extra=extra,
+                extra={"thumbnail_url": thumb},
             )
         )
     return posts
+
+
+def thumbnail_for_post_id(post_id: str) -> str:
+    """Ppomppu list thumbs follow .../_thumb/ppomppu/{lastDigit}/small_{id}.jpg."""
+    pid = (post_id or "").strip()
+    bucket = pid[-1] if pid else "0"
+    return f"{CDN_BASE}/zboard/data/_thumb/ppomppu/{bucket}/small_{pid}.jpg"
+
+
+def _looks_blocked(html: str) -> bool:
+    head = (html or "")[:800].lower()
+    return any(
+        token in head
+        for token in ("403 forbidden", "just a moment", "access denied", "요청을 차단")
+    )
 
 
 def _row_thumbnail(row) -> str | None:
@@ -158,7 +185,6 @@ def _row_thumbnail(row) -> str | None:
             continue
         if "_thumb" in low or "small_" in low or "/data/" in low or "/data3/" in low:
             return _abs_cdn(src)
-    # Fallback: first non-icon image in the row.
     for img in row.css("img[src]"):
         src = (img.attributes.get("src") or "").strip()
         if not src:

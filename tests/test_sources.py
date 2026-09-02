@@ -74,6 +74,9 @@ def test_ppomppu_rss_sample():
     assert posts[0].source_post_id == "123"
     assert posts[0].votes == 1
     assert posts[0].views == 89
+    assert posts[0].extra["thumbnail_url"] == (
+        "https://cdn2.ppomppu.co.kr/zboard/data/_thumb/ppomppu/3/small_123.jpg"
+    )
 
 
 def test_other_html_parsers():
