@@ -434,7 +434,7 @@ function flipPrepend(rows) {
       el.style.transition = "none";
       el.style.transform = `translate(${dx}px, ${dy}px)`;
       requestAnimationFrame(() => {
-        el.style.transition = "transform 0.4s cubic-bezier(0.22, 1, 0.36, 1)";
+        el.style.transition = "transform 0.9s cubic-bezier(0.22, 1, 0.36, 1)";
         el.style.transform = "";
         const clear = (ev) => {
           if (ev.propertyName && ev.propertyName !== "transform") return;

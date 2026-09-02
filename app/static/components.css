@@ -349,17 +349,30 @@ a.btn.ghost, .ghost {
   position: relative;
 }
 .deal-card.fresh {
-  animation: deal-slide-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation:
+    deal-slide-in 1.1s cubic-bezier(0.22, 1, 0.36, 1) both,
+    deal-highlight 2.2s ease both;
 }
 .deal-card.hot-fresh { background: #fff; }
 @keyframes deal-slide-in {
   from {
     opacity: 0;
-    transform: translateY(-18px) scale(0.98);
+    transform: translateY(-36px) scale(0.96);
   }
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+@keyframes deal-highlight {
+  0%,
+  35% {
+    box-shadow: 0 0 0 3px #2f80ed55, 0 8px 24px #2f80ed22;
+    border-color: #8bb8f5;
+  }
+  100% {
+    box-shadow: none;
+    border-color: #eceef2;
   }
 }
 @media (prefers-reduced-motion: reduce) {
