@@ -23,10 +23,10 @@
 <span id="stat-strong" hidden>{{ stats.strong }}</span>
 <span id="stat-posts" hidden>{{ stats.posts }}</span>
 
-<div class="chip-row" id="cat-chips" role="group" aria-label="카테고리">
-  <a class="filter-chip {% if not category %}on{% endif %}" href="/">전체</a>
+<div class="chip-row" id="cat-chips" role="tablist" aria-label="카테고리">
+  <a class="filter-chip {% if not category %}on{% endif %}" href="/" role="tab" aria-selected="{{ 'true' if not category else 'false' }}">전체</a>
   {% for c in categories %}
-  <a class="filter-chip {% if category == c %}on{% endif %}" href="/?cat={{ c }}">{{ c }}</a>
+  <a class="filter-chip {% if category == c %}on{% endif %}" href="/?cat={{ c }}" role="tab" aria-selected="{{ 'true' if category == c else 'false' }}">{{ c }}</a>
   {% endfor %}
 </div>
 

@@ -67,7 +67,7 @@
   --header-h: 52px;
   --sidebar-w: 220px;
   --maxw: 1320px;
-  --seg-active: #2878e8;
+  --seg-active: #2f80ed;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -104,7 +104,7 @@
     --quiet-bg: #20242d;
     --shadow-sm: 0 1px 2px #0000004d;
     --shadow-lg: 0 8px 24px #00000059;
-    --seg-active: #2878e8;
+    --seg-active: #2f80ed;
   }
 }
 
@@ -141,5 +141,5 @@
   --quiet-bg: #20242d;
   --shadow-sm: 0 1px 2px #0000004d;
   --shadow-lg: 0 8px 24px #00000059;
-  --seg-active: #2878e8;
+  --seg-active: #2f80ed;
 }

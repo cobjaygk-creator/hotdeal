@@ -156,9 +156,8 @@ a.btn.ghost, .ghost {
   min-height: 40px;
 }
 
-/* Category tabs — event-bench-tabs / game-sites-tabs */
-.chip,
-.filter-chip {
+/* Checkbox chips (family filters) — keep bordered pills */
+.chip {
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -175,14 +174,12 @@ a.btn.ghost, .ghost {
   text-decoration: none;
   box-sizing: border-box;
 }
-.chip:hover,
-.filter-chip:hover {
+.chip:hover {
   opacity: 1;
   color: #111;
   border-color: #aaa;
 }
 .chip input { accent-color: var(--accent); margin: 0; }
-.filter-chip .count,
 .chip .count {
   color: #777;
   text-align: center;
@@ -193,63 +190,85 @@ a.btn.ghost, .ghost {
   font-size: 10px;
   font-weight: 700;
 }
-.filter-chip.on,
 .chip:has(input:checked) {
   color: #fff;
   background: #111;
   border-color: #111;
 }
-.filter-chip.on .count,
 .chip:has(input:checked) .count {
   color: #fff;
   background: #333;
 }
 
-/* Status segment — event-bench-status-tabs */
+/* Segment tabs — gray track + blue active pill */
+.chip-row:has(.filter-chip),
 .seg-group {
   display: inline-flex;
   align-items: center;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: 2px;
-  margin: 0;
-  padding: 3px;
-  border-radius: 8px;
-  background: #fff;
-  border: 1px solid #d9dde5;
+  margin: 0 0 18px;
+  padding: 4px;
+  border-radius: 999px;
+  background: #eef0f4;
+  border: 0;
   vertical-align: middle;
+  max-width: 100%;
+  box-sizing: border-box;
 }
+.filter-chip,
 .seg-chip {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   margin: 0;
-  padding: 7px 12px;
+  padding: 8px 16px;
   border: 0;
-  border-radius: 5px;
+  border-radius: 999px;
   background: transparent;
-  color: #666;
+  color: #6b7280;
   font: inherit;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
+  line-height: 1.2;
   text-decoration: none;
   cursor: pointer;
   user-select: none;
   white-space: nowrap;
-  transition: background 0.15s, color 0.15s;
+  box-sizing: border-box;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 }
+.filter-chip:hover,
 .seg-chip:hover {
   opacity: 1;
   color: #246dcc;
-  background: #eef5ff;
+  background: #e4eefc;
 }
+.filter-chip.on,
 .seg-chip.on {
   color: #fff;
-  background: var(--seg-active, #2878e8);
-  box-shadow: 0 1px 2px #1753a02e;
+  background: var(--seg-active, #2f80ed);
+  box-shadow: 0 1px 3px #2f80ed40;
 }
+.filter-chip.on:hover,
 .seg-chip.on:hover {
   color: #fff;
-  background: var(--seg-active, #2878e8);
+  background: var(--seg-active, #2f80ed);
+}
+.filter-chip .count {
+  color: #6b7280;
+  text-align: center;
+  background: #e4e7ec;
+  border-radius: 99px;
+  min-width: 17px;
+  padding: 1px 5px;
+  font-size: 10px;
+  font-weight: 700;
+}
+.filter-chip.on .count {
+  color: #fff;
+  background: #1f6fd6;
 }
 
 .is-filtered-out { display: none !important; }
@@ -272,6 +291,7 @@ a.btn.ghost, .ghost {
   align-items: center;
 }
 .chip-row.seg-row { margin-bottom: 12px; gap: 10px; }
+.chip-row:has(.filter-chip) { gap: 2px; }
 .time-rel {
   font-variant-numeric: tabular-nums;
   color: var(--muted);
@@ -566,9 +586,14 @@ a.btn.ghost, .ghost {
 }
 [data-theme="dark"] .deal-row-main:hover { background: #20242d; }
 [data-theme="dark"] .chip,
-[data-theme="dark"] .filter-chip {
-  background: var(--surface);
-  border-color: var(--border);
+[data-theme="dark"] .chip-row:has(.filter-chip),
+[data-theme="dark"] .seg-group {
+  background: #2a2f3a;
+}
+[data-theme="dark"] .filter-chip,
+[data-theme="dark"] .seg-chip {
+  background: transparent;
+  border-color: transparent;
   color: var(--ink-muted);
 }
 [data-theme="dark"] .deal-tag { color: var(--ink-faint); }
@@ -578,7 +603,17 @@ a.btn.ghost, .ghost {
 [data-theme="dark"] .deal-price-row .time-rel { color: #4ade80; }
 [data-theme="dark"] .deal-thumb { background: #2a3140; }
 [data-theme="dark"] .time-abs { color: var(--ink-faint); }
-[data-theme="dark"] .filter-chip.on { background: #edeff3; color: #12151b; border-color: #edeff3; }
+[data-theme="dark"] .filter-chip.on,
+[data-theme="dark"] .seg-chip.on {
+  background: var(--seg-active, #2f80ed);
+  color: #fff;
+  border-color: transparent;
+}
+[data-theme="dark"] .filter-chip:hover,
+[data-theme="dark"] .seg-chip:hover {
+  background: #343b49;
+  color: #9ec1ff;
+}
 
 /* Modal */
 .modal {
