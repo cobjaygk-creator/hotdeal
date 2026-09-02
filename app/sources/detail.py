@@ -49,14 +49,23 @@ class DetailEnrichment:
     thumbnail_url: str | None = None
 
 
+_BLOCKED_TITLE = re.compile(
+    r"^(403\s*forbidden|401\s*unauthorized|404\s*not\s*found|just a moment|access denied|attention required)\b",
+    re.I,
+)
+
+
 async def enrich_post(client: PoliteClient, source: str, url: str) -> DetailEnrichment:
     if not url or not url.startswith(("http://", "https://")):
         return DetailEnrichment()
     try:
-        # Ppomppu detail pages are often euc-kr.
+        # Ppomppu detail pages are often euc-kr and block bare datacenter GETs.
         encoding = "euc-kr" if "ppomppu.co.kr" in url else None
         result = await client.get(url, encoding=encoding)
         if result.not_modified or not result.text:
+            return DetailEnrichment()
+        if _looks_blocked(result.text):
+            log.warning("detail enrich blocked source=%s url=%s", source, url)
             return DetailEnrichment()
         return parse_detail(result.text, url)
     except Exception as exc:  # noqa: BLE001
@@ -65,21 +74,41 @@ async def enrich_post(client: PoliteClient, source: str, url: str) -> DetailEnri
 
 
 def parse_detail(html: str, page_url: str = "") -> DetailEnrichment:
+    if _looks_blocked(html):
+        return DetailEnrichment()
     tree = HTMLParser(html)
     title = _meta_content(tree, "og:title") or _first_text(tree, TITLE_SELECTORS)
     if title:
         title = " ".join(title.split())
-        title = re.sub(
-            r"\s*[-|]\s*(루리웹|뽐뿌|클리앙|퀘이사존|아카라이브|다모앙|쿨엔조이|어미새|딜바다).*$",
-            "",
-            title,
-        )
+        if _BLOCKED_TITLE.match(title):
+            title = None
+        else:
+            title = re.sub(
+                r"\s*[-|]\s*(루리웹|뽐뿌|클리앙|퀘이사존|아카라이브|다모앙|쿨엔조이|어미새|딜바다).*$",
+                "",
+                title,
+            )
     thumb = _meta_content(tree, "og:image") or _first_img(tree, BODY_SELECTORS)
     if thumb and page_url:
         thumb = urljoin(page_url, thumb)
     body_text = _body_blob(tree)
     mall = extract_mall_url(body_text, html[:50000], title)
     return DetailEnrichment(title=title or None, mall_url=mall, thumbnail_url=thumb)
+
+
+def _looks_blocked(html: str) -> bool:
+    head = html[:1500].lower()
+    return any(
+        token in head
+        for token in (
+            "403 forbidden",
+            "just a moment",
+            "cf-browser-verification",
+            "access denied",
+            "attention required",
+            "요청을 차단",
+        )
+    )
 
 
 def enrich_from_list_body(body: str | None) -> DetailEnrichment:

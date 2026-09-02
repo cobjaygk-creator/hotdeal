@@ -83,14 +83,21 @@ def is_mall_url(url: str | None) -> bool:
     if not raw.startswith(("http://", "https://")):
         return False
     try:
-        host = (urlparse(raw).hostname or "").lower()
+        parsed = urlparse(raw)
+        host = (parsed.hostname or "").lower()
     except ValueError:
         return False
     if not host:
         return False
     if any(part in host for part in COMMUNITY_HOST_PARTS):
         return False
-    return any(part in host for part in MALL_HOST_PARTS)
+    if not any(part in host for part in MALL_HOST_PARTS):
+        return False
+    # Reject bare homepages like https://www.coupang.com/
+    path = (parsed.path or "").rstrip("/")
+    if not path:
+        return False
+    return True
 
 
 def _candidate_urls(text: str) -> list[str]:

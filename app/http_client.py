@@ -106,7 +106,13 @@ class PoliteClient:
                 self._etag[url] = etag
             if lm := resp.headers.get("Last-Modified"):
                 self._modified[url] = lm
-            return self._decode(url, resp.status_code, resp.content, encoding, resp.encoding)
+            decoded = self._decode(url, resp.status_code, resp.content, encoding, resp.encoding)
+            # Some boards return HTTP 200 with an HTML 403 body to datacenter IPs.
+            head = decoded.text[:800].lower()
+            if "403 forbidden" in head or "just a moment" in head:
+                log.warning("soft-block body on %s, falling back to curl", url)
+                return await self._curl_get(url, encoding, timeout=req_timeout)
+            return decoded
 
         if last_error:
             raise last_error
@@ -125,11 +131,17 @@ class PoliteClient:
                 "install curl in the image for Cloudflare fallback"
             )
         max_time = str(int(timeout if timeout is not None else HTTP_TIMEOUT_SEC))
+        # Referer helps some community boards (esp. ppomppu) that 403 bare GETs.
+        referer = f"{httpx.URL(url).scheme}://{httpx.URL(url).host}/"
         proc = await asyncio.create_subprocess_exec(
             curl,
             "-sL",
             "-A",
             USER_AGENT,
+            "-e",
+            referer,
+            "-H",
+            "Accept-Language: ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
             "--max-time",
             max_time,
             url,

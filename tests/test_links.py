@@ -14,3 +14,8 @@ def test_reject_community():
 def test_coupang_ok():
     assert is_mall_url("https://www.coupang.com/vp/products/123")
     assert extract_mall_url("링크 https://link.coupang.com/a/AbC") == "https://link.coupang.com/a/AbC"
+
+
+def test_reject_bare_mall_homepage():
+    assert not is_mall_url("https://www.coupang.com/")
+    assert not is_mall_url("https://www.coupang.com")
