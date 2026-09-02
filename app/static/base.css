@@ -188,7 +188,7 @@ h2 { font-size: var(--text-sm); margin-top: var(--space-6); color: var(--muted);
 .page-head {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 10px 16px;
   margin-bottom: 16px;
@@ -200,6 +200,13 @@ h2 { font-size: var(--text-sm); margin-top: var(--space-6); color: var(--muted);
   font-weight: 800;
   color: var(--ink);
 }
+.page-head-actions {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-left: auto;
+}
 .page-head .page-meta {
   display: inline-flex;
   align-items: center;
@@ -210,6 +217,9 @@ h2 { font-size: var(--text-sm); margin-top: var(--space-6); color: var(--muted);
   padding: 0;
   border: 0;
   background: transparent;
+}
+.page-head #collect-btn {
+  flex-shrink: 0;
 }
 
 @media (min-width: 960px) {

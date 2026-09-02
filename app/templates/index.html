@@ -9,54 +9,27 @@
 {% block body %}
 <div class="page-head">
   <h1>실시간 핫딜</h1>
-  <div class="page-meta">
-    <span class="dot" id="live-dot"></span>
-    <span id="live-status">연결 중…</span>
-    · 수집 <strong id="stat-last">{{ stats.last_collect_at | kst }}</strong>
+  <div class="page-head-actions">
+    <div class="page-meta">
+      <span class="dot" id="live-dot"></span>
+      <span id="live-status">연결 중…</span>
+      · 수집 <strong id="stat-last">{{ stats.last_collect_at | kst }}</strong>
+    </div>
+    <button type="button" id="collect-btn" class="btn-secondary">지금 수집</button>
   </div>
 </div>
 
-<div class="chip-row seg-row">
-  <div class="seg-group" id="grade-chips" role="group" aria-label="등급">
-    <a class="seg-chip {% if not grade %}on{% endif %}" href="/{% if category %}?cat={{ category }}{% endif %}{% if seller %}{% if category %}&{% else %}?{% endif %}seller={{ seller }}{% endif %}">전체</a>
-    {% for g in ["핫딜", "특가", "초특가", "관심"] %}
-    <a class="seg-chip {% if grade == g %}on{% endif %}" href="/?grade={{ g }}{% if category %}&cat={{ category }}{% endif %}{% if seller %}&seller={{ seller }}{% endif %}">{{ g }}</a>
-    {% endfor %}
-    <a class="seg-chip {% if grade == '이력없음' %}on{% endif %}" href="/?grade=이력없음{% if category %}&cat={{ category }}{% endif %}{% if seller %}&seller={{ seller }}{% endif %}">이력없음</a>
-  </div>
-  <span class="summary-chip">오늘 <strong id="stat-hot">{{ stats.today_hot }}</strong></span>
-  <span class="summary-chip">강력 <strong id="stat-strong">{{ stats.strong }}</strong></span>
-  <span class="summary-chip">게시글 <strong id="stat-posts">{{ stats.posts }}</strong></span>
-</div>
-<div class="ticker" id="ticker" aria-live="polite"></div>
+<div class="ticker" id="ticker" aria-live="polite" hidden></div>
+<span id="stat-hot" hidden>{{ stats.today_hot }}</span>
+<span id="stat-strong" hidden>{{ stats.strong }}</span>
+<span id="stat-posts" hidden>{{ stats.posts }}</span>
 
 <div class="chip-row" id="cat-chips" role="group" aria-label="카테고리">
-  <a class="filter-chip {% if not category %}on{% endif %}" href="/{% if grade %}?grade={{ grade }}{% endif %}{% if seller %}{% if grade %}&{% else %}?{% endif %}seller={{ seller }}{% endif %}">전체</a>
+  <a class="filter-chip {% if not category %}on{% endif %}" href="/">전체</a>
   {% for c in categories %}
-  <a class="filter-chip {% if category == c %}on{% endif %}" href="/?cat={{ c }}{% if grade %}&grade={{ grade }}{% endif %}{% if seller %}&seller={{ seller }}{% endif %}">{{ c }}</a>
+  <a class="filter-chip {% if category == c %}on{% endif %}" href="/?cat={{ c }}">{{ c }}</a>
   {% endfor %}
 </div>
-
-<div class="chip-row" id="source-chips" role="group" aria-label="커뮤니티">
-  <button type="button" class="filter-chip on" data-source="*">전체</button>
-  {% for s in sources %}
-  <button type="button" class="filter-chip" data-source="{{ s }}">{{ source_labels.get(s, s) }}</button>
-  {% endfor %}
-  <button type="button" class="filter-chip" id="bookmark-chip" data-bookmarks="1">저장한 딜</button>
-</div>
-
-<form class="toolbar" method="get" action="/" style="margin-top:2px">
-  {% if category %}<input type="hidden" name="cat" value="{{ category }}">{% endif %}
-  {% if grade %}<input type="hidden" name="grade" value="{{ grade }}">{% endif %}
-  <select name="seller">
-    <option value="">판매처 전체</option>
-    {% for s in sellers %}
-      <option value="{{ s }}" {% if seller == s %}selected{% endif %}>{{ s }}</option>
-    {% endfor %}
-  </select>
-  <button type="submit">적용</button>
-  <button type="button" id="collect-btn" class="btn-secondary">지금 수집</button>
-</form>
 
 <ul class="deal-cards" id="deal-body">
   {% for d in deals %}
@@ -71,9 +44,9 @@
 </div>
 <script id="live-config" type="application/json">{{ {
   "live": true,
-  "grade": grade,
-  "seller": seller,
-  "source": source,
+  "grade": "",
+  "seller": "",
+  "source": "",
   "category": category,
   "pageSize": page_size,
   "hasMore": has_more,
