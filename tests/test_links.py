@@ -38,3 +38,12 @@ def test_unwrap_community_redirect():
         'url=https%3A%2F%2Fitem.gmarket.co.kr%2FItem%3Fgoodscode%3D4828575079">buy</a>'
     )
     assert extract_mall_url(html) == "https://item.gmarket.co.kr/Item?goodscode=4828575079"
+
+
+def test_unwrap_gmarket_affiliate_gate():
+    gate = (
+        "https://link.gmarket.co.kr/gate/channel?service-code=10021003"
+        "&target-url=https%3A%2F%2Fitem.gmarket.co.kr%2FItem%3FgoodsCode%3D4331858761"
+    )
+    assert is_mall_url(gate)
+    assert extract_mall_url(gate) == "https://item.gmarket.co.kr/Item?goodsCode=4331858761"

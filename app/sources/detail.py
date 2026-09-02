@@ -121,15 +121,18 @@ async def resolve_outbound_mall(
             )
         ):
             continue
+        # Skip non-post helpers like board_link.php?type=best
+        if "wr_id=" not in abs_url and "no=" not in abs_url:
+            continue
         try:
             result = await client.get(abs_url, timeout=15.0)
             final = result.url or ""
-            if is_mall_url(final):
-                return final
-            # Some boards return a tiny HTML interstitial with the real href.
-            nested = extract_mall_url(result.text or "", final)
+            # Prefer unwrapped item URL inside affiliate gates when present.
+            nested = extract_mall_url(final, result.text or "")
             if nested:
                 return nested
+            if is_mall_url(final):
+                return final
         except Exception as exc:  # noqa: BLE001
             log.debug("outbound resolve failed %s: %s", abs_url, exc)
         if len(seen) >= 3:

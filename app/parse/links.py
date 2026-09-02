@@ -8,7 +8,7 @@ HREF_RE = re.compile(r"""href\s*=\s*["']([^"']+)["']""", re.I)
 URL_RE = re.compile(r"https?://[^\s<>\"']+", re.I)
 # Nested destination inside community redirectors / tracking wrappers.
 NESTED_URL_RE = re.compile(
-    r"(?:url|target_url|u|href|link|redirect)=((?:https?|https?%3A%2F%2F)[^&\s\"'<>]+)",
+    r"(?:url|target[_-]?url|u|href|link|redirect)=((?:https?|https?%3A%2F%2F)[^&\s\"'<>]+)",
     re.I,
 )
 TRUNCATED_RE = re.compile(r"(?:\.{3}|…|%E2%80%A6)")
@@ -108,8 +108,11 @@ def is_mall_url(url: str | None) -> bool:
     if not path:
         return False
     # Gmarket/Auction item links without a product id are useless.
+    # Affiliate gates (link.gmarket.co.kr) are OK — browser can open them.
+    if host.startswith("link.") and "gmarket.co.kr" in host:
+        return True
     if "gmarket.co.kr" in host or "auction.co.kr" in host:
-        qs = parse_qs(parsed.query)
+        qs = {k.lower(): v for k, v in parse_qs(parsed.query).items()}
         code = (qs.get("goodscode") or qs.get("itemno") or [""])[0]
         if not str(code).isdigit():
             return False
@@ -123,10 +126,10 @@ def _expand_candidates(url: str) -> list[str]:
         nested = unquote(m.group(1).strip())
         if nested.startswith("http"):
             out.append(nested)
-    # Common pattern: ?url=https%3A%2F%2F...
+    # Common pattern: ?url=https%3A%2F%2F... / target-url=...
     try:
         qs = parse_qs(urlparse(raw).query)
-        for key in ("url", "target_url", "u", "href", "link", "redirect"):
+        for key in ("url", "target_url", "target-url", "u", "href", "link", "redirect"):
             for val in qs.get(key) or []:
                 val = unquote(val.strip())
                 if val.startswith("http"):
