@@ -6,11 +6,10 @@
   align-items: start;
 }
 .family-cal-panel {
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
+  background: #fff;
+  border: 1px solid #dedede;
+  border-radius: 10px;
   padding: 12px;
-  box-shadow: var(--shadow-sm);
 }
 .cal-nav {
   display: flex;
@@ -83,12 +82,11 @@ table.calendar td.sel {
 .family-day-title { margin: 0 0 12px; font-size: var(--text-lg); color: var(--ink); font-weight: 800; }
 .sale-list { list-style: none; padding: 0; margin: 0; }
 .sale-list li {
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
+  background: #fff;
+  border: 1px solid #dedede;
+  border-radius: 10px;
   padding: 12px 14px;
   margin-bottom: 8px;
-  box-shadow: var(--shadow-sm);
 }
 .sale-list li.has-code {
   border-color: color-mix(in srgb, var(--accent) 50%, var(--line));
@@ -113,10 +111,9 @@ table.calendar td.sel {
   .sale-cards { grid-template-columns: repeat(2, 1fr); }
 }
 .sale-card {
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+  background: #fff;
+  border: 1px solid #dedede;
+  border-radius: 10px;
   overflow: hidden;
 }
 .sale-card.has-code {
@@ -132,11 +129,10 @@ table.calendar td.sel {
 .sale-cards .empty { grid-column: 1 / -1; }
 .deal-cards .empty-row { grid-column: 1 / -1; }
 .deal-detail-card {
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
+  background: #fff;
+  border: 1px solid #dedede;
+  border-radius: 10px;
   padding: 18px 16px 20px;
-  box-shadow: var(--shadow-sm);
   margin-bottom: 18px;
 }
 
@@ -144,11 +140,10 @@ table.calendar td.sel {
   display: grid;
   gap: 10px;
   max-width: 520px;
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
+  background: #fff;
+  border: 1px solid #dedede;
+  border-radius: 10px;
   padding: 16px;
-  box-shadow: var(--shadow-sm);
 }
 .admin-form label {
   display: grid;
@@ -160,7 +155,7 @@ table.calendar td.sel {
 .admin-form input,
 .admin-form select {
   padding: 10px 12px;
-  border-radius: 12px;
+  border-radius: 7px;
   border: 1px solid var(--line);
   font: inherit;
   background: var(--bg-elevated);
@@ -178,7 +173,7 @@ table.calendar td.sel {
   justify-content: center;
   min-height: 44px;
   padding: 0 16px;
-  border-radius: 12px;
+  border-radius: 7px;
   font-weight: 800;
   text-decoration: none;
   border: 1px solid var(--line);
@@ -203,3 +198,12 @@ table.calendar td.sel {
   font-weight: 600;
 }
 .back-link:hover { color: var(--accent); }
+
+[data-theme="dark"] .family-cal-panel,
+[data-theme="dark"] .sale-list li,
+[data-theme="dark"] .sale-card,
+[data-theme="dark"] .deal-detail-card,
+[data-theme="dark"] .admin-form {
+  background: var(--surface);
+  border-color: var(--border);
+}
