@@ -1,2 +1,3 @@
+# PPOMPPU_PROXY_URL is set in Railway Variables (not in this file).
 [deploy]
 startCommand = "uvicorn app.main:app --host 0.0.0.0 --port $PORT"

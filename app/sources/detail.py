@@ -53,6 +53,10 @@ class DetailEnrichment:
     title: str | None = None
     mall_url: str | None = None
     thumbnail_url: str | None = None
+    # True only when the detail page was refused/soft-blocked (403, nginx block,
+    # Cloudflare gate). A clean fetch that simply has no buy link stays False so
+    # callers can tell "exit IP blocked" apart from "post has no mall link".
+    blocked: bool = False
 
 
 _BLOCKED_TITLE = re.compile(
@@ -77,6 +81,7 @@ async def enrich_post(client: PoliteClient, source: str, url: str) -> DetailEnri
     timeout = 20.0 if proxy else (5.0 if is_ppomppu else None)
     encoding = "euc-kr" if is_ppomppu else None
     last_err: Exception | None = None
+    blocked = False
     for candidate in urls:
         try:
             result = await client.get(
@@ -88,8 +93,11 @@ async def enrich_post(client: PoliteClient, source: str, url: str) -> DetailEnri
                 proxy=proxy,
             )
             if result.not_modified or not result.text:
+                if result.status == 403:
+                    blocked = True
                 continue
-            if _looks_blocked(result.text):
+            if result.status == 403 or _looks_blocked(result.text):
+                blocked = True
                 log.warning("detail enrich blocked source=%s url=%s", source, candidate)
                 continue
             # Tiny redirect shells are not useful article HTML.
@@ -107,7 +115,7 @@ async def enrich_post(client: PoliteClient, source: str, url: str) -> DetailEnri
             log.warning("detail enrich failed source=%s url=%s err=%s", source, candidate, exc)
     if last_err:
         log.warning("detail enrich exhausted source=%s url=%s", source, url)
-    return DetailEnrichment()
+    return DetailEnrichment(blocked=blocked)
 
 
 async def resolve_outbound_mall(
@@ -148,7 +156,8 @@ async def resolve_outbound_mall(
         if "wr_id=" not in abs_url and "no=" not in abs_url:
             continue
         try:
-            result = await client.get(abs_url, timeout=12.0)
+            use_proxy = PPOMPPU_PROXY_URL if "ppomppu.co.kr" in host else None
+            result = await client.get(abs_url, timeout=12.0, proxy=use_proxy)
             final = result.url or ""
             # Prefer unwrapped item URL inside affiliate gates when present.
             nested = extract_mall_url(final, result.text or "")

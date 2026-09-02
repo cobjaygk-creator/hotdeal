@@ -23,6 +23,8 @@ async def enrich_missing_ppomppu_malls(conn, client, *, limit: int | None = None
             "reason": "PPOMPPU_PROXY_URL not set",
             "attempted": 0,
             "filled": 0,
+            "blocked": 0,
+            "no_link": 0,
         }
 
     batch = limit if limit is not None else PPOMPPU_ENRICH_BATCH
@@ -43,8 +45,10 @@ async def enrich_missing_ppomppu_malls(conn, client, *, limit: int | None = None
     )
     rows = [dict(r) for r in await cur.fetchall()]
     filled = 0
-    blocked = 0
+    blocked = 0  # detail page refused (403 / soft-block) -> exit IP quality
+    no_link = 0  # detail fetched fine but the post has no buy link
     errors = 0
+    consecutive_blocked = 0
     for row in rows:
         try:
             detail = await enrich_post(client, "ppomppu", row["post_url"])
@@ -53,11 +57,18 @@ async def enrich_missing_ppomppu_malls(conn, client, *, limit: int | None = None
             errors += 1
             continue
         if not detail.mall_url:
-            blocked += 1
-            # If the proxy path is also blocked, stop burning the batch.
-            if blocked >= 2 and filled == 0:
-                break
+            if getattr(detail, "blocked", False):
+                blocked += 1
+                consecutive_blocked += 1
+                # Exit IP is being soft-blocked: stop burning the batch so the
+                # next tick can retry (rotating proxies may hand us a fresh IP).
+                if consecutive_blocked >= 3 and filled == 0:
+                    break
+            else:
+                no_link += 1
+                consecutive_blocked = 0
             continue
+        consecutive_blocked = 0
         await conn.execute(
             """
             UPDATE deals
@@ -85,15 +96,17 @@ async def enrich_missing_ppomppu_malls(conn, client, *, limit: int | None = None
         "attempted": len(rows),
         "filled": filled,
         "blocked": blocked,
+        "no_link": no_link,
         "errors": errors,
         "at": utcnow_iso(),
     }
     await set_meta(conn, "last_ppomppu_mall_enrich", json.dumps(summary, ensure_ascii=False))
     log.info(
-        "ppomppu mall enrich attempted=%s filled=%s blocked=%s errors=%s",
+        "ppomppu mall enrich attempted=%s filled=%s blocked=%s no_link=%s errors=%s",
         len(rows),
         filled,
         blocked,
+        no_link,
         errors,
     )
     return summary

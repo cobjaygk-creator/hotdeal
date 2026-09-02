@@ -17,6 +17,17 @@ python -m app
 
 패밀리세일은 같은 사이트 `/family` 메뉴에서 봅니다. 딜링크·어미새를 30분마다 수집합니다. 수동 등록은 `/family/admin`이며 `ADMIN_PASSWORD` 환경변수가 필요합니다.
 
+## 뽐뿌 구매링크 (Railway 프록시)
+
+뽐뿌 구매 URL은 상세 HTML에만 있습니다. Railway 데이터센터 IP는 상세가 403이라, 주거용/한국 출구 프록시를 `PPOMPPU_PROXY_URL`로 넣어야 합니다.
+
+1. HTTP 또는 SOCKS5 프록시 URL을 준비합니다. 예: `http://user:pass@host:port`
+2. Railway Variables에 `PPOMPPU_PROXY_URL`을 넣고 재시작합니다. 선택: `PPOMPPU_ENRICH_INTERVAL_MINUTES`(기본 5), `PPOMPPU_ENRICH_BATCH`(기본 12)
+3. `GET /api/stats`에서 `ppomppu_proxy_configured`가 true인지, `last_ppomppu_mall_enrich.filled`가 0보다 큰지 확인합니다.
+4. 홈 뽐뿌 카드 CTA가 **구매하기**(쇼핑몰)인지 확인합니다. 프록시가 막히면 `blocked`만 늘고 카드는 **상세보기**로 남습니다.
+
+회사 PC에서는 로컬 collect를 켜지 않습니다. 형식은 [`.env.example`](.env.example)을 참고하세요.
+
 ## 뽐뿌 90일 백필
 
 ```powershell

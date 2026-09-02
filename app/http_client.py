@@ -113,9 +113,11 @@ class PoliteClient:
                 return FetchResult(url, 304, "", b"", not_modified=True)
 
             if resp.status_code == 403:
-                if curl_fallback and not proxy:
-                    log.warning("403 on %s, falling back to curl", url)
-                    return await self._curl_get(url, encoding, timeout=req_timeout)
+                if curl_fallback:
+                    log.warning("403 on %s, falling back to curl (proxy=%s)", url, bool(proxy))
+                    return await self._curl_get(
+                        url, encoding, timeout=req_timeout, proxy=proxy
+                    )
                 log.warning("403 on %s (proxy=%s curl_fallback=%s)", url, bool(proxy), curl_fallback)
                 return self._decode(url, 403, resp.content, encoding, resp.encoding)
 
@@ -139,9 +141,11 @@ class PoliteClient:
             # Some boards return HTTP 200 with an HTML 403 body to datacenter IPs.
             head = decoded.text[:800].lower()
             if "403 forbidden" in head or "just a moment" in head:
-                if curl_fallback and not proxy:
-                    log.warning("soft-block body on %s, falling back to curl", url)
-                    return await self._curl_get(url, encoding, timeout=req_timeout)
+                if curl_fallback:
+                    log.warning("soft-block body on %s, falling back to curl (proxy=%s)", url, bool(proxy))
+                    return await self._curl_get(
+                        url, encoding, timeout=req_timeout, proxy=proxy
+                    )
                 log.warning("soft-block body on %s (proxy=%s)", url, bool(proxy))
             return decoded
 
@@ -149,22 +153,16 @@ class PoliteClient:
             raise last_error
         raise RuntimeError(f"retries exhausted for {url}")
 
-    async def _curl_get(
-        self,
+    @staticmethod
+    def _curl_argv(
         url: str,
-        encoding: str | None,
         timeout: float | None = None,
-    ) -> FetchResult:
+        proxy: str | None = None,
+    ) -> list[str]:
         curl = "curl.exe" if sys.platform == "win32" else "curl"
-        if shutil.which(curl) is None:
-            raise RuntimeError(
-                f"403 from {url} and curl is not installed; "
-                "install curl in the image for Cloudflare fallback"
-            )
         max_time = str(int(timeout if timeout is not None else HTTP_TIMEOUT_SEC))
-        # Referer helps some community boards (esp. ppomppu) that 403 bare GETs.
         referer = f"{httpx.URL(url).scheme}://{httpx.URL(url).host}/"
-        proc = await asyncio.create_subprocess_exec(
+        argv = [
             curl,
             "-sL",
             "-A",
@@ -175,7 +173,27 @@ class PoliteClient:
             "Accept-Language: ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
             "--max-time",
             max_time,
-            url,
+        ]
+        if proxy:
+            argv.extend(["-x", proxy])
+        argv.append(url)
+        return argv
+
+    async def _curl_get(
+        self,
+        url: str,
+        encoding: str | None,
+        timeout: float | None = None,
+        proxy: str | None = None,
+    ) -> FetchResult:
+        curl = "curl.exe" if sys.platform == "win32" else "curl"
+        if shutil.which(curl) is None:
+            raise RuntimeError(
+                f"403 from {url} and curl is not installed; "
+                "install curl in the image for Cloudflare fallback"
+            )
+        proc = await asyncio.create_subprocess_exec(
+            *self._curl_argv(url, timeout=timeout, proxy=proxy),
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
