@@ -13,7 +13,7 @@ from app.parse.links import extract_mall_url, is_mall_url
 log = logging.getLogger(__name__)
 
 OUTBOUND_HREF_RE = re.compile(
-    r"""href\s*=\s*["']([^"']*(?:link\.php|out\.php|/link/|redirect)[^"']*)["']""",
+    r"""href\s*=\s*["']([^"']*(?:link\.php|out\.php|/link/|redirect|s\.ppomppu\.co\.kr)[^"']*)["']""",
     re.I,
 )
 
@@ -63,21 +63,29 @@ _BLOCKED_TITLE = re.compile(
 async def enrich_post(client: PoliteClient, source: str, url: str) -> DetailEnrichment:
     if not url or not url.startswith(("http://", "https://")):
         return DetailEnrichment()
-    # Ppomppu detail pages often 403 datacenter IPs. List HTML + RSS already
-    # supply thumbnails / some mall links; skip wasted detail fetches here.
-    # Re-enable when a residential proxy or local collector is available.
-    if source == "ppomppu" or "ppomppu.co.kr" in url:
-        return DetailEnrichment()
+    is_ppomppu = source == "ppomppu" or "ppomppu.co.kr" in url
+    # Prefer https; ppomppu RSS still emits http:// links that bounce via script.
+    if url.startswith("http://"):
+        url = "https://" + url[len("http://") :]
     urls = [url]
+    if is_ppomppu and "www.ppomppu.co.kr" in url:
+        urls.append(url.replace("www.ppomppu.co.kr", "m.ppomppu.co.kr", 1))
+    # Keep ppomppu detail attempts short so a datacenter block cannot stall collect.
+    timeout = 8.0 if is_ppomppu else None
+    encoding = "euc-kr" if is_ppomppu else None
     last_err: Exception | None = None
     for candidate in urls:
         try:
-            encoding = "euc-kr" if "ppomppu.co.kr" in candidate else None
-            result = await client.get(candidate, encoding=encoding)
+            result = await client.get(
+                candidate, encoding=encoding, timeout=timeout
+            )
             if result.not_modified or not result.text:
                 continue
             if _looks_blocked(result.text):
                 log.warning("detail enrich blocked source=%s url=%s", source, candidate)
+                continue
+            # Tiny redirect shells are not useful article HTML.
+            if len(result.text) < 800 and "document.location" in result.text:
                 continue
             parsed = parse_detail(result.text, candidate)
             if not parsed.mall_url:
@@ -122,11 +130,17 @@ async def resolve_outbound_mall(
             )
         ):
             continue
+        # s.ppomppu.co.kr?target=<base64> can be decoded without an extra hop.
+        if "s.ppomppu.co.kr" in host:
+            nested = extract_mall_url(abs_url)
+            if nested:
+                return nested
+            continue
         # Skip non-post helpers like board_link.php?type=best
         if "wr_id=" not in abs_url and "no=" not in abs_url:
             continue
         try:
-            result = await client.get(abs_url, timeout=15.0)
+            result = await client.get(abs_url, timeout=12.0)
             final = result.url or ""
             # Prefer unwrapped item URL inside affiliate gates when present.
             nested = extract_mall_url(final, result.text or "")

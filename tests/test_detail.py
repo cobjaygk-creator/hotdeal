@@ -20,6 +20,22 @@ def test_parse_detail_og_and_mall():
     assert detail.mall_url == "https://www.coupang.com/vp/products/99"
 
 
+def test_parse_detail_ppomppu_shortener():
+    # https://item.gmarket.co.kr/Item?goodscode=2713640571
+    target = (
+        "aHR0cHM6Ly9pdGVtLmdtYXJrZXQuY28ua3IvSXRlbT9nb29kc2NvZGU9MjcxMzY0MDU3MQ=="
+    )
+    html = f"""
+    <html><body>
+      <div class="board-contents">
+        <a href="https://s.ppomppu.co.kr?idno=ppomppu_1&target={target}">buy</a>
+      </div>
+    </body></html>
+    """
+    detail = parse_detail(html, "https://www.ppomppu.co.kr/zboard/view.php?id=ppomppu&no=1")
+    assert detail.mall_url == "https://item.gmarket.co.kr/Item?goodscode=2713640571"
+
+
 def test_enrich_from_rss_body():
     body = (
         '<img src="https://cdn.example.com/p.jpg">'

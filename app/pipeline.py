@@ -322,10 +322,7 @@ async def collect_and_process(conn, sources, client) -> dict:
                 )
 
                 need_detail = False
-                # Ppomppu detail pages are blocked from datacenter IPs; skip the
-                # wasted enrich round-trip (thumbs come from CDN / list HTML).
-                allow_detail = post.source != "ppomppu"
-                if DETAIL_ENRICH_ENABLED and allow_detail:
+                if DETAIL_ENRICH_ENABLED:
                     if inserted:
                         need_detail = True
                     elif backfill_left > 0:
@@ -344,8 +341,11 @@ async def collect_and_process(conn, sources, client) -> dict:
                             (pid,),
                         )
                         prow = await cur.fetchone()
-                        # Keep retrying until both thumbnail and mall are filled.
-                        if prow and (not prow["thumb"] or not prow["mall"]):
+                        # Ppomppu thumbs come from CDN; only chase missing mall.
+                        if post.source == "ppomppu":
+                            if prow and not prow["mall"]:
+                                need_detail = True
+                        elif prow and (not prow["thumb"] or not prow["mall"]):
                             need_detail = True
 
                 if need_detail:
