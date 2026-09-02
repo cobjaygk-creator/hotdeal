@@ -16,13 +16,15 @@
   </div>
 </div>
 
-<div class="chip-row seg-row" id="grade-chips" role="group" aria-label="등급">
-  <a class="seg-chip {% if not grade %}on{% endif %}" href="/{% if category %}?cat={{ category }}{% endif %}{% if seller %}{% if category %}&{% else %}?{% endif %}seller={{ seller }}{% endif %}">전체</a>
-  {% for g in ["핫딜", "특가", "초특가", "관심"] %}
-  <a class="seg-chip {% if grade == g %}on{% endif %}" href="/?grade={{ g }}{% if category %}&cat={{ category }}{% endif %}{% if seller %}&seller={{ seller }}{% endif %}">{{ g }}</a>
-  {% endfor %}
-  <a class="seg-chip {% if grade == '이력없음' %}on{% endif %}" href="/?grade=이력없음{% if category %}&cat={{ category }}{% endif %}{% if seller %}&seller={{ seller }}{% endif %}">이력없음</a>
-  <span class="summary-chip" style="margin-left:4px">오늘 <strong id="stat-hot">{{ stats.today_hot }}</strong></span>
+<div class="chip-row seg-row">
+  <div class="seg-group" id="grade-chips" role="group" aria-label="등급">
+    <a class="seg-chip {% if not grade %}on{% endif %}" href="/{% if category %}?cat={{ category }}{% endif %}{% if seller %}{% if category %}&{% else %}?{% endif %}seller={{ seller }}{% endif %}">전체</a>
+    {% for g in ["핫딜", "특가", "초특가", "관심"] %}
+    <a class="seg-chip {% if grade == g %}on{% endif %}" href="/?grade={{ g }}{% if category %}&cat={{ category }}{% endif %}{% if seller %}&seller={{ seller }}{% endif %}">{{ g }}</a>
+    {% endfor %}
+    <a class="seg-chip {% if grade == '이력없음' %}on{% endif %}" href="/?grade=이력없음{% if category %}&cat={{ category }}{% endif %}{% if seller %}&seller={{ seller }}{% endif %}">이력없음</a>
+  </div>
+  <span class="summary-chip">오늘 <strong id="stat-hot">{{ stats.today_hot }}</strong></span>
   <span class="summary-chip">강력 <strong id="stat-strong">{{ stats.strong }}</strong></span>
   <span class="summary-chip">게시글 <strong id="stat-posts">{{ stats.posts }}</strong></span>
 </div>

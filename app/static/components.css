@@ -155,8 +155,7 @@ a.btn.ghost, .ghost {
 
 /* Tabs / chips — match UX Insight */
 .chip,
-.filter-chip,
-.seg-chip {
+.filter-chip {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -175,17 +174,53 @@ a.btn.ghost, .ghost {
   box-sizing: border-box;
 }
 .chip:hover,
-.filter-chip:hover,
-.seg-chip:hover { opacity: 1; color: var(--ink); }
+.filter-chip:hover { opacity: 1; color: var(--ink); }
 .chip input { accent-color: var(--accent); margin: 0; }
 
-/* Blue segment tabs (상태/등급) */
-.seg-chip { color: #6b7280; }
+/* Connected segment control (전체 | 진행 중 | 종료) */
+.seg-group {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 0;
+  padding: 3px;
+  border-radius: 999px;
+  background: #eef0f4;
+  border: 1px solid #e5e7eb;
+  vertical-align: middle;
+}
+.seg-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin: 0;
+  padding: 6px 14px;
+  min-height: 32px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  box-shadow: none;
+}
+.seg-chip:hover {
+  opacity: 1;
+  color: var(--ink);
+  background: color-mix(in srgb, #fff 55%, transparent);
+}
 .seg-chip.on {
   background: var(--accent);
-  border-color: var(--accent);
   color: #fff;
+  box-shadow: 0 1px 2px rgba(59, 130, 246, 0.35);
 }
+.seg-chip.on:hover { color: #fff; background: var(--accent); }
 
 /* Black count chips (카테고리·커뮤니티) */
 .filter-chip.on,
@@ -217,8 +252,21 @@ a.btn.ghost, .ghost {
   flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 10px;
+  align-items: center;
 }
-.chip-row.seg-row { margin-bottom: 12px; }
+.chip-row.seg-row { margin-bottom: 12px; gap: 10px; }
+
+[data-theme="dark"] .seg-group,
+:root:not([data-theme="light"]) .seg-group {
+  background: #232833;
+  border-color: var(--line);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .seg-group {
+    background: #232833;
+    border-color: var(--line);
+  }
+}
 .time-rel {
   font-variant-numeric: tabular-nums;
   color: var(--muted);

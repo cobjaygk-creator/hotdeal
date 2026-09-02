@@ -16,11 +16,11 @@
 <form class="toolbar" method="get" action="/family">
   <input type="hidden" name="year" value="{{ grid.year }}">
   <input type="hidden" name="month" value="{{ grid.month }}">
-  <div class="chip-row seg-row" style="margin:0;width:100%">
+  <div class="chip-row" style="margin:0;width:100%">
   {% for c in all_cats %}
   <label class="chip"><input type="checkbox" name="cat" value="{{ c }}" {% if c in cats %}checked{% endif %}> {{ c }}</label>
   {% endfor %}
-  <label class="seg-chip {% if entry_only %}on{% endif %}" style="cursor:pointer"><input type="checkbox" name="code" value="1" {% if entry_only %}checked{% endif %} style="margin-right:4px"> 입장코드만</label>
+  <label class="chip"><input type="checkbox" name="code" value="1" {% if entry_only %}checked{% endif %}> 입장코드만</label>
   </div>
   <button type="submit">적용</button>
   <button type="button" id="family-collect" class="btn-secondary">지금 수집</button>
