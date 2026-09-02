@@ -1,6 +1,11 @@
 {% extends "base.html" %}
-{% block title %}패밀리세일{% endblock %}
+{% block title %}패밀리세일 · 핫딜모음{% endblock %}
 {% block body %}
+<section class="hero">
+  <h1>패밀리세일</h1>
+  <p>브랜드 창고·패밀리세일 일정을 모아 진행중·예정·입장코드를 한눈에 봅니다.</p>
+</section>
+
 <section class="stats stats-3">
   <div class="stat"><div class="label">진행중</div><div class="value">{{ stats.live }}</div></div>
   <div class="stat"><div class="label">예정</div><div class="value">{{ stats.upcoming }}</div></div>
@@ -11,10 +16,12 @@
 <form class="toolbar" method="get" action="/family">
   <input type="hidden" name="year" value="{{ grid.year }}">
   <input type="hidden" name="month" value="{{ grid.month }}">
+  <div class="chip-row" style="margin:0;width:100%">
   {% for c in all_cats %}
   <label class="chip"><input type="checkbox" name="cat" value="{{ c }}" {% if c in cats %}checked{% endif %}> {{ c }}</label>
   {% endfor %}
   <label class="chip"><input type="checkbox" name="code" value="1" {% if entry_only %}checked{% endif %}> 입장코드만</label>
+  </div>
   <button type="submit">적용</button>
   <button type="button" id="family-collect" class="btn-secondary">지금 수집</button>
   <a class="ghost" href="/family/admin">수동 등록</a>
@@ -52,7 +59,7 @@
   </aside>
 
   <section>
-    <h2 style="margin-top:0">{% if selected %}{{ selected }} 세일{% else %}진행중 · 예정{% endif %}</h2>
+    <h2 class="family-day-title">{% if selected %}{{ selected }} 세일{% else %}진행중 · 예정{% endif %}</h2>
     <ul class="sale-list">
       {% for s in day_sales %}
       <li class="{% if s.has_entry_code %}has-code{% endif %}">

@@ -1,0 +1,145 @@
+/* Family sale */
+.family-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  align-items: start;
+}
+.family-cal-panel {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px;
+  box-shadow: var(--shadow-sm);
+}
+.cal-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: var(--text-sm);
+}
+.cal-nav a {
+  text-decoration: none;
+  color: var(--ink);
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--bg-elevated);
+  font-weight: 700;
+}
+table.calendar {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+table.calendar th,
+table.calendar td {
+  border: 1px solid var(--line);
+  vertical-align: top;
+  height: 52px;
+  padding: 4px;
+  font-size: var(--text-xs);
+}
+table.calendar th {
+  color: var(--muted);
+  font-weight: 700;
+  background: var(--bg-elevated);
+}
+table.calendar td.out {
+  background: var(--bg-elevated);
+  color: color-mix(in srgb, var(--muted) 70%, transparent);
+}
+table.calendar td.sel {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  background: var(--accent-soft);
+}
+.cal-num {
+  color: inherit;
+  text-decoration: none;
+  font-weight: 700;
+}
+.cal-count {
+  float: right;
+  font-size: 10px;
+  color: var(--muted);
+  font-weight: 700;
+}
+.cal-count.code { color: var(--accent); }
+.cal-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 4px;
+}
+.cal-bar {
+  display: block;
+  height: 4px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--accent) 45%, var(--line));
+}
+.cal-bar.code { background: var(--accent); }
+.family-day-title { margin: 0 0 12px; font-size: var(--text-lg); color: var(--ink); font-weight: 800; }
+.sale-list { list-style: none; padding: 0; margin: 0; }
+.sale-list li {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  box-shadow: var(--shadow-sm);
+}
+.sale-list li.has-code {
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--line));
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.sale-list a {
+  color: var(--ink);
+  text-decoration: none;
+  font-weight: 700;
+}
+.sale-list a:hover { color: var(--accent); }
+
+.admin-form {
+  display: grid;
+  gap: 10px;
+  max-width: 520px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
+}
+.admin-form label {
+  display: grid;
+  gap: 4px;
+  font-size: var(--text-sm);
+  color: var(--muted);
+  font-weight: 600;
+}
+.admin-form input,
+.admin-form select {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  font: inherit;
+  background: var(--bg-elevated);
+  color: var(--ink);
+}
+
+@media (min-width: 900px) {
+  .family-layout { grid-template-columns: 300px 1fr; }
+}
+
+/* Deal SSR page */
+.deal-page-actions { margin: 12px 0 8px; }
+.back-link {
+  display: inline-flex;
+  margin-bottom: 8px;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+.back-link:hover { color: var(--accent); }

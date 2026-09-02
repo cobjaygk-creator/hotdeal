@@ -169,6 +169,7 @@ async def index(
             "source": source or "",
             "sellers": sellers,
             "sources": sources,
+            "nav": "hotdeal",
         },
     )
 
@@ -351,7 +352,13 @@ async def deal_detail(request: Request, deal_id: int):
     history = await _price_history(deal["product_key"])
     return TEMPLATES.TemplateResponse(
         "deal.html",
-        {"request": request, "deal": deal, "posts": posts, "history": history},
+        {
+            "request": request,
+            "nav": "hotdeal",
+            "deal": deal,
+            "posts": posts,
+            "history": history,
+        },
     )
 
 

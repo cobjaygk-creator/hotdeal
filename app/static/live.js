@@ -57,10 +57,11 @@ function isHot(deal) {
 
 function gradeHtml(grade) {
   const g = grade || "-";
-  if (g.includes("핫딜") || g.includes("특가")) {
-    return `<span class="grade-chip">${esc(g)}</span>`;
-  }
-  return `<span class="muted">${esc(g)}</span>`;
+  if (g.includes("초특가")) return `<span class="grade-chip grade-super">${esc(g)}</span>`;
+  if (g.includes("특가")) return `<span class="grade-chip grade-special">${esc(g)}</span>`;
+  if (g.includes("핫딜")) return `<span class="grade-chip grade-hot">${esc(g)}</span>`;
+  if (g === "관심") return `<span class="grade-chip grade-watch">${esc(g)}</span>`;
+  return `<span class="grade-quiet">${esc(g)}</span>`;
 }
 
 function isPostUrl(url) {
@@ -233,7 +234,7 @@ async function openModal(id) {
     : "";
   modalBody.innerHTML = `
     ${thumb}
-    <p class="modal-price">${won(deal.price)} <span class="muted">${pct(deal.discount_rate)} · ${esc(deal.grade || "-")}</span></p>
+    <p class="modal-price">${won(deal.price)} <span class="muted">${pct(deal.discount_rate)} · ${gradeHtml(deal.grade)}</span></p>
     <h1 id="modal-title">${esc(deal.product_name)}</h1>
     <p class="muted">${esc(deal.seller || "판매처 미상")} · 표본 ${deal.sample_count || 0}건 · ${kst(deal.last_seen_at)}</p>
     <p class="modal-meta">중앙값 ${won(deal.baseline_price)} · 최저 ${won(deal.min_price)}</p>

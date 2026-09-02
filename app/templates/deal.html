@@ -1,19 +1,32 @@
 {% extends "base.html" %}
-{% block title %}{{ deal.product_name }} · 자동 핫딜 탐지기{% endblock %}
+{% block title %}{{ deal.product_name }} · 핫딜모음{% endblock %}
 {% block body %}
-<p><a href="/">← 목록</a></p>
+<a class="back-link" href="/">← 목록</a>
 {% if deal.thumbnail_url %}
 <div class="modal-thumb-wrap"><img class="modal-thumb" src="{{ deal.thumbnail_url }}" alt="" referrerpolicy="no-referrer"></div>
 {% endif %}
 <p class="modal-price">{% if deal.price %}{{ "{:,}".format(deal.price) }}원{% else %}-{% endif %}
-  <span class="muted">{% if deal.discount_rate is not none %}{{ "%.1f"|format(-deal.discount_rate * 100) }}% · {% endif %}{{ deal.grade or "-" }}</span>
+  <span class="muted">
+    {% if deal.discount_rate is not none %}{{ "%.1f"|format(-deal.discount_rate * 100) }}% · {% endif %}
+    {% if deal.grade and ("초특가" in deal.grade) %}
+    <span class="grade-chip grade-super">{{ deal.grade }}</span>
+    {% elif deal.grade and ("특가" in deal.grade) %}
+    <span class="grade-chip grade-special">{{ deal.grade }}</span>
+    {% elif deal.grade and ("핫딜" in deal.grade) %}
+    <span class="grade-chip grade-hot">{{ deal.grade }}</span>
+    {% elif deal.grade == "관심" %}
+    <span class="grade-chip grade-watch">{{ deal.grade }}</span>
+    {% else %}
+    <span class="grade-quiet">{{ deal.grade or "-" }}</span>
+    {% endif %}
+  </span>
 </p>
 <h1>{{ deal.product_name }}</h1>
 <p class="muted">{{ deal.seller or "판매처 미상" }} · 표본 {{ deal.sample_count }}건 · {{ deal.last_seen_at | kst }}</p>
 <p class="modal-meta">중앙값 {% if deal.baseline_price %}{{ "{:,}".format(deal.baseline_price) }}원{% else %}-{% endif %}
  · 최저 {% if deal.min_price %}{{ "{:,}".format(deal.min_price) }}원{% else %}-{% endif %}</p>
 
-<p class="modal-actions">
+<p class="modal-actions deal-page-actions">
 {% if deal.mall_url %}<a class="btn" href="{{ deal.mall_url }}" target="_blank" rel="noopener">구매하기</a>{% endif %}
 {% if deal.deal_url %}<a class="btn ghost" href="{{ deal.deal_url }}" target="_blank" rel="noopener">원문 보기</a>{% endif %}
 </p>

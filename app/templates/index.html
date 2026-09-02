@@ -1,5 +1,11 @@
 {% extends "base.html" %}
+{% block title %}실시간 핫딜모음{% endblock %}
 {% block body %}
+<section class="hero">
+  <h1>실시간 핫딜모음</h1>
+  <p>여러 커뮤니티 특가를 한곳에 모으고, 가격 이력으로 진짜 싼지 가려줍니다.</p>
+</section>
+
 <div class="status-row">
   <span class="dot" id="live-dot"></span>
   <span id="live-status">연결 중…</span>
@@ -37,6 +43,9 @@
   <button type="button" id="collect-btn" class="btn-secondary">지금 수집</button>
 </form>
 
+{# Phase 1 will swap the source select for interactive chips; markup reserved. #}
+<div class="chip-row" id="source-chips" hidden aria-hidden="true"></div>
+
 <ul class="deal-cards" id="deal-body">
   {% for d in deals %}
   <li class="deal-card" data-id="{{ d.id }}">
@@ -56,10 +65,16 @@
         {% elif d.discount_rate is not none %}
         <span>{{ "%.1f"|format(-d.discount_rate * 100) }}%</span>
         {% endif %}
-        {% if d.grade in ["핫딜", "특가", "초특가"] or (d.grade and ("핫딜" in d.grade or "특가" in d.grade)) %}
-        <span class="grade-chip">{{ d.grade }}</span>
+        {% if d.grade and ("초특가" in d.grade) %}
+        <span class="grade-chip grade-super">{{ d.grade }}</span>
+        {% elif d.grade and ("특가" in d.grade) %}
+        <span class="grade-chip grade-special">{{ d.grade }}</span>
+        {% elif d.grade and ("핫딜" in d.grade) %}
+        <span class="grade-chip grade-hot">{{ d.grade }}</span>
+        {% elif d.grade == "관심" %}
+        <span class="grade-chip grade-watch">{{ d.grade }}</span>
         {% else %}
-        <span class="muted">{{ d.grade or "-" }}</span>
+        <span class="grade-quiet">{{ d.grade or "-" }}</span>
         {% endif %}
         {% if d.baseline_price %}
         <span class="muted">중앙 {{ "{:,}".format(d.baseline_price) }}원</span>

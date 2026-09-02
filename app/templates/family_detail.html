@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ sale.title }} · 패밀리세일{% endblock %}
 {% block body %}
-<p><a href="/family">← 패밀리세일</a></p>
+<a class="back-link" href="/family">← 패밀리세일</a>
 <h1>{{ sale.title }}</h1>
 <p class="muted">{{ sale.brands_label }} · {{ sale.status }} · {{ sale.sale_type }}{% if sale.sale_kind %} · {{ sale.sale_kind }}{% endif %}</p>
 

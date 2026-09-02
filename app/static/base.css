@@ -1,0 +1,95 @@
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.45;
+}
+a { color: var(--accent); }
+a:hover { opacity: 0.92; }
+h1 { font-size: var(--text-xl); margin: var(--space-2) 0; letter-spacing: -0.02em; }
+h2 { font-size: var(--text-sm); margin-top: var(--space-6); color: var(--muted); font-weight: 700; text-transform: none; }
+.muted { color: var(--muted); }
+.empty { text-align: center; color: var(--muted); padding: 40px 16px; list-style: none; }
+
+.top {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--header-h);
+  padding: 10px 16px;
+  background: color-mix(in srgb, var(--card) 92%, transparent);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--line);
+}
+.brand {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  font-weight: 800;
+  font-size: var(--text-lg);
+  color: var(--ink);
+  text-decoration: none;
+  letter-spacing: -0.03em;
+}
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+}
+.brand-sub {
+  display: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.site-nav {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+.site-nav a {
+  padding: 8px 12px;
+  border-radius: var(--radius-pill);
+  text-decoration: none;
+  color: var(--muted);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+.site-nav a.on {
+  background: var(--ink);
+  color: var(--card);
+}
+.theme-toggle {
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--muted);
+  border-radius: var(--radius-pill);
+  width: 36px;
+  height: 36px;
+  cursor: pointer;
+  font-size: 14px;
+}
+main {
+  padding: 16px 14px 56px;
+  max-width: var(--maxw);
+  margin: 0 auto;
+}
+
+@media (min-width: 800px) {
+  .top { padding: 12px 24px; }
+  .brand-sub { display: inline; }
+  main { padding: 22px 24px 64px; }
+}

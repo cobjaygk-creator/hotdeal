@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}패밀리세일 수동 등록{% endblock %}
 {% block body %}
-<p><a href="/family">← 패밀리세일</a></p>
+<a class="back-link" href="/family">← 패밀리세일</a>
 <h1>수동 등록</h1>
 {% if error %}<p class="down">{{ error }}</p>{% endif %}
 {% if not authed %}
@@ -9,7 +9,7 @@
   <input type="hidden" name="action" value="login">
   <label>관리자 비밀번호<input type="password" name="password" required></label>
   <button type="submit">로그인</button>
-  <p class="muted">Render Environment에 ADMIN_PASSWORD를 넣으세요. 비어 있으면 등록할 수 없습니다.</p>
+  <p class="muted">Railway Variables에 ADMIN_PASSWORD를 넣으세요. 비어 있으면 등록할 수 없습니다.</p>
 </form>
 {% else %}
 <form method="post" action="/family/admin" class="admin-form">
