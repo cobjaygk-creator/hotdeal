@@ -27,6 +27,7 @@ from app.config import (
 )
 from app.db import connect, get_meta, upsert_family_sale, utcnow_iso
 from app.engine.alerts import add_sub, channels_ready, default_target, delete_sub, list_subs
+from app.engine.category import CATEGORIES as DEAL_CATEGORIES
 from app.family.parse import parse_discount
 from app.family.pipeline import collect_family_sales
 from app.family.query import CATEGORIES, get_sale, list_sales, month_grid, parse_cats, parse_year_month
