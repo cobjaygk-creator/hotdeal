@@ -526,7 +526,34 @@ async def api_debug_enrich(deal_id: int, apply: int = 0):
         "goodscodes": codes[:10] if html_text else [],
         "candidate_accepted": [u for u in candidates if is_mall_url(u)][:10],
         "extract_from_html": extract_mall_url(html_text[:80000]) if html_text else None,
+        "outbound_resolve": await _debug_resolve_outbound(state["http"], url, hrefs),
     }
+
+
+async def _debug_resolve_outbound(client, page_url: str, hrefs: list[str]) -> list[dict]:
+    from urllib.parse import urljoin
+
+    from app.parse.links import extract_mall_url, is_mall_url
+
+    out: list[dict] = []
+    for href in hrefs:
+        if "link.php" not in href and "out.php" not in href:
+            continue
+        abs_url = urljoin(page_url, href)
+        row = {"href": abs_url}
+        try:
+            result = await client.get(abs_url, timeout=20.0)
+            row["final_url"] = result.url
+            row["status"] = result.status
+            row["is_mall"] = is_mall_url(result.url)
+            row["nested_mall"] = extract_mall_url(result.text or "")
+            row["body_head"] = (result.text or "")[:240]
+        except Exception as exc:  # noqa: BLE001
+            row["error"] = f"{type(exc).__name__}: {exc}"
+        out.append(row)
+        if len(out) >= 3:
+            break
+    return out
 
 
 async def _stats() -> dict:
