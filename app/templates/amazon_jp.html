@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}일마존 초특가 · 핫딜모음{% endblock %}
+{% block extra_head %}
+<meta property="og:title" content="일마존 초특가">
+<meta property="og:description" content="일본 아마존에서 30% 이상 할인 중인 상품을 모읍니다.">
+<meta property="og:url" content="{{ site_url }}/amazon-jp">
+<meta property="og:type" content="website">
+{% endblock %}
+{% block body %}
+<div class="page-head">
+  <h1>일마존 초특가</h1>
+  <div class="page-head-actions">
+    <div class="page-meta">마지막 수집 {{ last | kst }}</div>
+    <button type="button" id="amazon-jp-collect" class="btn-secondary">지금 수집</button>
+  </div>
+</div>
+<p class="muted" style="margin:-6px 0 14px;font-size:13px">일본 아마존에서 표시 할인이 30% 이상인 상품입니다. 정가 대비일 수 있고, 배송·관세는 아마존에서 확인하세요.</p>
+
+<div class="summary-chips">
+  <span class="summary-chip">초특가 <strong>{{ deals|length }}</strong></span>
+</div>
+
+<ul class="deal-cards" id="amazon-jp-body">
+  {% for d in deals %}
+  {% include "_amazon_jp_card.html" %}
+  {% else %}
+  <li class="empty-row empty">아직 상품이 없습니다. 수집을 실행하세요.</li>
+  {% endfor %}
+</ul>
+<script>
+document.getElementById("amazon-jp-collect")?.addEventListener("click", async () => {
+  const btn = document.getElementById("amazon-jp-collect");
+  if (!btn) return;
+  btn.disabled = true;
+  try {
+    const res = await fetch("/api/amazon-jp/collect", { method: "POST" });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      alert(err.detail || "수집을 실행할 수 없습니다.");
+      return;
+    }
+    location.reload();
+  } catch (e) {
+    alert("수집 요청에 실패했습니다.");
+  } finally {
+    btn.disabled = false;
+  }
+});
+</script>
+{% endblock %}

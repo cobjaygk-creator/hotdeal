@@ -18,8 +18,11 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 
+from app.amazon_jp.pipeline import collect_amazon_jp
+from app.amazon_jp.query import list_amazon_jp_deals
 from app.config import (
     ADMIN_PASSWORD,
+    AMAZON_JP_INTERVAL_MINUTES,
     COLLECT_INTERVAL_MINUTES,
     ENABLE_COLLECT,
     FAMILY_SALE_INTERVAL_MINUTES,
@@ -121,6 +124,15 @@ async def lifespan(app: FastAPI):
             coalesce=True,
             next_run_time=datetime.now() + timedelta(seconds=25),
         )
+        scheduler.add_job(
+            _scheduled_amazon_jp,
+            "interval",
+            minutes=AMAZON_JP_INTERVAL_MINUTES,
+            id="collect_amazon_jp",
+            max_instances=1,
+            coalesce=True,
+            next_run_time=datetime.now() + timedelta(seconds=40),
+        )
         if PPOMPPU_PROXY_URL:
             scheduler.add_job(
                 _scheduled_ppomppu_mall_enrich,
@@ -188,6 +200,14 @@ async def _scheduled_family() -> None:
             await collect_family_sales(state["db"], state["http"])
         except Exception:
             log.exception("family collect failed")
+
+
+async def _scheduled_amazon_jp() -> None:
+    async with state["collect_lock"]:
+        try:
+            await collect_amazon_jp(state["db"], state["http"])
+        except Exception:
+            log.exception("amazon jp collect failed")
 
 
 async def _scheduled_ppomppu_mall_enrich() -> None:
@@ -278,7 +298,7 @@ async def index(
             items.append(f"<li>{name}</li>")
         return HTMLResponse(
             "<!doctype html><html lang='ko'><meta charset='utf-8'><title>핫딜모음</title>"
-            "<body><p><a href='/family'>패밀리세일</a></p><h1>핫딜</h1><ul>"
+            "<body><p><a href='/amazon-jp'>일마존</a> · <a href='/family'>패밀리세일</a></p><h1>핫딜</h1><ul>"
             + "".join(items)
             + "</ul></body></html>"
         )
@@ -551,11 +571,34 @@ def _require_collect() -> None:
         raise HTTPException(403, "collect disabled on this instance")
 
 
+@app.get("/amazon-jp", response_class=HTMLResponse)
+async def amazon_jp_index(request: Request):
+    deals = await list_amazon_jp_deals(_db())
+    last = await get_meta(_db(), "last_amazon_jp_collect_at")
+    return TEMPLATES.TemplateResponse(
+        "amazon_jp.html",
+        {
+            "request": request,
+            "nav": "amazon_jp",
+            "deals": deals,
+            "last": last,
+        },
+    )
+
+
 @app.post("/api/family/collect")
 async def api_family_collect():
     _require_collect()
     async with state["collect_lock"]:
         summary = await collect_family_sales(state["db"], state["http"])
+    return JSONResponse(summary)
+
+
+@app.post("/api/amazon-jp/collect")
+async def api_amazon_jp_collect():
+    _require_collect()
+    async with state["collect_lock"]:
+        summary = await collect_amazon_jp(state["db"], state["http"])
     return JSONResponse(summary)
 
 
@@ -769,6 +812,7 @@ async def sitemap():
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
         f"<url><loc>{SITE_URL}/</loc><changefreq>hourly</changefreq></url>",
         f"<url><loc>{SITE_URL}/family</loc><changefreq>daily</changefreq></url>",
+        f"<url><loc>{SITE_URL}/amazon-jp</loc><changefreq>hourly</changefreq></url>",
         f"<url><loc>{SITE_URL}/search</loc><changefreq>weekly</changefreq></url>",
     ]
     for row in rows:
@@ -1054,6 +1098,7 @@ async def _stats() -> dict:
         "collect_by_source": by_source,
         "ppomppu_proxy_configured": bool(PPOMPPU_PROXY_URL),
         "last_ppomppu_mall_enrich": pp_enrich,
+        "last_amazon_jp_collect_at": await get_meta(db, "last_amazon_jp_collect_at"),
     }
 
 

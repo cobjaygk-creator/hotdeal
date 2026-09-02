@@ -1,0 +1,31 @@
+<li class="deal-card" data-asin="{{ d.asin }}">
+  <div class="deal-thumb-wrap">
+    {% if d.image_url %}
+    <img class="deal-thumb" src="{{ d.image_url }}" alt="" loading="lazy" referrerpolicy="no-referrer">
+    {% else %}
+    <div class="deal-thumb placeholder" aria-hidden="true"></div>
+    {% endif %}
+    <div class="deal-badge-row">
+      <span class="grade-chip grade-super">🔥🔥🔥 초특가</span>
+    </div>
+  </div>
+  <div class="deal-body">
+    <div class="deal-tags">
+      <span class="deal-tag">일마존</span>
+      {% if d.source %}<span class="deal-tag deal-tag-source">{{ d.source }}</span>{% endif %}
+    </div>
+    <a class="deal-title" href="{{ d.amazon_url }}" target="_blank" rel="noopener">{{ d.title }}</a>
+    <div class="deal-price-row">
+      <div class="deal-price">{% if d.yen_price %}¥{{ "{:,}".format(d.yen_price) }}{% else %}-{% endif %}</div>
+      {% if d.original_yen %}
+      <span class="muted" style="text-decoration:line-through">¥{{ "{:,}".format(d.original_yen) }}</span>
+      {% endif %}
+      {% if d.discount_rate is number and d.discount_rate >= 0.30 %}
+      <span class="down">{{ "%.0f"|format(-d.discount_rate * 100) }}%</span>
+      {% endif %}
+    </div>
+    <div class="deal-foot">
+      <a class="deal-cta-btn" href="{{ d.amazon_url }}" target="_blank" rel="noopener">구매하기</a>
+    </div>
+  </div>
+</li>

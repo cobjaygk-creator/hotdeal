@@ -17,6 +17,8 @@ python -m app
 
 패밀리세일은 같은 사이트 `/family` 메뉴에서 봅니다. 딜링크·어미새를 30분마다 수집합니다. 수동 등록은 `/family/admin`이며 `ADMIN_PASSWORD` 환경변수가 필요합니다.
 
+일마존(`/amazon-jp`)은 일본 아마존에서 표시 할인이 30% 이상인 상품을 모아 보여줍니다. 목록 사이트(mottoku)를 30분마다 긁으며, 구매 링크는 amazon.co.jp입니다. 선택: `AMAZON_JP_ASSOCIATE_TAG`.
+
 ## 뽐뿌 구매링크 (Railway 프록시)
 
 뽐뿌 구매 URL은 상세 HTML에만 있습니다. Railway 데이터센터 IP는 상세가 403이라, 주거용/한국 출구 프록시를 `PPOMPPU_PROXY_URL`로 넣어야 합니다.
