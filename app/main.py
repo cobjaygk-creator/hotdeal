@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import math
 import re
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
@@ -605,6 +606,22 @@ async def api_collect(source: str | None = None):
     return JSONResponse(summary)
 
 
+@app.get("/api/debug/feed")
+async def api_debug_feed():
+    try:
+        rows = await _list_deals(limit=1)
+        sample = rows[0] if rows else {}
+        return {
+            "ok": True,
+            "n": len(rows),
+            "keys": sorted(sample.keys()),
+            "id": sample.get("id"),
+        }
+    except Exception as exc:
+        log.exception("debug feed")
+        return {"ok": False, "error": f"{type(exc).__name__}: {exc}"}
+
+
 @app.get("/api/debug/probe/{source}")
 async def api_debug_probe(source: str):
     """Temporary HTML-structure probe; only when collect is enabled (Render)."""
@@ -798,46 +815,75 @@ async def _list_deals(
     before_id=None,
 ) -> list[dict]:
     db = _db()
-    sql = """
-        SELECT d.*, GROUP_CONCAT(DISTINCT p.source) AS sources
-        FROM deals d
-        LEFT JOIN deal_posts dp ON dp.deal_id=d.id
-        LEFT JOIN posts p ON p.id=dp.post_id
-        WHERE 1=1
-    """
+    sql = "SELECT * FROM deals WHERE 1=1"
     params: list = []
     if grade:
-        sql += " AND d.grade LIKE ?"
+        sql += " AND grade LIKE ?"
         params.append(f"%{grade}%")
     if seller:
-        sql += " AND d.seller = ?"
+        sql += " AND seller = ?"
         params.append(seller)
-    if source:
-        sql += " AND p.source = ?"
-        params.append(source)
     if category:
-        sql += " AND d.category = ?"
+        sql += " AND category = ?"
         params.append(category)
+    if source:
+        sql += (
+            " AND id IN (SELECT dp.deal_id FROM deal_posts dp"
+            " JOIN posts p ON p.id=dp.post_id WHERE p.source=?)"
+        )
+        params.append(source)
     if ids:
         placeholders = ",".join("?" for _ in ids)
-        sql += f" AND d.id IN ({placeholders})"
+        sql += f" AND id IN ({placeholders})"
         params.extend(ids)
     if before_id:
-        cur = await db.execute(
-            "SELECT id, COALESCE(last_scored_at, last_seen_at) AS sort_at FROM deals WHERE id=?",
-            (before_id,),
-        )
+        cur = await db.execute("SELECT id, last_seen_at FROM deals WHERE id=?", (before_id,))
         cursor = await cur.fetchone()
         if cursor:
-            sql += (
-                " AND (COALESCE(d.last_scored_at, d.last_seen_at) < ?"
-                " OR (COALESCE(d.last_scored_at, d.last_seen_at) = ? AND d.id < ?))"
-            )
-            params.extend([cursor["sort_at"], cursor["sort_at"], cursor["id"]])
-    sql += " GROUP BY d.id ORDER BY COALESCE(d.last_seen_at, d.first_seen_at) DESC, d.id DESC LIMIT ?"
+            sql += " AND (last_seen_at < ? OR (last_seen_at = ? AND id < ?))"
+            params.extend([cursor["last_seen_at"], cursor["last_seen_at"], cursor["id"]])
+    sql += " ORDER BY last_seen_at DESC, id DESC LIMIT ?"
     params.append(limit)
     cur = await db.execute(sql, params)
-    return [dict(r) for r in await cur.fetchall()]
+    deals = [_clean_deal(dict(r)) for r in await cur.fetchall()]
+    return await _attach_sources(db, deals)
+
+
+def _clean_deal(deal: dict) -> dict:
+    out = {}
+    for key, value in deal.items():
+        if isinstance(value, float) and (math.isnan(value) or math.isinf(value)):
+            out[key] = None
+        else:
+            out[key] = value
+    return out
+
+
+async def _attach_sources(db, deals: list[dict]) -> list[dict]:
+    if not deals:
+        return deals
+    ids = [d["id"] for d in deals]
+    placeholders = ",".join("?" for _ in ids)
+    cur = await db.execute(
+        f"""
+        SELECT dp.deal_id, p.source
+        FROM deal_posts dp
+        JOIN posts p ON p.id=dp.post_id
+        WHERE dp.deal_id IN ({placeholders})
+        """,
+        ids,
+    )
+    buckets: dict[int, list[str]] = {}
+    for row in await cur.fetchall():
+        src = row["source"]
+        if not src:
+            continue
+        bucket = buckets.setdefault(row["deal_id"], [])
+        if src not in bucket:
+            bucket.append(src)
+    for deal in deals:
+        deal["sources"] = ",".join(buckets.get(deal["id"], []))
+    return deals
 
 
 def _parse_ids(raw: str | None) -> list[int]:
