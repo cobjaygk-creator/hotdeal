@@ -18,16 +18,6 @@
 .dot.on { background: var(--ok); box-shadow: 0 0 0 4px color-mix(in srgb, var(--ok) 25%, transparent); }
 .dot.off { background: var(--danger); }
 #live-status { color: var(--muted); }
-.ticker {
-  display: none;
-  gap: 14px;
-  overflow: hidden;
-  flex-wrap: wrap;
-  min-width: 0;
-  margin: 0 0 12px;
-}
-.ticker-item { white-space: nowrap; font-size: var(--text-xs); color: var(--accent); font-weight: 600; }
-@media (min-width: 800px) { .ticker { display: flex; } }
 
 /* Hero (compact under page-head) */
 .hero {

@@ -1,7 +1,6 @@
 const configEl = document.getElementById("live-config");
 const config = configEl ? JSON.parse(configEl.textContent) : { live: false };
 const bodyEl = document.getElementById("deal-body");
-const ticker = document.getElementById("ticker");
 const statusEl = document.getElementById("live-status");
 const dot = document.getElementById("live-dot");
 const chipRow = document.getElementById("source-chips");
@@ -393,16 +392,6 @@ async function ensureVisible(min) {
   applySourceFilter();
 }
 
-function pushTicker(deal) {
-  if (!ticker) return;
-  const item = document.createElement("span");
-  item.className = "ticker-item";
-  const flag = isHot(deal) ? " " + (deal.grade || "") : "";
-  item.textContent = `${won(deal.price)} ${deal.product_name || ""}${flag}`;
-  ticker.prepend(item);
-  while (ticker.children.length > 6) ticker.removeChild(ticker.lastChild);
-}
-
 function applyStats(stats) {
   if (!stats) return;
   const posts = document.getElementById("stat-posts");
@@ -471,7 +460,6 @@ function ingest(items) {
     if (config.category && deal.category !== config.category) continue;
     seen.add(id);
     rows.push(renderRow(deal));
-    if (matchesSources(deal.sources)) pushTicker(deal);
   }
   if (rows.length) flipPrepend(rows);
   applySourceFilter();
