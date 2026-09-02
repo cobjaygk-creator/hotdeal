@@ -58,19 +58,29 @@ _BLOCKED_TITLE = re.compile(
 async def enrich_post(client: PoliteClient, source: str, url: str) -> DetailEnrichment:
     if not url or not url.startswith(("http://", "https://")):
         return DetailEnrichment()
-    try:
-        # Ppomppu detail pages are often euc-kr and block bare datacenter GETs.
-        encoding = "euc-kr" if "ppomppu.co.kr" in url else None
-        result = await client.get(url, encoding=encoding)
-        if result.not_modified or not result.text:
-            return DetailEnrichment()
-        if _looks_blocked(result.text):
-            log.warning("detail enrich blocked source=%s url=%s", source, url)
-            return DetailEnrichment()
-        return parse_detail(result.text, url)
-    except Exception as exc:  # noqa: BLE001
-        log.warning("detail enrich failed source=%s url=%s err=%s", source, url, exc)
-        return DetailEnrichment()
+    urls = [url]
+    # Ppomppu desktop view often 403s datacenter IPs; try mobile mirror.
+    if "ppomppu.co.kr" in url and "m.ppomppu.co.kr" not in url:
+        urls.append(url.replace("www.ppomppu.co.kr", "m.ppomppu.co.kr").replace("ppomppu.co.kr", "m.ppomppu.co.kr"))
+    last_err: Exception | None = None
+    for candidate in urls:
+        try:
+            encoding = "euc-kr" if "ppomppu.co.kr" in candidate else None
+            result = await client.get(candidate, encoding=encoding)
+            if result.not_modified or not result.text:
+                continue
+            if _looks_blocked(result.text):
+                log.warning("detail enrich blocked source=%s url=%s", source, candidate)
+                continue
+            parsed = parse_detail(result.text, candidate)
+            if parsed.title or parsed.mall_url or parsed.thumbnail_url:
+                return parsed
+        except Exception as exc:  # noqa: BLE001
+            last_err = exc
+            log.warning("detail enrich failed source=%s url=%s err=%s", source, candidate, exc)
+    if last_err:
+        log.warning("detail enrich exhausted source=%s url=%s", source, url)
+    return DetailEnrichment()
 
 
 def parse_detail(html: str, page_url: str = "") -> DetailEnrichment:
