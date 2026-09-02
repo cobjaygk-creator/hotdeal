@@ -415,10 +415,54 @@ function applyStats(stats) {
   if (last) last.textContent = kst(stats.last_collect_at);
 }
 
+function prefersReducedMotion() {
+  try {
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  } catch (e) {
+    return false;
+  }
+}
+
+function flipPrepend(rows) {
+  if (!bodyEl || !rows.length) return;
+  if (prefersReducedMotion()) {
+    for (const row of rows) bodyEl.prepend(row);
+    return;
+  }
+  const prev = new Map();
+  bodyEl.querySelectorAll(".deal-card[data-id]").forEach((el) => {
+    prev.set(el.dataset.id, el.getBoundingClientRect());
+  });
+  for (const row of rows) bodyEl.prepend(row);
+  requestAnimationFrame(() => {
+    bodyEl.querySelectorAll(".deal-card[data-id]").forEach((el) => {
+      const first = prev.get(el.dataset.id);
+      if (!first) return;
+      const last = el.getBoundingClientRect();
+      const dx = first.left - last.left;
+      const dy = first.top - last.top;
+      if (!dx && !dy) return;
+      el.style.transition = "none";
+      el.style.transform = `translate(${dx}px, ${dy}px)`;
+      requestAnimationFrame(() => {
+        el.style.transition = "transform 0.4s cubic-bezier(0.22, 1, 0.36, 1)";
+        el.style.transform = "";
+        const clear = (ev) => {
+          if (ev.propertyName && ev.propertyName !== "transform") return;
+          el.style.transition = "";
+          el.removeEventListener("transitionend", clear);
+        };
+        el.addEventListener("transitionend", clear);
+      });
+    });
+  });
+}
+
 function ingest(items) {
   if (!bodyEl || !items || !items.length) return;
   const empty = bodyEl.querySelector(".empty-row");
   if (empty) empty.remove();
+  const rows = [];
   for (const deal of items) {
     const id = String(deal.id);
     if (seen.has(id)) continue;
@@ -426,9 +470,10 @@ function ingest(items) {
     if (config.seller && deal.seller !== config.seller) continue;
     if (config.category && deal.category !== config.category) continue;
     seen.add(id);
-    bodyEl.prepend(renderRow(deal));
+    rows.push(renderRow(deal));
     if (matchesSources(deal.sources)) pushTicker(deal);
   }
+  if (rows.length) flipPrepend(rows);
   applySourceFilter();
 }
 
