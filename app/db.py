@@ -46,7 +46,8 @@ CREATE TABLE IF NOT EXISTS deals (
     grade TEXT,
     status TEXT,
     last_scored_at TEXT,
-    last_scored_price INTEGER
+    last_scored_price INTEGER,
+    category TEXT
 );
 
 CREATE TABLE IF NOT EXISTS deal_posts (
@@ -103,6 +104,7 @@ CREATE INDEX IF NOT EXISTS idx_posts_source ON posts(source, source_post_id);
 CREATE INDEX IF NOT EXISTS idx_deals_seen ON deals(last_seen_at);
 CREATE INDEX IF NOT EXISTS idx_deals_grade ON deals(grade);
 CREATE INDEX IF NOT EXISTS idx_deals_key ON deals(product_key);
+CREATE INDEX IF NOT EXISTS idx_deals_category ON deals(category);
 CREATE INDEX IF NOT EXISTS idx_price_key_time ON price_points(product_key, observed_at);
 CREATE INDEX IF NOT EXISTS idx_family_dates ON family_sales(start_date, end_date);
 CREATE INDEX IF NOT EXISTS idx_family_group ON family_sales(group_id);
@@ -133,6 +135,8 @@ async def _ensure_columns(conn: aiosqlite.Connection) -> None:
         await conn.execute("ALTER TABLE deals ADD COLUMN mall_url TEXT")
     if "thumbnail_url" not in deal_cols:
         await conn.execute("ALTER TABLE deals ADD COLUMN thumbnail_url TEXT")
+    if "category" not in deal_cols:
+        await conn.execute("ALTER TABLE deals ADD COLUMN category TEXT")
 
     cur = await conn.execute("PRAGMA table_info(posts)")
     post_cols = {row[1] for row in await cur.fetchall()}
@@ -165,6 +169,75 @@ async def _ensure_columns(conn: aiosqlite.Connection) -> None:
             """
         )
         await set_meta(conn, "cleaned_truncated_mall_urls", "1")
+
+    await _backfill_categories(conn)
+    await _ensure_fts(conn)
+
+
+async def _backfill_categories(conn: aiosqlite.Connection) -> None:
+    from app.engine.category import classify
+
+    cur = await conn.execute(
+        "SELECT id, product_name, seller FROM deals WHERE category IS NULL OR category=''"
+    )
+    rows = await cur.fetchall()
+    for row in rows:
+        await conn.execute(
+            "UPDATE deals SET category=? WHERE id=?",
+            (classify(row["product_name"], row["seller"]), row["id"]),
+        )
+
+
+async def _ensure_fts(conn: aiosqlite.Connection) -> None:
+    try:
+        await conn.execute(
+            """
+            CREATE VIRTUAL TABLE IF NOT EXISTS deals_fts USING fts5(
+                product_name,
+                seller,
+                content='deals',
+                content_rowid='id',
+                tokenize='unicode61'
+            )
+            """
+        )
+    except Exception:
+        return
+    await conn.execute(
+        """
+        CREATE TRIGGER IF NOT EXISTS deals_ai AFTER INSERT ON deals BEGIN
+            INSERT INTO deals_fts(rowid, product_name, seller)
+            VALUES (new.id, new.product_name, new.seller);
+        END
+        """
+    )
+    await conn.execute(
+        """
+        CREATE TRIGGER IF NOT EXISTS deals_ad AFTER DELETE ON deals BEGIN
+            INSERT INTO deals_fts(deals_fts, rowid, product_name, seller)
+            VALUES('delete', old.id, old.product_name, old.seller);
+        END
+        """
+    )
+    await conn.execute(
+        """
+        CREATE TRIGGER IF NOT EXISTS deals_au AFTER UPDATE ON deals BEGIN
+            INSERT INTO deals_fts(deals_fts, rowid, product_name, seller)
+            VALUES('delete', old.id, old.product_name, old.seller);
+            INSERT INTO deals_fts(rowid, product_name, seller)
+            VALUES (new.id, new.product_name, new.seller);
+        END
+        """
+    )
+    cur = await conn.execute("SELECT COUNT(*) AS n FROM deals")
+    deals_n = int((await cur.fetchone())["n"])
+    try:
+        cur = await conn.execute("SELECT COUNT(*) AS n FROM deals_fts")
+        fts_n = int((await cur.fetchone())["n"])
+    except Exception:
+        return
+    if deals_n and fts_n != deals_n:
+        await conn.execute("INSERT INTO deals_fts(deals_fts) VALUES('rebuild')")
 
 
 async def set_meta(conn: aiosqlite.Connection, key: str, value: str) -> None:

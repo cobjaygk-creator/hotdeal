@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import re
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from hashlib import sha256
@@ -10,7 +11,7 @@ from pathlib import Path
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI, Form, HTTPException, Query, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -20,8 +21,10 @@ from app.config import (
     ENABLE_COLLECT,
     FAMILY_SALE_INTERVAL_MINUTES,
     PPOMPPU_INTERVAL_SECONDS,
+    SITE_URL,
 )
 from app.db import connect, get_meta, upsert_family_sale, utcnow_iso
+from app.engine.category import CATEGORIES as DEAL_CATEGORIES
 from app.family.parse import parse_discount
 from app.family.pipeline import collect_family_sales
 from app.family.query import CATEGORIES, get_sale, list_sales, month_grid, parse_cats, parse_year_month
@@ -37,6 +40,23 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 TEMPLATES = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 TEMPLATES.env.filters["kst"] = format_kst
 TEMPLATES.env.filters["reltime"] = format_relative
+TEMPLATES.env.globals["site_url"] = SITE_URL
+TEMPLATES.env.globals["website_jsonld"] = {
+    "@context": "https://schema.org",
+    "@graph": [
+        {"@type": "Organization", "name": "핫딜모음", "url": SITE_URL},
+        {
+            "@type": "WebSite",
+            "name": "핫딜모음",
+            "url": SITE_URL,
+            "potentialAction": {
+                "@type": "SearchAction",
+                "target": SITE_URL + "/search?q={search_term_string}",
+                "query-input": "required name=search_term_string",
+            },
+        },
+    ],
+}
 STATIC_DIR = Path(__file__).parent / "static"
 PAGE_SIZE = 40
 
@@ -154,9 +174,11 @@ async def index(
     grade: str | None = None,
     seller: str | None = None,
     source: str | None = None,
+    cat: str | None = None,
 ):
     stats = await _stats()
-    deals = await _list_deals(grade=grade, seller=seller, source=None, limit=PAGE_SIZE)
+    category = cat if cat in DEAL_CATEGORIES else ""
+    deals = await _list_deals(grade=grade, seller=seller, source=None, category=category or None, limit=PAGE_SIZE)
     sellers = await _distinct("seller")
     sources = await _distinct_sources()
     ordered_sources = [s.name for s in get_sources() if s.name in set(sources)]
@@ -172,6 +194,8 @@ async def index(
             "grade": grade or "",
             "seller": seller or "",
             "source": source or "",
+            "category": category,
+            "categories": DEAL_CATEGORIES,
             "sellers": sellers,
             "sources": ordered_sources,
             "source_labels": SOURCE_LABELS,
@@ -366,6 +390,7 @@ async def deal_detail(request: Request, deal_id: int):
             "deal": deal,
             "posts": posts,
             "history": history,
+            "jsonld": _deal_jsonld(deal),
         },
     )
 
@@ -375,12 +400,69 @@ async def api_deals(
     grade: str | None = None,
     seller: str | None = None,
     source: str | None = None,
+    cat: str | None = None,
+    ids: str | None = None,
     limit: int = Query(PAGE_SIZE, le=500),
     before_id: int | None = None,
 ):
+    category = cat if cat in DEAL_CATEGORIES else None
+    id_list = _parse_ids(ids)
     return await _list_deals(
-        grade=grade, seller=seller, source=source, limit=limit, before_id=before_id
+        grade=grade,
+        seller=seller,
+        source=source,
+        category=category,
+        ids=id_list,
+        limit=limit,
+        before_id=None if id_list else before_id,
     )
+
+
+@app.get("/search", response_class=HTMLResponse)
+async def search_page(request: Request, q: str = ""):
+    q = (q or "").strip()
+    deals = await _search_deals(q, limit=50) if q else []
+    return TEMPLATES.TemplateResponse(
+        "search.html",
+        {
+            "request": request,
+            "nav": "hotdeal",
+            "q": q,
+            "deals": deals,
+            "source_labels": SOURCE_LABELS,
+        },
+    )
+
+
+@app.get("/robots.txt")
+async def robots():
+    body = (
+        "User-agent: *\n"
+        "Allow: /\n"
+        "Disallow: /api/\n"
+        "Disallow: /family/admin\n"
+        f"Sitemap: {SITE_URL}/sitemap.xml\n"
+    )
+    return PlainTextResponse(body)
+
+
+@app.get("/sitemap.xml")
+async def sitemap():
+    cur = await _db().execute(
+        "SELECT id FROM deals ORDER BY COALESCE(last_scored_at, last_seen_at) DESC LIMIT 400"
+    )
+    rows = await cur.fetchall()
+    chunks = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+        f"<url><loc>{SITE_URL}/</loc><changefreq>hourly</changefreq></url>",
+        f"<url><loc>{SITE_URL}/family</loc><changefreq>daily</changefreq></url>",
+        f"<url><loc>{SITE_URL}/search</loc><changefreq>weekly</changefreq></url>",
+    ]
+    for row in rows:
+        chunks.append(f"<url><loc>{SITE_URL}/deal/{row['id']}</loc></url>")
+    chunks.append("</urlset>")
+    return Response("".join(chunks), media_type="application/xml")
 
 
 @app.get("/api/deals/{deal_id}")
@@ -621,7 +703,15 @@ async def _stats() -> dict:
     }
 
 
-async def _list_deals(grade=None, seller=None, source=None, limit=100, before_id=None) -> list[dict]:
+async def _list_deals(
+    grade=None,
+    seller=None,
+    source=None,
+    category=None,
+    ids=None,
+    limit=100,
+    before_id=None,
+) -> list[dict]:
     db = _db()
     sql = """
         SELECT d.*, GROUP_CONCAT(DISTINCT p.source) AS sources
@@ -640,6 +730,13 @@ async def _list_deals(grade=None, seller=None, source=None, limit=100, before_id
     if source:
         sql += " AND p.source = ?"
         params.append(source)
+    if category:
+        sql += " AND d.category = ?"
+        params.append(category)
+    if ids:
+        placeholders = ",".join("?" for _ in ids)
+        sql += f" AND d.id IN ({placeholders})"
+        params.extend(ids)
     if before_id:
         cur = await db.execute(
             "SELECT id, COALESCE(last_scored_at, last_seen_at) AS sort_at FROM deals WHERE id=?",
@@ -656,6 +753,101 @@ async def _list_deals(grade=None, seller=None, source=None, limit=100, before_id
     params.append(limit)
     cur = await db.execute(sql, params)
     return [dict(r) for r in await cur.fetchall()]
+
+
+def _parse_ids(raw: str | None) -> list[int]:
+    if not raw:
+        return []
+    out: list[int] = []
+    for part in raw.split(","):
+        part = part.strip()
+        if part.isdigit():
+            out.append(int(part))
+        if len(out) >= 80:
+            break
+    return out
+
+
+def _fts_query(q: str) -> str:
+    tokens = re.findall(r"[0-9A-Za-z가-힣]+", q)
+    return " AND ".join(f'"{t}"' for t in tokens[:8] if t)
+
+
+async def _search_deals(q: str, limit: int = 50) -> list[dict]:
+    db = _db()
+    fts = _fts_query(q)
+    if fts:
+        try:
+            cur = await db.execute(
+                """
+                SELECT d.*, GROUP_CONCAT(DISTINCT p.source) AS sources
+                FROM deals_fts f
+                JOIN deals d ON d.id = f.rowid
+                LEFT JOIN deal_posts dp ON dp.deal_id=d.id
+                LEFT JOIN posts p ON p.id=dp.post_id
+                WHERE f MATCH ?
+                GROUP BY d.id
+                ORDER BY rank
+                LIMIT ?
+                """,
+                (fts, limit),
+            )
+            rows = [dict(r) for r in await cur.fetchall()]
+            if rows:
+                return rows
+        except Exception:
+            log.exception("fts search failed")
+    like = f"%{q}%"
+    cur = await db.execute(
+        """
+        SELECT d.*, GROUP_CONCAT(DISTINCT p.source) AS sources
+        FROM deals d
+        LEFT JOIN deal_posts dp ON dp.deal_id=d.id
+        LEFT JOIN posts p ON p.id=dp.post_id
+        WHERE d.product_name LIKE ? OR IFNULL(d.seller, '') LIKE ?
+        GROUP BY d.id
+        ORDER BY COALESCE(d.last_scored_at, d.last_seen_at) DESC, d.id DESC
+        LIMIT ?
+        """,
+        (like, like, limit),
+    )
+    return [dict(r) for r in await cur.fetchall()]
+
+
+def _deal_jsonld(deal: dict) -> dict:
+    offer: dict = {
+        "@type": "Offer",
+        "url": f"{SITE_URL}/deal/{deal['id']}",
+        "availability": "https://schema.org/InStock",
+        "priceCurrency": "KRW",
+    }
+    if deal.get("price"):
+        offer["price"] = str(deal["price"])
+    data = {
+        "@context": "https://schema.org",
+        "@type": "Product",
+        "name": deal.get("product_name") or "핫딜",
+        "url": f"{SITE_URL}/deal/{deal['id']}",
+        "offers": offer,
+    }
+    if deal.get("seller"):
+        data["brand"] = {"@type": "Brand", "name": deal["seller"]}
+    if deal.get("thumbnail_url"):
+        data["image"] = deal["thumbnail_url"]
+    crumbs = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {"@type": "ListItem", "position": 1, "name": "핫딜", "item": SITE_URL + "/"},
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": deal.get("product_name") or "상세",
+                "item": f"{SITE_URL}/deal/{deal['id']}",
+            },
+        ],
+    }
+    return {"@context": "https://schema.org", "@graph": [data, crumbs]}
 
 
 async def _get_deal(deal_id: int) -> dict | None:

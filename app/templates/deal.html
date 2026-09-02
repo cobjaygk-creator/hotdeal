@@ -1,5 +1,14 @@
 {% extends "base.html" %}
 {% block title %}{{ deal.product_name }} · 핫딜모음{% endblock %}
+{% block canonical %}{{ site_url }}/deal/{{ deal.id }}{% endblock %}
+{% block extra_head %}
+<meta property="og:type" content="product">
+<meta property="og:title" content="{{ deal.product_name }}">
+<meta property="og:description" content="{{ deal.seller or '핫딜' }}{% if deal.price %} · {{ '{:,}'.format(deal.price) }}원{% endif %}">
+<meta property="og:url" content="{{ site_url }}/deal/{{ deal.id }}">
+{% if deal.thumbnail_url %}<meta property="og:image" content="{{ deal.thumbnail_url }}">{% endif %}
+<script type="application/ld+json">{{ jsonld | tojson }}</script>
+{% endblock %}
 {% block body %}
 <a class="back-link" href="/">← 목록</a>
 {% if deal.thumbnail_url %}
@@ -27,6 +36,7 @@
  · 최저 {% if deal.min_price %}{{ "{:,}".format(deal.min_price) }}원{% else %}-{% endif %}</p>
 
 <p class="modal-actions deal-page-actions">
+<button type="button" class="bookmark-btn" data-deal-id="{{ deal.id }}" aria-label="북마크" title="북마크">☆</button>
 {% if deal.mall_url %}<a class="btn" href="{{ deal.mall_url }}" target="_blank" rel="noopener">구매하기</a>{% endif %}
 {% if deal.deal_url %}<a class="btn ghost" href="{{ deal.deal_url }}" target="_blank" rel="noopener">원문 보기</a>{% endif %}
 </p>
@@ -74,6 +84,7 @@ if (labels.length) {
       scales: { y: { ticks: { callback: v => Number(v).toLocaleString() + "원" } } }
     }
   });
-}
 </script>
+<script id="live-config" type="application/json">{"live": false}</script>
+<script src="/static/live.js"></script>
 {% endblock %}

@@ -5,7 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="light dark">
   <title>{% block title %}핫딜 · 패밀리세일{% endblock %}</title>
-  <meta name="description" content="커뮤니티 핫딜을 모아 가격 기준으로 정리하는 실시간 핫딜모음">
+  <meta name="description" content="{% block meta_description %}커뮤니티 핫딜을 모아 가격 기준으로 정리하는 실시간 핫딜모음{% endblock %}">
+  <link rel="canonical" href="{% block canonical %}{{ site_url }}{{ request.url.path }}{% endblock %}">
+  <meta property="og:site_name" content="핫딜모음">
+  <meta property="og:locale" content="ko_KR">
+  {% block extra_head %}{% endblock %}
+  <script type="application/ld+json">{{ website_jsonld | tojson }}</script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
   <link rel="stylesheet" href="/static/tokens.css">
   <link rel="stylesheet" href="/static/base.css">
@@ -32,6 +37,9 @@
       <a href="/" class="{% if current_nav == 'hotdeal' %}on{% endif %}">핫딜</a>
       <a href="/family" class="{% if current_nav == 'family' %}on{% endif %}">패밀리세일</a>
     </nav>
+    <form class="site-search" method="get" action="/search" role="search">
+      <input type="search" name="q" value="{{ q|default('') }}" placeholder="상품·판매처 검색" aria-label="검색">
+    </form>
     <button type="button" class="theme-toggle" id="theme-toggle" aria-label="테마 전환" title="테마 전환">◐</button>
   </header>
   <main>

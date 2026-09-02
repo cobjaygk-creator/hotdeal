@@ -1,4 +1,5 @@
-const config = JSON.parse(document.getElementById("live-config").textContent);
+const configEl = document.getElementById("live-config");
+const config = configEl ? JSON.parse(configEl.textContent) : { live: false };
 const bodyEl = document.getElementById("deal-body");
 const ticker = document.getElementById("ticker");
 const statusEl = document.getElementById("live-status");
@@ -6,15 +7,59 @@ const dot = document.getElementById("live-dot");
 const chipRow = document.getElementById("source-chips");
 const moreBtn = document.getElementById("more-btn");
 const filterEmpty = document.getElementById("filter-empty");
+const bookmarkChip = document.getElementById("bookmark-chip");
 const STORAGE_KEY = "hotdeal.sourceChips";
+const BOOKMARK_KEY = "hotdeal.bookmarks";
 const sourceLabels = config.sourceLabels || {};
 const seen = new Set(
-  [...bodyEl.querySelectorAll("[data-id]")].map((row) => row.dataset.id)
+  bodyEl ? [...bodyEl.querySelectorAll("[data-id]")].map((row) => row.dataset.id) : []
 );
 
 let selectedSources = null;
+let bookmarkOnly = false;
 let hasMore = !!config.hasMore;
 let loadingMore = false;
+
+function loadBookmarks() {
+  try {
+    return JSON.parse(localStorage.getItem(BOOKMARK_KEY) || "[]").map(String);
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveBookmarks(ids) {
+  try {
+    localStorage.setItem(BOOKMARK_KEY, JSON.stringify(ids.map((x) => Number(x))));
+  } catch (e) {}
+}
+
+function isBookmarked(id) {
+  return loadBookmarks().includes(String(id));
+}
+
+function toggleBookmark(id) {
+  const ids = loadBookmarks();
+  const sid = String(id);
+  const next = ids.includes(sid) ? ids.filter((x) => x !== sid) : ids.concat(sid);
+  saveBookmarks(next);
+  document.querySelectorAll(`.bookmark-btn[data-deal-id="${sid}"]`).forEach((btn) => {
+    btn.classList.toggle("on", next.includes(sid));
+    btn.textContent = next.includes(sid) ? "★" : "☆";
+  });
+  if (bookmarkOnly) applySourceFilter();
+  return next.includes(sid);
+}
+
+function paintBookmarkButtons() {
+  const ids = new Set(loadBookmarks());
+  document.querySelectorAll(".bookmark-btn[data-deal-id]").forEach((btn) => {
+    const on = ids.has(btn.dataset.dealId);
+    btn.classList.toggle("on", on);
+    btn.textContent = on ? "★" : "☆";
+  });
+  if (bookmarkChip) bookmarkChip.classList.toggle("on", bookmarkOnly);
+}
 
 function kst(s) {
   if (!s) return "-";
@@ -55,6 +100,7 @@ function relativeTime(s) {
 }
 
 function refreshTimes() {
+  if (!bodyEl) return;
   bodyEl.querySelectorAll(".time-rel[data-ts]").forEach((el) => {
     el.textContent = relativeTime(el.dataset.ts);
   });
@@ -126,6 +172,8 @@ function renderRow(deal) {
   li.dataset.id = String(deal.id);
   li.dataset.sources = deal.sources || "";
   li.dataset.ts = deal.last_seen_at || "";
+  li.dataset.category = deal.category || "";
+  const starred = isBookmarked(deal.id);
   const title = deal.product_name || "(제목 없음)";
   const titleHtml = `<a class="deal-title" href="/deal/${deal.id}" data-deal-id="${deal.id}">${esc(title)}</a>`;
   let drop = "";
@@ -149,17 +197,23 @@ function renderRow(deal) {
     `<time class="time-rel" datetime="${esc(ts)}" data-ts="${esc(ts)}">${esc(relativeTime(ts))}</time>` +
     `<span>${esc(deal.seller || "-")}</span>` +
     `<span>${esc(labelSources(deal.sources))}</span>` +
+    (deal.category ? `<span>${esc(deal.category)}</span>` : "") +
     drop +
     gradeHtml(deal.grade) +
     base +
     `</div></div>` +
-    `<button type="button" class="detail-btn" data-deal-id="${deal.id}">상세</button>`;
+    `<div class="deal-actions">` +
+    `<button type="button" class="bookmark-btn${starred ? " on" : ""}" data-deal-id="${deal.id}" aria-label="북마크">${starred ? "★" : "☆"}</button>` +
+    `<button type="button" class="detail-btn" data-deal-id="${deal.id}">상세</button>` +
+    `</div>`;
   applyChipClass(li);
   return li;
 }
 
 function applyChipClass(el) {
-  el.classList.toggle("is-filtered-out", !matchesSources(el.dataset.sources));
+  const hideSource = !matchesSources(el.dataset.sources);
+  const hideSaved = bookmarkOnly && !isBookmarked(el.dataset.id);
+  el.classList.toggle("is-filtered-out", hideSource || hideSaved);
 }
 
 function visibleCount() {
@@ -169,12 +223,18 @@ function visibleCount() {
 }
 
 function applySourceFilter() {
+  if (!bodyEl) {
+    paintBookmarkButtons();
+    return;
+  }
   bodyEl.querySelectorAll("[data-id]").forEach(applyChipClass);
   const cards = bodyEl.querySelectorAll("[data-id]").length;
   if (filterEmpty) {
     filterEmpty.hidden = !(cards && visibleCount() === 0);
   }
   paintChips();
+  paintBookmarkButtons();
+  setMoreVisible();
 }
 
 function paintChips() {
@@ -211,7 +271,7 @@ function loadSavedSources() {
 }
 
 function setMoreVisible() {
-  if (moreBtn) moreBtn.hidden = !hasMore;
+  if (moreBtn) moreBtn.hidden = !hasMore || bookmarkOnly;
 }
 
 async function loadMore() {
@@ -230,6 +290,7 @@ async function loadMore() {
     });
     if (config.grade) params.set("grade", config.grade);
     if (config.seller) params.set("seller", config.seller);
+    if (config.category) params.set("cat", config.category);
     const res = await fetch("/api/deals?" + params.toString());
     const items = await res.json();
     if (!Array.isArray(items) || !items.length) {
@@ -294,7 +355,7 @@ function applyStats(stats) {
 }
 
 function ingest(items) {
-  if (!items || !items.length) return;
+  if (!bodyEl || !items || !items.length) return;
   const empty = bodyEl.querySelector(".empty-row");
   if (empty) empty.remove();
   for (const deal of items) {
@@ -302,6 +363,7 @@ function ingest(items) {
     if (seen.has(id)) continue;
     if (config.grade && !(deal.grade || "").includes(config.grade)) continue;
     if (config.seller && deal.seller !== config.seller) continue;
+    if (config.category && deal.category !== config.category) continue;
     seen.add(id);
     bodyEl.prepend(renderRow(deal));
     if (matchesSources(deal.sources)) pushTicker(deal);
@@ -310,6 +372,7 @@ function ingest(items) {
 }
 
 function setLive(ok, text) {
+  if (!statusEl || !dot) return;
   statusEl.textContent = text;
   dot.classList.toggle("on", ok);
   dot.classList.toggle("off", !ok);
@@ -335,7 +398,24 @@ function connect() {
   };
 }
 
-document.getElementById("collect-btn").addEventListener("click", async (e) => {
+async function loadMissingBookmarks() {
+  if (!bodyEl) return;
+  const missing = loadBookmarks().filter((id) => !seen.has(String(id)));
+  if (!missing.length) return;
+  try {
+    const res = await fetch("/api/deals?ids=" + missing.join(","));
+    const items = await res.json();
+    if (!Array.isArray(items)) return;
+    for (const deal of items) {
+      const id = String(deal.id);
+      if (seen.has(id)) continue;
+      seen.add(id);
+      bodyEl.append(renderRow(deal));
+    }
+  } catch (e) {}
+}
+
+document.getElementById("collect-btn")?.addEventListener("click", async (e) => {
   const btn = e.target;
   btn.disabled = true;
   btn.textContent = "수집 중...";
@@ -354,6 +434,7 @@ document.getElementById("collect-btn").addEventListener("click", async (e) => {
 
 if (chipRow) {
   chipRow.addEventListener("click", (e) => {
+    if (e.target.closest("[data-bookmarks]")) return;
     const btn = e.target.closest("[data-source]");
     if (!btn) return;
     const src = btn.dataset.source;
@@ -373,23 +454,36 @@ if (chipRow) {
   });
 }
 
+if (bookmarkChip) {
+  bookmarkChip.addEventListener("click", async () => {
+    bookmarkOnly = !bookmarkOnly;
+    if (bookmarkOnly) await loadMissingBookmarks();
+    applySourceFilter();
+  });
+}
+
 if (moreBtn) {
   moreBtn.addEventListener("click", () => loadMore());
 }
 
-loadSavedSources();
-applySourceFilter();
-setMoreVisible();
-if (selectedSources && selectedSources.length) ensureVisible(12);
-refreshTimes();
-setInterval(refreshTimes, 30000);
-connect();
+if (bodyEl) {
+  loadSavedSources();
+  applySourceFilter();
+  setMoreVisible();
+  if (selectedSources && selectedSources.length) ensureVisible(12);
+  refreshTimes();
+  setInterval(refreshTimes, 30000);
+  if (config.live !== false) connect();
+} else {
+  paintBookmarkButtons();
+}
 
 const modal = document.getElementById("deal-modal");
 const modalBody = document.getElementById("modal-body");
 let chart;
 
 function closeModal() {
+  if (!modal) return;
   modal.hidden = true;
   document.body.classList.remove("modal-open");
   if (chart) {
@@ -399,6 +493,7 @@ function closeModal() {
 }
 
 async function openModal(id) {
+  if (!modal || !modalBody) return;
   modal.hidden = false;
   document.body.classList.add("modal-open");
   modalBody.innerHTML = "<p class='muted'>불러오는 중…</p>";
@@ -471,6 +566,13 @@ async function openModal(id) {
 }
 
 document.addEventListener("click", (e) => {
+  const mark = e.target.closest(".bookmark-btn");
+  if (mark) {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleBookmark(mark.dataset.dealId);
+    return;
+  }
   if (e.target.closest("[data-close]")) {
     closeModal();
     return;
@@ -490,5 +592,5 @@ document.addEventListener("click", (e) => {
 });
 
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && !modal.hidden) closeModal();
+  if (e.key === "Escape" && modal && !modal.hidden) closeModal();
 });

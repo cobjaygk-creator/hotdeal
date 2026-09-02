@@ -12,6 +12,7 @@ from app.config import (
     RECENT_DEAL_HOURS,
 )
 from app.db import get_meta, set_meta, utcnow_iso
+from app.engine.category import classify
 from app.engine.dedupe import jaccard, should_merge
 from app.engine.naver_seed import seed_baseline_if_needed
 from app.engine.pricing import compute_baseline
@@ -158,6 +159,7 @@ async def upsert_deal_from_post(conn, post_row: dict) -> int | None:
         post_row.get("body"), post_row.get("title"), post_row.get("raw_json")
     )
     thumbnail_url = post_row.get("thumbnail_url")
+    category = classify(offer.product_name, offer.seller)
     if match:
         deal_id = match["id"]
         new_price = offer.price if offer.price is not None else match["price"]
@@ -186,7 +188,8 @@ async def upsert_deal_from_post(conn, post_row: dict) -> int | None:
                 grade=?,
                 status=?,
                 last_scored_at=?,
-                last_scored_price=?
+                last_scored_price=?,
+                category=?
             WHERE id=?
             """,
             (
@@ -208,6 +211,7 @@ async def upsert_deal_from_post(conn, post_row: dict) -> int | None:
                 result.status,
                 scored_at,
                 scored_price,
+                category,
                 deal_id,
             ),
         )
@@ -218,8 +222,8 @@ async def upsert_deal_from_post(conn, post_row: dict) -> int | None:
                 product_key, product_name, seller, price, shipping_fee, unit_price,
                 deal_url, mall_url, thumbnail_url, first_seen_at, last_seen_at, baseline_price, min_price,
                 sample_count, discount_rate, score, grade, status,
-                last_scored_at, last_scored_price
-            ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                last_scored_at, last_scored_price, category
+            ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """,
             (
                 offer.product_key,
@@ -242,6 +246,7 @@ async def upsert_deal_from_post(conn, post_row: dict) -> int | None:
                 result.status,
                 now,
                 offer.price,
+                category,
             ),
         )
         deal_id = cur.lastrowid

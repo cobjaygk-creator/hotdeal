@@ -82,6 +82,25 @@ h2 { font-size: var(--text-sm); margin-top: var(--space-6); color: var(--muted);
   cursor: pointer;
   font-size: 14px;
 }
+.site-search {
+  flex: 1 1 140px;
+  min-width: 120px;
+  max-width: 280px;
+  order: 5;
+}
+.site-search input[type="search"] {
+  width: 100%;
+  min-height: 36px;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line);
+  background: var(--bg-elevated);
+  color: var(--ink);
+  font: inherit;
+}
+@media (min-width: 800px) {
+  .site-search { order: 0; margin-left: 8px; }
+}
 main {
   padding: 16px 14px 56px;
   max-width: var(--maxw);

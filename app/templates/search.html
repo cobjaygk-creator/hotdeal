@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}{% if q %}{{ q }} 검색 · 핫딜모음{% else %}검색 · 핫딜모음{% endif %}{% endblock %}
+{% block extra_head %}
+<meta property="og:title" content="{% if q %}{{ q }} 검색{% else %}검색{% endif %} · 핫딜모음">
+<meta property="og:url" content="{{ site_url }}/search">
+{% endblock %}
+{% block body %}
+<a class="back-link" href="/">← 목록</a>
+<section class="hero">
+  <h1>검색</h1>
+  <p>{% if q %}“{{ q }}” 결과 {{ deals|length }}건{% else %}상품명이나 판매처를 입력하세요.{% endif %}</p>
+</section>
+<form class="toolbar" method="get" action="/search">
+  <input type="search" name="q" value="{{ q }}" placeholder="상품·판매처" aria-label="검색어" required>
+  <button type="submit">검색</button>
+</form>
+<ul class="deal-cards" id="deal-body">
+  {% for d in deals %}
+  {% include "_deal_card.html" %}
+  {% else %}
+  {% if q %}<li class="empty-row empty">맞는 딜이 없습니다.</li>{% endif %}
+  {% endfor %}
+</ul>
+<script id="live-config" type="application/json">{{ {
+  "live": false,
+  "grade": "",
+  "seller": "",
+  "source": "",
+  "pageSize": 50,
+  "hasMore": false,
+  "sourceLabels": source_labels
+} | tojson | safe }}</script>
+<div id="deal-modal" class="modal" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <button type="button" class="modal-close" data-close aria-label="닫기">×</button>
+    <div id="modal-body"></div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="/static/live.js"></script>
+{% endblock %}

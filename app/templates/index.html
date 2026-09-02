@@ -1,13 +1,12 @@
 {% extends "base.html" %}
 {% block title %}실시간 핫딜모음{% endblock %}
+{% block extra_head %}
+<meta property="og:title" content="실시간 핫딜모음">
+<meta property="og:description" content="커뮤니티 핫딜을 모아 가격 기준으로 정리합니다.">
+<meta property="og:url" content="{{ site_url }}/">
+<meta property="og:type" content="website">
+{% endblock %}
 {% block body %}
-{% macro source_label_text(raw) -%}
-{%- if not raw -%}-{%- else -%}
-{%- for s in raw.split(",") -%}
-{{- source_labels.get(s.strip(), s.strip()) -}}{% if not loop.last %}, {% endif %}
-{%- endfor -%}
-{%- endif -%}
-{%- endmacro %}
 <section class="hero">
   <h1>실시간 핫딜모음</h1>
   <p>여러 커뮤니티 특가를 한곳에 모으고, 가격 이력으로 진짜 싼지 가려줍니다.</p>
@@ -28,6 +27,7 @@
 </section>
 
 <form class="toolbar" method="get" action="/">
+  {% if category %}<input type="hidden" name="cat" value="{{ category }}">{% endif %}
   <select name="grade">
     <option value="">등급 전체</option>
     {% for g in ["핫딜", "특가", "초특가", "관심", "일반", "이력없음", "확인필요"] %}
@@ -44,63 +44,38 @@
   <button type="button" id="collect-btn" class="btn-secondary">지금 수집</button>
 </form>
 
+<div class="chip-row" id="cat-chips" role="group" aria-label="카테고리">
+  <a class="filter-chip {% if not category %}on{% endif %}" href="/{% if grade or seller %}?{% if grade %}grade={{ grade }}{% endif %}{% if grade and seller %}&{% endif %}{% if seller %}seller={{ seller }}{% endif %}{% endif %}">전체</a>
+  {% for c in categories %}
+  <a class="filter-chip {% if category == c %}on{% endif %}" href="/?cat={{ c }}{% if grade %}&grade={{ grade }}{% endif %}{% if seller %}&seller={{ seller }}{% endif %}">{{ c }}</a>
+  {% endfor %}
+</div>
+
 <div class="chip-row" id="source-chips" role="group" aria-label="커뮤니티">
   <button type="button" class="filter-chip on" data-source="*">전체</button>
   {% for s in sources %}
   <button type="button" class="filter-chip on" data-source="{{ s }}">{{ source_labels.get(s, s) }}</button>
   {% endfor %}
+  <button type="button" class="filter-chip" id="bookmark-chip" data-bookmarks="1">저장한 딜</button>
 </div>
 
 <ul class="deal-cards" id="deal-body">
   {% for d in deals %}
-  <li class="deal-card" data-id="{{ d.id }}" data-sources="{{ d.sources or '' }}" data-ts="{{ d.last_seen_at or '' }}">
-    {% if d.thumbnail_url %}
-    <img class="deal-thumb" src="{{ d.thumbnail_url }}" alt="" loading="lazy" referrerpolicy="no-referrer">
-    {% else %}
-    <div class="deal-thumb placeholder" aria-hidden="true"></div>
-    {% endif %}
-    <div class="deal-price">{% if d.price %}{{ "{:,}".format(d.price) }}원{% else %}-{% endif %}</div>
-    <div class="deal-main">
-      <a class="deal-title" href="/deal/{{ d.id }}" data-deal-id="{{ d.id }}">{{ d.product_name }}</a>
-      <div class="deal-meta">
-        <time class="time-rel" datetime="{{ d.last_seen_at or '' }}" data-ts="{{ d.last_seen_at or '' }}">{{ d.last_seen_at | reltime }}</time>
-        <span>{{ d.seller or "-" }}</span>
-        <span>{{ source_label_text(d.sources) }}</span>
-        {% if d.discount_rate is not none and d.discount_rate >= 0.15 %}
-        <span class="down">{{ "%.1f"|format(-d.discount_rate * 100) }}%</span>
-        {% elif d.discount_rate is not none %}
-        <span>{{ "%.1f"|format(-d.discount_rate * 100) }}%</span>
-        {% endif %}
-        {% if d.grade and ("초특가" in d.grade) %}
-        <span class="grade-chip grade-super">{{ d.grade }}</span>
-        {% elif d.grade and ("특가" in d.grade) %}
-        <span class="grade-chip grade-special">{{ d.grade }}</span>
-        {% elif d.grade and ("핫딜" in d.grade) %}
-        <span class="grade-chip grade-hot">{{ d.grade }}</span>
-        {% elif d.grade == "관심" %}
-        <span class="grade-chip grade-watch">{{ d.grade }}</span>
-        {% else %}
-        <span class="grade-quiet">{{ d.grade or "-" }}</span>
-        {% endif %}
-        {% if d.baseline_price %}
-        <span class="muted">중앙 {{ "{:,}".format(d.baseline_price) }}원</span>
-        {% endif %}
-      </div>
-    </div>
-    <button type="button" class="detail-btn" data-deal-id="{{ d.id }}">상세</button>
-  </li>
+  {% include "_deal_card.html" %}
   {% else %}
   <li class="empty-row empty">아직 딜이 없습니다. 수집을 실행하세요.</li>
   {% endfor %}
 </ul>
-<p id="filter-empty" class="empty" hidden>선택한 커뮤니티의 딜이 이 목록에 없습니다. 아래에서 더 불러보세요.</p>
+<p id="filter-empty" class="empty" hidden>선택한 조건의 딜이 이 목록에 없습니다. 아래에서 더 불러보세요.</p>
 <div class="more-wrap">
   <button type="button" id="more-btn" class="btn-secondary" {% if not has_more %}hidden{% endif %}>더보기</button>
 </div>
 <script id="live-config" type="application/json">{{ {
+  "live": true,
   "grade": grade,
   "seller": seller,
   "source": source,
+  "category": category,
   "pageSize": page_size,
   "hasMore": has_more,
   "sourceLabels": source_labels,
