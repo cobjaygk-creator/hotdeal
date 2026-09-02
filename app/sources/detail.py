@@ -63,8 +63,9 @@ _BLOCKED_TITLE = re.compile(
 async def enrich_post(client: PoliteClient, source: str, url: str) -> DetailEnrichment:
     if not url or not url.startswith(("http://", "https://")):
         return DetailEnrichment()
-    # Ppomppu detail (desktop + mobile) currently 403s Railway datacenter IPs,
-    # and RSS bodies rarely include mall links/images. Skip wasted fetches.
+    # Ppomppu detail pages often 403 datacenter IPs. List HTML + RSS already
+    # supply thumbnails / some mall links; skip wasted detail fetches here.
+    # Re-enable when a residential proxy or local collector is available.
     if source == "ppomppu" or "ppomppu.co.kr" in url:
         return DetailEnrichment()
     urls = [url]

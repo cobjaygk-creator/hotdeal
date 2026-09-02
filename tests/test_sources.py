@@ -21,6 +21,41 @@ def test_ppomppu_html():
     assert any(p.posted_at for p in posts)
 
 
+def test_ppomppu_list_thumbnail_and_merge():
+    from app.sources.ppomppu import merge_list_and_rss
+
+    html = """
+    <table>
+      <tr class="baseList">
+        <td class="baseList-numb">731058</td>
+        <td><a class="baseList-title" href="#">[지오다노] 셔츠 (22,000원/무료)</a>
+          <img src="//cdn2.ppomppu.co.kr/zboard/data/_thumb/ppomppu/8/small_731058.jpg?t=1">
+          <img src="//cdn2.ppomppu.co.kr/images/menu/pop_icon2.jpg">
+        </td>
+        <td class="baseList-rec">1-0</td>
+        <td class="baseList-views">10</td>
+        <td title="26.09.02 12:33"><span class="baseList-name">u</span></td>
+      </tr>
+    </table>
+    """
+    posts = parse_list_html(html)
+    assert len(posts) == 1
+    assert posts[0].extra["thumbnail_url"].startswith(
+        "https://cdn2.ppomppu.co.kr/zboard/data/_thumb/"
+    )
+    rss = parse_rss(
+        """<?xml version="1.0"?><rss><channel><item>
+        <title>[지오다노] 셔츠 (22,000원/무료)</title>
+        <link>http://www.ppomppu.co.kr/zboard/view.php?id=ppomppu&amp;no=731058</link>
+        <description>본문 https://naver.me/xiL30JlA상품링크</description>
+        <hits>[1|10|0|0]</hits>
+        </item></channel></rss>"""
+    )
+    merged = merge_list_and_rss(posts, rss)
+    assert merged[0].body and "naver.me" in merged[0].body
+    assert merged[0].extra["thumbnail_url"]
+
+
 def test_ppomppu_rss_sample():
     xml = """<?xml version="1.0" encoding="UTF-8" ?>
     <rss version="2.0"><channel>

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import html
 import re
 from urllib.parse import parse_qs, unquote, urlparse
@@ -12,6 +13,8 @@ NESTED_URL_RE = re.compile(
     re.I,
 )
 TRUNCATED_RE = re.compile(r"(?:\.{3}|…|%E2%80%A6)")
+# RSS/plain text often glues Korean labels onto short links: naver.me/xxx상품링크
+TRAILING_CJK_RE = re.compile(r"[\u1100-\u11FF\u3130-\u318F\uAC00-\uD7A3].*$")
 
 MALL_HOST_PARTS = (
     "smartstore.naver.com",
@@ -77,10 +80,30 @@ def extract_mall_url(*texts: str | None) -> str | None:
         if not text:
             continue
         for url in _candidate_urls(text):
-            for candidate in _expand_candidates(url):
+            expanded = _expand_candidates(url)
+            for candidate in expanded:
                 if is_mall_url(candidate):
                     return candidate
+            # Ppomppu shortener may point at brand malls outside the allow-list.
+            if "ppomppu.co.kr" in url.lower():
+                for candidate in expanded[1:]:
+                    if _is_loose_shop_url(candidate):
+                        return candidate
     return None
+
+
+def _is_loose_shop_url(url: str | None) -> bool:
+    if not url or TRUNCATED_RE.search(url):
+        return False
+    try:
+        parsed = urlparse(url.strip())
+        host = (parsed.hostname or "").lower()
+    except ValueError:
+        return False
+    if not host or any(part in host for part in COMMUNITY_HOST_PARTS):
+        return False
+    path = (parsed.path or "").rstrip("/")
+    return bool(path)
 
 
 def is_mall_url(url: str | None) -> bool:
@@ -120,12 +143,15 @@ def is_mall_url(url: str | None) -> bool:
 
 
 def _expand_candidates(url: str) -> list[str]:
-    raw = html.unescape(url.strip())
+    raw = _clean_url(url)
     out = [raw]
+    unwrapped = _unwrap_ppomppu_target(raw)
+    if unwrapped:
+        out.append(unwrapped)
     for m in NESTED_URL_RE.finditer(raw):
         nested = unquote(m.group(1).strip())
         if nested.startswith("http"):
-            out.append(nested)
+            out.append(_clean_url(nested))
     # Common pattern: ?url=https%3A%2F%2F... / target-url=...
     try:
         qs = parse_qs(urlparse(raw).query)
@@ -133,10 +159,60 @@ def _expand_candidates(url: str) -> list[str]:
             for val in qs.get(key) or []:
                 val = unquote(val.strip())
                 if val.startswith("http"):
-                    out.append(val)
+                    out.append(_clean_url(val))
+                else:
+                    # Some boards put base64 destinations in target=.
+                    decoded = _b64_http_url(val)
+                    if decoded:
+                        out.append(decoded)
     except ValueError:
         pass
     return out
+
+
+def _clean_url(url: str) -> str:
+    raw = html.unescape((url or "").strip())
+    raw = TRAILING_CJK_RE.sub("", raw)
+    return raw.rstrip(").,;]'\"}»>")
+
+
+def _unwrap_ppomppu_target(url: str) -> str | None:
+    """Decode s.ppomppu.co.kr / view shortener ?target=<base64 url>."""
+    try:
+        parsed = urlparse(url)
+        host = (parsed.hostname or "").lower()
+    except ValueError:
+        return None
+    if "ppomppu.co.kr" not in host:
+        return None
+    try:
+        qs = parse_qs(parsed.query)
+    except ValueError:
+        return None
+    for key in ("target", "url", "u"):
+        for val in qs.get(key) or []:
+            val = unquote((val or "").strip())
+            if val.startswith("http"):
+                return _clean_url(val)
+            decoded = _b64_http_url(val)
+            if decoded:
+                return decoded
+    return None
+
+
+def _b64_http_url(value: str) -> str | None:
+    raw = (value or "").strip()
+    if not raw or len(raw) < 12:
+        return None
+    pad = "=" * ((4 - len(raw) % 4) % 4)
+    for decoder in (base64.urlsafe_b64decode, base64.b64decode):
+        try:
+            text = decoder(raw + pad).decode("utf-8", errors="strict").strip()
+        except Exception:  # noqa: BLE001
+            continue
+        if text.startswith("http://") or text.startswith("https://"):
+            return _clean_url(text)
+    return None
 
 
 def _candidate_urls(text: str) -> list[str]:
@@ -147,12 +223,13 @@ def _candidate_urls(text: str) -> list[str]:
     for m in NESTED_URL_RE.finditer(decoded):
         found.append(unquote(m.group(1).strip()))
     for m in URL_RE.finditer(decoded):
-        found.append(m.group(0).rstrip(").,;]'\"}"))
+        found.append(m.group(0))
     # de-dupe preserve order
     out: list[str] = []
     seen: set[str] = set()
     for u in found:
-        if u not in seen:
-            seen.add(u)
-            out.append(u)
+        cleaned = _clean_url(u)
+        if cleaned and cleaned not in seen:
+            seen.add(cleaned)
+            out.append(cleaned)
     return out

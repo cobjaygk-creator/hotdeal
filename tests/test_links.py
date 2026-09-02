@@ -47,3 +47,17 @@ def test_unwrap_gmarket_affiliate_gate():
     )
     assert is_mall_url(gate)
     assert extract_mall_url(gate) == "https://item.gmarket.co.kr/Item?goodsCode=4331858761"
+
+
+def test_strip_trailing_korean_on_short_link():
+    dirty = "https://naver.me/xiL30JlA상품링크 https://naver.me/xrzZWvl66대카드사"
+    assert extract_mall_url(dirty) == "https://naver.me/xiL30JlA"
+
+
+def test_unwrap_ppomppu_target_base64():
+    # https://smartstore.naver.com/foo/products/1
+    target = "aHR0cHM6Ly9zbWFydHN0b3JlLm5hdmVyLmNvbS9mb28vcHJvZHVjdHMvMQ=="
+    href = f"https://s.ppomppu.co.kr?idno=ppomppu_1&target={target}"
+    assert extract_mall_url(f'<a href="{href}">buy</a>') == (
+        "https://smartstore.naver.com/foo/products/1"
+    )

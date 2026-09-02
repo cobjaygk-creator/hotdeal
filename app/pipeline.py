@@ -316,7 +316,10 @@ async def collect_and_process(conn, sources, client) -> dict:
 
                 cheap = enrich_from_list_body(post.body)
                 mall_url = cheap.mall_url or extract_mall_url(post.body, post.title)
-                thumbnail_url = cheap.thumbnail_url
+                thumbnail_url = (
+                    cheap.thumbnail_url
+                    or (post.extra or {}).get("thumbnail_url")
+                )
 
                 need_detail = False
                 if DETAIL_ENRICH_ENABLED:
