@@ -169,3 +169,8 @@ class PoliteClient:
             text = raw.decode("utf-8", errors="replace")
             used = "utf-8"
         return FetchResult(url, status, text, raw, encoding=used)
+
+    async def post_json(self, url: str, payload: dict) -> None:
+        resp = await self._client.post(url, json=payload, timeout=HTTP_TIMEOUT_SEC)
+        if resp.status_code >= 400:
+            raise RuntimeError(f"POST {url} -> {resp.status_code} {resp.text[:200]}")

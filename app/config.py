@@ -69,3 +69,9 @@ SITE_URL = (os.environ.get("SITE_URL") or "").strip().rstrip("/")
 if not SITE_URL:
     domain = (os.environ.get("RAILWAY_PUBLIC_DOMAIN") or "").strip()
     SITE_URL = f"https://{domain}" if domain else "https://hotdeal-production.up.railway.app"
+
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
+TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "").strip()
+DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL", "").strip()
+ALERT_KEYWORDS = os.environ.get("ALERT_KEYWORDS", "").strip()
+ALERT_MIN_GRADE = os.environ.get("ALERT_MIN_GRADE", "핫딜").strip() or "핫딜"

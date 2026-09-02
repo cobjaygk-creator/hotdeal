@@ -36,6 +36,7 @@
     <nav class="site-nav">
       <a href="/" class="{% if current_nav == 'hotdeal' %}on{% endif %}">핫딜</a>
       <a href="/family" class="{% if current_nav == 'family' %}on{% endif %}">패밀리세일</a>
+      <a href="/alerts" class="{% if current_nav == 'alerts' %}on{% endif %}">알림</a>
     </nav>
     <form class="site-search" method="get" action="/search" role="search">
       <input type="search" name="q" value="{{ q|default('') }}" placeholder="상품·판매처 검색" aria-label="검색">

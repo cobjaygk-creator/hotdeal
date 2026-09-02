@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}키워드 알림 · 핫딜모음{% endblock %}
+{% block extra_head %}
+<meta property="og:title" content="키워드 알림">
+<meta property="og:description" content="핫딜 이상 등급만 키워드로 골라 텔레그램·디스코드로 받습니다.">
+{% endblock %}
+{% block body %}
+<section class="hero">
+  <h1>키워드 알림</h1>
+  <p>키워드가 제목에 있고, 가격 등급이 기준 이상일 때만 보냅니다. 기본 기준은 <strong>핫딜</strong>입니다.</p>
+</section>
+
+<section class="stats stats-3">
+  <div class="stat"><div class="label">텔레그램</div><div class="value small">{% if ready.telegram %}연결됨{% else %}미설정{% endif %}</div></div>
+  <div class="stat"><div class="label">디스코드</div><div class="value small">{% if ready.discord %}연결됨{% else %}미설정{% endif %}</div></div>
+  <div class="stat"><div class="label">기본 등급</div><div class="value small">핫딜 이상</div></div>
+</section>
+
+<p class="muted">Railway Variables에 <code>TELEGRAM_BOT_TOKEN</code>, <code>TELEGRAM_CHAT_ID</code> 또는 <code>DISCORD_WEBHOOK_URL</code>을 넣으세요. 키워드를 환경변수 <code>ALERT_KEYWORDS</code>(쉼표 구분)로 넣으면 배포 시 자동 등록됩니다.</p>
+
+{% if error %}<p class="down">{{ error }}</p>{% endif %}
+
+{% if not authed %}
+<form method="post" action="/alerts" class="admin-form">
+  <input type="hidden" name="action" value="login">
+  <label>관리자 비밀번호<input type="password" name="password" required></label>
+  <button type="submit">로그인하고 키워드 관리</button>
+</form>
+{% else %}
+<form method="post" action="/alerts" class="admin-form">
+  <input type="hidden" name="action" value="create">
+  <label>키워드<input name="keyword" required placeholder="카누"></label>
+  <label>최소 등급
+    <select name="min_grade">
+      <option selected>핫딜</option>
+      <option>특가</option>
+      <option>초특가</option>
+      <option>관심</option>
+    </select>
+  </label>
+  <label>채널
+    <select name="channel">
+      <option value="telegram">텔레그램</option>
+      <option value="discord">디스코드</option>
+    </select>
+  </label>
+  <label>대상 (비우면 환경변수 기본값)<input name="target" placeholder="채팅 ID 또는 웹훅 URL"></label>
+  <button type="submit">구독 추가</button>
+</form>
+
+<h2>등록된 키워드</h2>
+<ul class="sale-list">
+  {% for s in subs %}
+  <li>
+    <strong>{{ s.keyword }}</strong>
+    <div class="muted" style="margin-top:4px;font-size:12px">
+      {{ s.channel }} · {{ s.min_grade }} 이상 · {{ s.target_label }}{% if not s.enabled %} · 중지{% endif %}
+    </div>
+    <form method="post" action="/alerts" style="margin-top:8px">
+      <input type="hidden" name="action" value="delete">
+      <input type="hidden" name="sub_id" value="{{ s.id }}">
+      <button type="submit" class="btn-secondary">삭제</button>
+    </form>
+  </li>
+  {% else %}
+  <li class="muted">아직 구독이 없습니다.</li>
+  {% endfor %}
+</ul>
+{% endif %}
+{% endblock %}

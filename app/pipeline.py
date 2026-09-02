@@ -436,4 +436,12 @@ async def collect_and_process(conn, sources, client) -> dict:
         by_source[name] = {**info, "at": now}
     await set_meta(conn, "last_collect_by_source", json.dumps(by_source, ensure_ascii=False))
     await conn.commit()
+    try:
+        from app.engine.alerts import dispatch_alerts
+
+        summary["alerts"] = await dispatch_alerts(conn, client, summary.get("new_deals") or [])
+        await conn.commit()
+    except Exception:
+        log.exception("alert dispatch failed")
+        summary["alerts"] = {"error": "dispatch failed"}
     return summary

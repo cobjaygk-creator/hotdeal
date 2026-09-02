@@ -99,6 +99,26 @@ CREATE TABLE IF NOT EXISTS meta (
     value TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS alert_subs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    keyword TEXT NOT NULL,
+    min_grade TEXT NOT NULL DEFAULT '핫딜',
+    channel TEXT NOT NULL,
+    target TEXT NOT NULL,
+    enabled INTEGER NOT NULL DEFAULT 1,
+    origin TEXT NOT NULL DEFAULT 'admin',
+    created_at TEXT NOT NULL,
+    UNIQUE(keyword, channel, target)
+);
+
+CREATE TABLE IF NOT EXISTS alert_sent (
+    sub_id INTEGER NOT NULL,
+    deal_id INTEGER NOT NULL,
+    sent_at TEXT NOT NULL,
+    PRIMARY KEY (sub_id, deal_id),
+    FOREIGN KEY (sub_id) REFERENCES alert_subs(id)
+);
+
 CREATE INDEX IF NOT EXISTS idx_posts_posted ON posts(posted_at);
 CREATE INDEX IF NOT EXISTS idx_posts_source ON posts(source, source_post_id);
 CREATE INDEX IF NOT EXISTS idx_deals_seen ON deals(last_seen_at);
@@ -172,6 +192,9 @@ async def _ensure_columns(conn: aiosqlite.Connection) -> None:
 
     await _backfill_categories(conn)
     await _ensure_fts(conn)
+    from app.engine.alerts import seed_env_subs
+
+    await seed_env_subs(conn)
 
 
 async def _backfill_categories(conn: aiosqlite.Connection) -> None:

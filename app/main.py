@@ -24,7 +24,7 @@ from app.config import (
     SITE_URL,
 )
 from app.db import connect, get_meta, upsert_family_sale, utcnow_iso
-from app.engine.category import CATEGORIES as DEAL_CATEGORIES
+from app.engine.alerts import add_sub, channels_ready, default_target, delete_sub, list_subs
 from app.family.parse import parse_discount
 from app.family.pipeline import collect_family_sales
 from app.family.query import CATEGORIES, get_sale, list_sales, month_grid, parse_cats, parse_year_month
@@ -343,6 +343,90 @@ async def family_admin_post(
     return RedirectResponse("/family", status_code=303)
 
 
+@app.get("/alerts", response_class=HTMLResponse)
+async def alerts_page(request: Request):
+    subs = await list_subs(_db()) if _is_admin(request) else []
+    return TEMPLATES.TemplateResponse(
+        "alerts.html",
+        {
+            "request": request,
+            "nav": "alerts",
+            "authed": _is_admin(request),
+            "subs": [_public_sub(s) for s in subs],
+            "ready": channels_ready(),
+            "error": None,
+        },
+    )
+
+
+def _public_sub(sub: dict) -> dict:
+    target = sub.get("target") or ""
+    if sub.get("channel") == "discord":
+        masked = "웹훅 등록됨"
+    elif len(target) > 8:
+        masked = target[:2] + "…" + target[-4:]
+    else:
+        masked = "등록됨"
+    return {**sub, "target_label": masked}
+
+
+@app.post("/alerts")
+async def alerts_post(
+    request: Request,
+    action: str = Form(...),
+    password: str | None = Form(None),
+    keyword: str | None = Form(None),
+    min_grade: str | None = Form(None),
+    channel: str | None = Form(None),
+    target: str | None = Form(None),
+    sub_id: int | None = Form(None),
+):
+    if action == "login":
+        if ADMIN_PASSWORD and password == ADMIN_PASSWORD:
+            resp = RedirectResponse("/alerts", status_code=303)
+            resp.set_cookie("family_admin", _admin_token(), httponly=True, samesite="lax")
+            return resp
+        return TEMPLATES.TemplateResponse(
+            "alerts.html",
+            {
+                "request": request,
+                "nav": "alerts",
+                "authed": False,
+                "subs": [],
+                "ready": channels_ready(),
+                "error": "비밀번호가 없거나 틀립니다.",
+            },
+            status_code=401,
+        )
+    if not _is_admin(request):
+        return RedirectResponse("/alerts", status_code=303)
+    if action == "delete" and sub_id:
+        await delete_sub(_db(), sub_id)
+        await _db().commit()
+        return RedirectResponse("/alerts", status_code=303)
+    if action == "create":
+        ch = (channel or "").strip().lower()
+        dest = (target or "").strip() or default_target(ch)
+        try:
+            await add_sub(_db(), keyword=keyword or "", min_grade=min_grade or "핫딜", channel=ch, target=dest)
+            await _db().commit()
+        except Exception:
+            subs = await list_subs(_db())
+            return TEMPLATES.TemplateResponse(
+                "alerts.html",
+                {
+                    "request": request,
+                    "nav": "alerts",
+                    "authed": True,
+                    "subs": [_public_sub(s) for s in subs],
+                    "ready": channels_ready(),
+                    "error": "키워드와 채널을 확인하고, Railway에 토큰/웹훅이 있는지 보세요.",
+                },
+                status_code=400,
+            )
+    return RedirectResponse("/alerts", status_code=303)
+
+
 @app.get("/family/{sale_id}", response_class=HTMLResponse)
 async def family_detail(request: Request, sale_id: int):
     sale = await get_sale(_db(), sale_id)
@@ -441,6 +525,7 @@ async def robots():
         "Allow: /\n"
         "Disallow: /api/\n"
         "Disallow: /family/admin\n"
+        "Disallow: /alerts\n"
         f"Sitemap: {SITE_URL}/sitemap.xml\n"
     )
     return PlainTextResponse(body)
