@@ -4,7 +4,13 @@ import json
 import logging
 from datetime import datetime, timezone
 
-from app.config import BASELINE_DAYS, DETAIL_ENRICH_ENABLED, NAVER_SEED_ENABLED, RECENT_DEAL_HOURS
+from app.config import (
+    BASELINE_DAYS,
+    DETAIL_BACKFILL_PER_SOURCE,
+    DETAIL_ENRICH_ENABLED,
+    NAVER_SEED_ENABLED,
+    RECENT_DEAL_HOURS,
+)
 from app.db import get_meta, set_meta, utcnow_iso
 from app.engine.dedupe import jaccard, should_merge
 from app.engine.naver_seed import seed_baseline_if_needed
@@ -13,7 +19,7 @@ from app.engine.scoring import score_offer
 from app.parse.links import extract_mall_url
 from app.parse.title import parse_title
 from app.sources import RawPost
-from app.sources.detail import enrich_post
+from app.sources.detail import enrich_from_list_body, enrich_post
 from app.util.timeparse import to_iso
 
 log = logging.getLogger(__name__)
@@ -298,24 +304,29 @@ async def collect_and_process(conn, sources, client) -> dict:
         try:
             posts = await source.fetch_latest(client)
             new_count = 0
+            backfill_left = DETAIL_BACKFILL_PER_SOURCE if DETAIL_ENRICH_ENABLED else 0
             for post in posts:
                 pid, inserted = await upsert_post(conn, post_to_row(post))
                 summary["posts"] += 1
-                if not inserted:
-                    mall = extract_mall_url(post.body, post.title)
-                    if mall:
-                        await conn.execute(
-                            """
-                            UPDATE deals SET mall_url=COALESCE(mall_url, ?)
-                            WHERE id IN (SELECT deal_id FROM deal_posts WHERE post_id=?)
-                            """,
-                            (mall, pid),
-                        )
-                    continue
-                new_count += 1
-                mall_url = extract_mall_url(post.body, post.title)
-                thumbnail_url = None
+
+                cheap = enrich_from_list_body(post.body)
+                mall_url = cheap.mall_url or extract_mall_url(post.body, post.title)
+                thumbnail_url = cheap.thumbnail_url
+
+                need_detail = False
                 if DETAIL_ENRICH_ENABLED:
+                    if inserted:
+                        need_detail = True
+                    elif backfill_left > 0:
+                        cur = await conn.execute(
+                            "SELECT thumbnail_url FROM posts WHERE id=?",
+                            (pid,),
+                        )
+                        prow = await cur.fetchone()
+                        if prow and not prow["thumbnail_url"]:
+                            need_detail = True
+
+                if need_detail:
                     detail = await enrich_post(client, post.source, post.url)
                     if detail.title and (
                         len(detail.title) > len(post.title or "")
@@ -326,10 +337,29 @@ async def collect_and_process(conn, sources, client) -> dict:
                         mall_url = detail.mall_url
                     if detail.thumbnail_url:
                         thumbnail_url = detail.thumbnail_url
+                    if not inserted:
+                        backfill_left -= 1
+
+                if mall_url or thumbnail_url or (need_detail and post.title):
                     await upsert_post(
                         conn,
                         post_to_row(post, thumbnail_url=thumbnail_url),
                     )
+                    if mall_url or thumbnail_url:
+                        await conn.execute(
+                            """
+                            UPDATE deals
+                            SET mall_url=COALESCE(?, mall_url),
+                                thumbnail_url=COALESCE(?, thumbnail_url)
+                            WHERE id IN (SELECT deal_id FROM deal_posts WHERE post_id=?)
+                            """,
+                            (mall_url, thumbnail_url, pid),
+                        )
+
+                if not inserted:
+                    continue
+
+                new_count += 1
                 await _upsert_price_point(conn, pid, post)
                 deal_id = await upsert_deal_from_post(
                     conn,

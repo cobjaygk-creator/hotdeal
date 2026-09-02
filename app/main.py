@@ -429,6 +429,28 @@ async def api_debug_probe(source: str):
     return await probe_source(state["http"], source.lower())
 
 
+@app.get("/api/debug/enrich/{deal_id}")
+async def api_debug_enrich(deal_id: int):
+    """Fetch community detail for a deal on the server and show parse result."""
+    _require_collect()
+    from app.sources.detail import enrich_post
+
+    posts = await _deal_posts(deal_id)
+    if not posts:
+        raise HTTPException(404, "deal posts not found")
+    post = posts[0]
+    detail = await enrich_post(state["http"], post.get("source") or "", post.get("url") or "")
+    return {
+        "deal_id": deal_id,
+        "source": post.get("source"),
+        "url": post.get("url"),
+        "list_title": post.get("title"),
+        "enriched_title": detail.title,
+        "mall_url": detail.mall_url,
+        "thumbnail_url": detail.thumbnail_url,
+    }
+
+
 async def _stats() -> dict:
     db = _db()
     cur = await db.execute("SELECT COUNT(*) AS c FROM posts")
