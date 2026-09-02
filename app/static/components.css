@@ -332,7 +332,7 @@ a.btn.ghost, .ghost {
 .deal-card {
   display: flex;
   flex-direction: column;
-  background: #f5f6f8;
+  background: #fff;
   border: 1px solid #e2e5ea;
   border-radius: 14px;
   overflow: hidden;
