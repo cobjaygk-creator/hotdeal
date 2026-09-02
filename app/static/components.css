@@ -208,10 +208,10 @@ a.btn.ghost, .ghost {
   flex-wrap: wrap;
   gap: 2px;
   margin: 0 0 18px;
-  padding: 4px;
+  padding: 3px;
   border-radius: 8px;
-  background: #f0f2f5;
-  border: 0;
+  background: #fff;
+  border: 1px solid #d9dde5;
   vertical-align: middle;
   max-width: 100%;
   box-sizing: border-box;
@@ -588,7 +588,8 @@ a.btn.ghost, .ghost {
 [data-theme="dark"] .chip,
 [data-theme="dark"] .chip-row:has(.filter-chip),
 [data-theme="dark"] .seg-group {
-  background: #2a2f3a;
+  background: var(--surface);
+  border-color: var(--border);
 }
 [data-theme="dark"] .filter-chip,
 [data-theme="dark"] .seg-chip {
