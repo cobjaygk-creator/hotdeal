@@ -58,10 +58,11 @@ _BLOCKED_TITLE = re.compile(
 async def enrich_post(client: PoliteClient, source: str, url: str) -> DetailEnrichment:
     if not url or not url.startswith(("http://", "https://")):
         return DetailEnrichment()
+    # Ppomppu detail (desktop + mobile) currently 403s Railway datacenter IPs,
+    # and RSS bodies rarely include mall links/images. Skip wasted fetches.
+    if source == "ppomppu" or "ppomppu.co.kr" in url:
+        return DetailEnrichment()
     urls = [url]
-    # Ppomppu desktop view often 403s datacenter IPs; try mobile mirror.
-    if "ppomppu.co.kr" in url and "m.ppomppu.co.kr" not in url:
-        urls.append(url.replace("www.ppomppu.co.kr", "m.ppomppu.co.kr").replace("ppomppu.co.kr", "m.ppomppu.co.kr"))
     last_err: Exception | None = None
     for candidate in urls:
         try:
