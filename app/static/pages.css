@@ -128,9 +128,12 @@ table.calendar td.sel {
 }
 .sale-cards .empty { grid-column: 1 / -1; }
 .deal-cards .empty-row {
+  grid-column: 1 / -1;
   padding: 40px 16px;
   border: 0;
   text-align: center;
+  background: #fff;
+  border-radius: 12px;
 }
 .deal-detail-card {
   background: #fff;
