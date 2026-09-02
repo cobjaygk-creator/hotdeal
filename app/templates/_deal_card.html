@@ -1,22 +1,11 @@
 <li class="deal-card" data-id="{{ d.id }}" data-sources="{{ d.sources or '' }}" data-ts="{{ d.last_seen_at or '' }}" data-category="{{ d.category or '' }}">
-  {% if d.thumbnail_url %}
-  <img class="deal-thumb" src="{{ d.thumbnail_url }}" alt="" loading="lazy" referrerpolicy="no-referrer">
-  {% else %}
-  <div class="deal-thumb placeholder" aria-hidden="true"></div>
-  {% endif %}
-  <div class="deal-price">{% if d.price %}{{ "{:,}".format(d.price) }}원{% else %}-{% endif %}</div>
-  <div class="deal-main">
-    <a class="deal-title" href="/deal/{{ d.id }}" data-deal-id="{{ d.id }}">{{ d.product_name }}</a>
-    <div class="deal-meta">
-      <time class="time-rel" datetime="{{ d.last_seen_at or '' }}" data-ts="{{ d.last_seen_at or '' }}">{{ d.last_seen_at | reltime }}</time>
-      <span>{{ d.seller or "-" }}</span>
-      <span>{% if d.sources is string and d.sources %}{% for s in d.sources.split(",") %}{{ source_labels.get(s.strip(), s.strip()) }}{% if not loop.last %}, {% endif %}{% endfor %}{% else %}-{% endif %}</span>
-      {% if d.category %}<span>{{ d.category }}</span>{% endif %}
-      {% if d.discount_rate is number and d.discount_rate >= 0.15 %}
-      <span class="down">{{ "%.1f"|format(-d.discount_rate * 100) }}%</span>
-      {% elif d.discount_rate is number %}
-      <span>{{ "%.1f"|format(-d.discount_rate * 100) }}%</span>
-      {% endif %}
+  <div class="deal-thumb-wrap">
+    {% if d.thumbnail_url %}
+    <img class="deal-thumb" src="{{ d.thumbnail_url }}" alt="" loading="lazy" referrerpolicy="no-referrer">
+    {% else %}
+    <div class="deal-thumb placeholder" aria-hidden="true"></div>
+    {% endif %}
+    <div class="deal-badge-row">
       {% if d.grade is string and ("초특가" in d.grade) %}
       <span class="grade-chip grade-super">{{ d.grade }}</span>
       {% elif d.grade is string and ("특가" in d.grade) %}
@@ -25,16 +14,37 @@
       <span class="grade-chip grade-hot">{{ d.grade }}</span>
       {% elif d.grade == "관심" %}
       <span class="grade-chip grade-watch">{{ d.grade }}</span>
-      {% else %}
-      <span class="grade-quiet">{{ d.grade or "-" }}</span>
-      {% endif %}
-      {% if d.baseline_price %}
-      <span class="muted">중앙 {{ "{:,}".format(d.baseline_price) }}원</span>
+      {% elif d.grade %}
+      <span class="grade-quiet" style="background:var(--quiet-bg);padding:2px 8px;border-radius:999px">{{ d.grade }}</span>
       {% endif %}
     </div>
   </div>
-  <div class="deal-actions">
-    <button type="button" class="bookmark-btn" data-deal-id="{{ d.id }}" aria-label="북마크" title="북마크">☆</button>
-    <button type="button" class="detail-btn" data-deal-id="{{ d.id }}">상세</button>
+  <div class="deal-body">
+    <div class="deal-topline">
+      <span>{{ d.seller or "판매처 미상" }}</span>
+      <time class="time-rel" datetime="{{ d.last_seen_at or '' }}" data-ts="{{ d.last_seen_at or '' }}">{{ d.last_seen_at | reltime }}</time>
+    </div>
+    <a class="deal-title" href="/deal/{{ d.id }}" data-deal-id="{{ d.id }}">{{ d.product_name }}</a>
+    <div class="deal-price-row">
+      <div class="deal-price">{% if d.price %}{{ "{:,}".format(d.price) }}원{% else %}-{% endif %}</div>
+      {% if d.discount_rate is number and d.discount_rate >= 0.15 %}
+      <span class="down">{{ "%.1f"|format(-d.discount_rate * 100) }}%</span>
+      {% elif d.discount_rate is number %}
+      <span class="muted">{{ "%.1f"|format(-d.discount_rate * 100) }}%</span>
+      {% endif %}
+    </div>
+    <div class="deal-meta">
+      <span>{% if d.sources is string and d.sources %}{% for s in d.sources.split(",") %}{{ source_labels.get(s.strip(), s.strip()) }}{% if not loop.last %}, {% endif %}{% endfor %}{% else %}-{% endif %}</span>
+      {% if d.category %}<span>{{ d.category }}</span>{% endif %}
+      {% if d.baseline_price %}<span>중앙 {{ "{:,}".format(d.baseline_price) }}원</span>{% endif %}
+    </div>
+    <div class="deal-foot">
+      <button type="button" class="bookmark-btn" data-deal-id="{{ d.id }}" aria-label="북마크" title="북마크">☆</button>
+      {% if d.mall_url %}
+      <a class="deal-cta" href="{{ d.mall_url }}" target="_blank" rel="noopener">구매하기 ></a>
+      {% else %}
+      <button type="button" class="deal-cta detail-btn" data-deal-id="{{ d.id }}">상세 ></button>
+      {% endif %}
+    </div>
   </div>
 </li>

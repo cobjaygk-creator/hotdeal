@@ -5,16 +5,17 @@
 <meta property="og:description" content="핫딜 이상 등급만 키워드로 골라 텔레그램·디스코드로 받습니다.">
 {% endblock %}
 {% block body %}
-<section class="hero">
+<div class="page-head">
   <h1>키워드 알림</h1>
-  <p>키워드가 제목에 있고, 가격 등급이 기준 이상일 때만 보냅니다. 기본 기준은 <strong>핫딜</strong>입니다.</p>
-</section>
+  <div class="page-meta">핫딜 이상만 전송</div>
+</div>
+<p class="muted" style="margin:-6px 0 14px;font-size:13px">키워드가 제목에 있고, 가격 등급이 기준 이상일 때만 보냅니다.</p>
 
-<section class="stats stats-3">
-  <div class="stat"><div class="label">텔레그램</div><div class="value small">{% if ready.telegram %}연결됨{% else %}미설정{% endif %}</div></div>
-  <div class="stat"><div class="label">디스코드</div><div class="value small">{% if ready.discord %}연결됨{% else %}미설정{% endif %}</div></div>
-  <div class="stat"><div class="label">기본 등급</div><div class="value small">핫딜 이상</div></div>
-</section>
+<div class="summary-chips">
+  <span class="summary-chip">텔레그램 <strong>{% if ready.telegram %}연결{% else %}미설정{% endif %}</strong></span>
+  <span class="summary-chip">디스코드 <strong>{% if ready.discord %}연결{% else %}미설정{% endif %}</strong></span>
+  <span class="summary-chip">기준 <strong>핫딜+</strong></span>
+</div>
 
 {% if error == "keyword" %}<p class="down">키워드를 확인하세요. 계정당 30개까지입니다.</p>
 {% elif error == "notify" %}<p class="down">채널을 고르면 대상(채팅 ID/웹훅)도 넣어 주세요.</p>

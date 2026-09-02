@@ -101,6 +101,45 @@ table.calendar td.sel {
 }
 .sale-list a:hover { color: var(--accent); }
 
+.sale-cards {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+@media (min-width: 720px) {
+  .sale-cards { grid-template-columns: repeat(2, 1fr); }
+}
+.sale-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+.sale-card.has-code {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+}
+.sale-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  min-height: 140px;
+}
+.sale-cards .empty { grid-column: 1 / -1; }
+.deal-cards .empty-row { grid-column: 1 / -1; }
+.deal-detail-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 18px 16px 20px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 18px;
+}
+
 .admin-form {
   display: grid;
   gap: 10px;

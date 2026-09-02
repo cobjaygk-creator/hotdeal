@@ -2,7 +2,10 @@
 {% block title %}패밀리세일 수동 등록{% endblock %}
 {% block body %}
 <a class="back-link" href="/family">← 패밀리세일</a>
-<h1>수동 등록</h1>
+<div class="page-head">
+  <h1>수동 등록</h1>
+  <div class="page-meta">관리자</div>
+</div>
 {% if error %}<p class="down">{{ error }}</p>{% endif %}
 {% if not authed %}
 <form method="post" action="/family/admin" class="admin-form">

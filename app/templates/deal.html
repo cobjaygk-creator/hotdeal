@@ -10,7 +10,8 @@
 <script type="application/ld+json">{{ jsonld | tojson }}</script>
 {% endblock %}
 {% block body %}
-<a class="back-link" href="/">← 목록</a>
+<a class="back-link" href="/">← 핫딜 목록</a>
+<div class="deal-detail-card">
 {% if deal.thumbnail_url %}
 <div class="modal-thumb-wrap"><img class="modal-thumb" src="{{ deal.thumbnail_url }}" alt="" referrerpolicy="no-referrer"></div>
 {% endif %}
@@ -40,6 +41,7 @@
 {% if deal.mall_url %}<a class="btn" href="{{ deal.mall_url }}" target="_blank" rel="noopener">구매하기</a>{% endif %}
 {% if deal.deal_url %}<a class="btn ghost" href="{{ deal.deal_url }}" target="_blank" rel="noopener">원문 보기</a>{% endif %}
 </p>
+</div>
 
 <section class="stats">
   <div class="stat"><div class="label">현재 가격</div><div class="value">{% if deal.price %}{{ "{:,}".format(deal.price) }}원{% else %}-{% endif %}</div></div>
@@ -84,6 +86,7 @@ if (labels.length) {
       scales: { y: { ticks: { callback: v => Number(v).toLocaleString() + "원" } } }
     }
   });
+}
 </script>
 <script id="live-config" type="application/json">{"live": false}</script>
 <script src="/static/live.js"></script>

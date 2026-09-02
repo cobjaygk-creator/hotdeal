@@ -1,17 +1,17 @@
 {% extends "base.html" %}
 {% block title %}패밀리세일 · 핫딜모음{% endblock %}
 {% block body %}
-<section class="hero">
+<div class="page-head">
   <h1>패밀리세일</h1>
-  <p>브랜드 창고·패밀리세일 일정을 모아 진행중·예정·입장코드를 한눈에 봅니다.</p>
-</section>
+  <div class="page-meta">마지막 수집 {{ stats.last | kst }}</div>
+</div>
+<p class="muted" style="margin:-6px 0 14px;font-size:13px">브랜드 창고·패밀리세일 일정을 한곳에 모읍니다.</p>
 
-<section class="stats stats-3">
-  <div class="stat"><div class="label">진행중</div><div class="value">{{ stats.live }}</div></div>
-  <div class="stat"><div class="label">예정</div><div class="value">{{ stats.upcoming }}</div></div>
-  <div class="stat"><div class="label">입장코드</div><div class="value">{{ stats.codes }}</div></div>
-</section>
-<p class="muted" style="margin-top:-6px;margin-bottom:14px;font-size:13px">마지막 수집 {{ stats.last | kst }}</p>
+<div class="summary-chips">
+  <span class="summary-chip">진행중 <strong>{{ stats.live }}</strong></span>
+  <span class="summary-chip">예정 <strong>{{ stats.upcoming }}</strong></span>
+  <span class="summary-chip">입장코드 <strong>{{ stats.codes }}</strong></span>
+</div>
 
 <form class="toolbar" method="get" action="/family">
   <input type="hidden" name="year" value="{{ grid.year }}">
@@ -60,18 +60,28 @@
 
   <section>
     <h2 class="family-day-title">{% if selected %}{{ selected }} 세일{% else %}진행중 · 예정{% endif %}</h2>
-    <ul class="sale-list">
+    <ul class="sale-cards">
       {% for s in day_sales %}
-      <li class="{% if s.has_entry_code %}has-code{% endif %}">
-        <a href="/family/{{ s.id }}">{{ s.title }}</a>
-        <div class="muted" style="margin-top:4px;font-size:12px">
-          {{ s.start_date or "?" }} ~ {{ s.end_date or "?" }} · {{ s.sale_type }} · {{ s.cats_label }}
+      <li class="sale-card {% if s.has_entry_code %}has-code{% endif %}">
+        <div class="sale-card-body">
+          <div class="deal-topline">
+            <span>{{ s.sale_type }}</span>
+            {% if s.has_entry_code %}<span class="badge">입장코드</span>{% endif %}
+          </div>
+          <a class="deal-title" href="/family/{{ s.id }}">{{ s.title }}</a>
+          <div class="deal-meta">
+            <span>{{ s.start_date or "?" }} ~ {{ s.end_date or "?" }}</span>
+            <span>{{ s.cats_label }}</span>
+            {% if s.discount_label %}<span class="down">{{ s.discount_label }}</span>{% endif %}
+          </div>
+          <div class="deal-foot">
+            <span class="muted" style="font-size:12px">{{ s.brands_label }}</span>
+            <a class="deal-cta" href="/family/{{ s.id }}">자세히 ></a>
+          </div>
         </div>
-        {% if s.has_entry_code %}<span class="badge">입장코드 {{ s.entry_code or "있음" }}</span>{% endif %}
-        {% if s.discount_label %}<span class="badge down">{{ s.discount_label }}</span>{% endif %}
       </li>
       {% else %}
-      <li class="muted">해당 조건의 세일이 없습니다.</li>
+      <li class="empty muted">해당 조건의 세일이 없습니다.</li>
       {% endfor %}
     </ul>
   </section>
@@ -81,8 +91,13 @@ document.getElementById("family-collect")?.addEventListener("click", async () =>
   const btn = document.getElementById("family-collect");
   btn.disabled = true;
   btn.textContent = "수집 중…";
-  await fetch("/api/family/collect", { method: "POST" });
-  location.reload();
+  try {
+    await fetch("/api/family/collect", { method: "POST" });
+    location.reload();
+  } catch (e) {
+    btn.disabled = false;
+    btn.textContent = "지금 수집";
+  }
 });
 </script>
 {% endblock %}

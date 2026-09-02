@@ -27,47 +27,86 @@
 </head>
 <body>
   {% set current_nav = nav|default("hotdeal") %}
-  <header class="top">
-    <a class="brand" href="/">
-      <span class="brand-mark">H</span>
-      핫딜모음
-      <span class="brand-sub">실시간 · 가격판정</span>
-    </a>
-    <nav class="site-nav">
-      <a href="/" class="{% if current_nav == 'hotdeal' %}on{% endif %}">핫딜</a>
-      <a href="/family" class="{% if current_nav == 'family' %}on{% endif %}">패밀리세일</a>
-      <a href="/alerts" class="{% if current_nav == 'alerts' %}on{% endif %}">알림</a>
-    </nav>
-    <form class="site-search" method="get" action="/search" role="search">
-      <input type="search" name="q" value="{{ q|default('') }}" placeholder="상품·판매처 검색" aria-label="검색">
-    </form>
-    <button type="button" class="theme-toggle" id="theme-toggle" aria-label="테마 전환" title="테마 전환">◐</button>
-    <div class="account">
-      {% if user %}
-      <a href="/alerts" class="account-name">{{ user.display_name }}</a>
-      <a href="/logout">로그아웃</a>
-      {% else %}
-      <a href="/login">로그인</a>
-      {% endif %}
+  <div class="sidebar-backdrop" id="sidebar-backdrop" hidden></div>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar" aria-label="메뉴">
+      <a class="sidebar-brand" href="/">
+        <span class="brand-mark">H</span>
+        핫딜모음
+      </a>
+      <div class="sidebar-label">메뉴</div>
+      <nav class="sidebar-nav">
+        <a href="/" class="{% if current_nav == 'hotdeal' %}on{% endif %}"><span class="nav-ico">⚡</span> 핫딜</a>
+        <a href="/family" class="{% if current_nav == 'family' %}on{% endif %}"><span class="nav-ico">📅</span> 패밀리세일</a>
+        <a href="/search" class="{% if current_nav == 'search' %}on{% endif %}"><span class="nav-ico">⌕</span> 검색</a>
+        <a href="/alerts" class="{% if current_nav == 'alerts' %}on{% endif %}"><span class="nav-ico">🔔</span> 알림</a>
+        <a href="/family/admin" class="{% if current_nav == 'admin' %}on{% endif %}"><span class="nav-ico">＋</span> 세일 등록</a>
+      </nav>
+      <div class="sidebar-foot">
+        <div class="account">
+          {% if user %}
+          <a href="/alerts" class="account-name">{{ user.display_name }}</a>
+          <a href="/logout">로그아웃</a>
+          {% else %}
+          <a href="/login">로그인</a>
+          {% endif %}
+        </div>
+        <button type="button" class="theme-toggle" id="theme-toggle" aria-label="테마 전환" title="테마 전환">◐</button>
+      </div>
+    </aside>
+
+    <div class="app-main">
+      <header class="mobile-top">
+        <button type="button" class="menu-btn" id="menu-btn" aria-label="메뉴 열기">☰</button>
+        <a class="mobile-brand" href="/">핫딜모음</a>
+        <a class="icon-btn" href="/search" aria-label="검색">⌕</a>
+      </header>
+      <div class="main-inner">
+        {% block body %}{% endblock %}
+      </div>
     </div>
-  </header>
-  <main>
-    {% block body %}{% endblock %}
-  </main>
+  </div>
   <script>
     (function () {
       var btn = document.getElementById("theme-toggle");
-      if (!btn) return;
-      btn.addEventListener("click", function () {
-        var root = document.documentElement;
-        var cur = root.getAttribute("data-theme");
-        var next;
-        if (cur === "dark") next = "light";
-        else if (cur === "light") next = "dark";
-        else next = window.matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "dark";
-        root.setAttribute("data-theme", next);
-        try { localStorage.setItem("theme", next); } catch (e) {}
-      });
+      if (btn) {
+        btn.addEventListener("click", function () {
+          var root = document.documentElement;
+          var cur = root.getAttribute("data-theme");
+          var next;
+          if (cur === "dark") next = "light";
+          else if (cur === "light") next = "dark";
+          else next = window.matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "dark";
+          root.setAttribute("data-theme", next);
+          try { localStorage.setItem("theme", next); } catch (e) {}
+        });
+      }
+      var sidebar = document.getElementById("sidebar");
+      var backdrop = document.getElementById("sidebar-backdrop");
+      var menuBtn = document.getElementById("menu-btn");
+      function closeNav() {
+        if (!sidebar) return;
+        sidebar.classList.remove("open");
+        if (backdrop) {
+          backdrop.classList.remove("show");
+          backdrop.hidden = true;
+        }
+      }
+      function openNav() {
+        if (!sidebar) return;
+        sidebar.classList.add("open");
+        if (backdrop) {
+          backdrop.hidden = false;
+          backdrop.classList.add("show");
+        }
+      }
+      if (menuBtn) menuBtn.addEventListener("click", openNav);
+      if (backdrop) backdrop.addEventListener("click", closeNav);
+      if (sidebar) {
+        sidebar.querySelectorAll("a").forEach(function (a) {
+          a.addEventListener("click", closeNav);
+        });
+      }
     })();
   </script>
 </body>

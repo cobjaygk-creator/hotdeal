@@ -5,13 +5,12 @@
 <meta property="og:url" content="{{ site_url }}/search">
 {% endblock %}
 {% block body %}
-<a class="back-link" href="/">← 목록</a>
-<section class="hero">
+<div class="page-head">
   <h1>검색</h1>
-  <p>{% if q %}“{{ q }}” 결과 {{ deals|length }}건{% else %}상품명이나 판매처를 입력하세요.{% endif %}</p>
-</section>
+  <div class="page-meta">{% if q %}결과 {{ deals|length }}건{% else %}상품·판매처{% endif %}</div>
+</div>
 <form class="toolbar" method="get" action="/search">
-  <input type="search" name="q" value="{{ q }}" placeholder="상품·판매처" aria-label="검색어" required>
+  <input type="search" name="q" value="{{ q }}" placeholder="상품·판매처" aria-label="검색어" required style="flex:1;min-width:180px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--card);font:inherit">
   <button type="submit">검색</button>
 </form>
 <ul class="deal-cards" id="deal-body">

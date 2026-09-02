@@ -323,7 +323,7 @@ async def family_admin(request: Request):
         "family_admin.html",
         {
             "request": request,
-            "nav": "family",
+            "nav": "admin",
             "authed": _is_admin(request),
             "all_cats": CATEGORIES,
             "error": None,
@@ -356,7 +356,7 @@ async def family_admin_post(
             "family_admin.html",
             {
                 "request": request,
-                "nav": "family",
+                "nav": "admin",
                 "authed": False,
                 "all_cats": CATEGORIES,
                 "error": "비밀번호가 없거나 틀립니다.",
@@ -707,7 +707,7 @@ async def search_page(request: Request, q: str = ""):
         "search.html",
         {
             "request": request,
-            "nav": "hotdeal",
+            "nav": "search",
             "q": q,
             "deals": deals,
             "source_labels": SOURCE_LABELS,

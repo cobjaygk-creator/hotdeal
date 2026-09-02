@@ -210,37 +210,34 @@ function renderRow(deal) {
   li.dataset.category = deal.category || "";
   const starred = isBookmarked(deal.id);
   const title = deal.product_name || "(제목 없음)";
-  const titleHtml = `<a class="deal-title" href="/deal/${deal.id}" data-deal-id="${deal.id}">${esc(title)}</a>`;
   let drop = "";
   if (deal.discount_rate != null) {
-    const cls = deal.discount_rate >= 0.15 ? "down" : "";
+    const cls = deal.discount_rate >= 0.15 ? "down" : "muted";
     drop = `<span class="${cls}">${pct(deal.discount_rate)}</span>`;
   }
-  const base =
-    deal.baseline_price != null
-      ? `<span class="muted">중앙 ${won(deal.baseline_price)}</span>`
-      : "";
   const thumb = deal.thumbnail_url
     ? `<img class="deal-thumb" src="${esc(deal.thumbnail_url)}" alt="" loading="lazy" referrerpolicy="no-referrer">`
     : `<div class="deal-thumb placeholder" aria-hidden="true"></div>`;
   const ts = deal.last_seen_at || "";
+  const cta = deal.mall_url
+    ? `<a class="deal-cta" href="${esc(deal.mall_url)}" target="_blank" rel="noopener">구매하기 ></a>`
+    : `<button type="button" class="deal-cta detail-btn" data-deal-id="${deal.id}">상세 ></button>`;
   li.innerHTML =
-    thumb +
-    `<div class="deal-price">${won(deal.price)}</div>` +
-    `<div class="deal-main">${titleHtml}` +
-    `<div class="deal-meta">` +
-    `<time class="time-rel" datetime="${esc(ts)}" data-ts="${esc(ts)}">${esc(relativeTime(ts))}</time>` +
-    `<span>${esc(deal.seller || "-")}</span>` +
-    `<span>${esc(labelSources(deal.sources))}</span>` +
+    `<div class="deal-thumb-wrap">${thumb}` +
+    `<div class="deal-badge-row">${gradeHtml(deal.grade)}</div></div>` +
+    `<div class="deal-body">` +
+    `<div class="deal-topline"><span>${esc(deal.seller || "판매처 미상")}</span>` +
+    `<time class="time-rel" datetime="${esc(ts)}" data-ts="${esc(ts)}">${esc(relativeTime(ts))}</time></div>` +
+    `<a class="deal-title" href="/deal/${deal.id}" data-deal-id="${deal.id}">${esc(title)}</a>` +
+    `<div class="deal-price-row"><div class="deal-price">${won(deal.price)}</div>${drop}</div>` +
+    `<div class="deal-meta"><span>${esc(labelSources(deal.sources))}</span>` +
     (deal.category ? `<span>${esc(deal.category)}</span>` : "") +
-    drop +
-    gradeHtml(deal.grade) +
-    base +
-    `</div></div>` +
-    `<div class="deal-actions">` +
+    (deal.baseline_price != null ? `<span>중앙 ${won(deal.baseline_price)}</span>` : "") +
+    `</div>` +
+    `<div class="deal-foot">` +
     `<button type="button" class="bookmark-btn${starred ? " on" : ""}" data-deal-id="${deal.id}" aria-label="북마크">${starred ? "★" : "☆"}</button>` +
-    `<button type="button" class="detail-btn" data-deal-id="${deal.id}">상세</button>` +
-    `</div>`;
+    cta +
+    `</div></div>`;
   applyChipClass(li);
   return li;
 }

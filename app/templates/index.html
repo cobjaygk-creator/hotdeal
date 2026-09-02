@@ -7,24 +7,23 @@
 <meta property="og:type" content="website">
 {% endblock %}
 {% block body %}
-<section class="hero">
-  <h1>실시간 핫딜모음</h1>
-  <p>여러 커뮤니티 특가를 한곳에 모으고, 가격 이력으로 진짜 싼지 가려줍니다.</p>
-</section>
-
-<div class="status-row">
-  <span class="dot" id="live-dot"></span>
-  <span id="live-status">연결 중…</span>
-  <span class="status-sep">·</span>
-  <span class="muted">마지막 수집 <strong id="stat-last">{{ stats.last_collect_at | kst }}</strong></span>
-  <div class="ticker" id="ticker" aria-live="polite"></div>
+<div class="page-head">
+  <h1>실시간 핫딜</h1>
+  <div class="page-meta">
+    <span class="dot" id="live-dot"></span>
+    <span id="live-status">연결 중…</span>
+    · 수집 <strong id="stat-last">{{ stats.last_collect_at | kst }}</strong>
+  </div>
 </div>
 
-<section class="stats stats-3">
-  <div class="stat"><div class="label">오늘 신규 핫딜</div><div class="value" id="stat-hot">{{ stats.today_hot }}</div></div>
-  <div class="stat"><div class="label">강력 핫딜</div><div class="value" id="stat-strong">{{ stats.strong }}</div></div>
-  <div class="stat"><div class="label">수집 게시글</div><div class="value" id="stat-posts">{{ stats.posts }}</div></div>
-</section>
+<p class="hero muted" style="margin-top:-6px">커뮤니티 특가를 모으고 가격 이력으로 진짜 싼지 가려줍니다.</p>
+
+<div class="summary-chips">
+  <span class="summary-chip">오늘 핫딜 <strong id="stat-hot">{{ stats.today_hot }}</strong></span>
+  <span class="summary-chip">강력 <strong id="stat-strong">{{ stats.strong }}</strong></span>
+  <span class="summary-chip">게시글 <strong id="stat-posts">{{ stats.posts }}</strong></span>
+</div>
+<div class="ticker" id="ticker" aria-live="polite"></div>
 
 <form class="toolbar" method="get" action="/">
   {% if category %}<input type="hidden" name="cat" value="{{ category }}">{% endif %}
