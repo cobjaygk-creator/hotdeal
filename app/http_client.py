@@ -60,9 +60,13 @@ class PoliteClient:
         url: str,
         encoding: str | None = None,
         timeout: float | None = None,
+        *,
+        curl_fallback: bool = True,
+        max_retries: int | None = None,
     ) -> FetchResult:
         host = httpx.URL(url).host or "default"
         req_timeout = timeout if timeout is not None else HTTP_TIMEOUT_SEC
+        retries = MAX_RETRIES if max_retries is None else max(1, max_retries)
         extra: dict[str, str] = {}
         if url in self._etag:
             extra["If-None-Match"] = self._etag[url]
@@ -70,7 +74,7 @@ class PoliteClient:
             extra["If-Modified-Since"] = self._modified[url]
 
         last_error: Exception | None = None
-        for attempt in range(MAX_RETRIES):
+        for attempt in range(retries):
             async with self._lock(host):
                 now = asyncio.get_event_loop().time()
                 wait = MIN_REQUEST_INTERVAL_SEC - (now - self._last.get(host, 0.0))
@@ -89,8 +93,11 @@ class PoliteClient:
                 return FetchResult(url, 304, "", b"", not_modified=True)
 
             if resp.status_code == 403:
-                log.warning("403 on %s, falling back to curl", url)
-                return await self._curl_get(url, encoding, timeout=req_timeout)
+                if curl_fallback:
+                    log.warning("403 on %s, falling back to curl", url)
+                    return await self._curl_get(url, encoding, timeout=req_timeout)
+                log.warning("403 on %s (curl fallback disabled)", url)
+                return self._decode(url, 403, resp.content, encoding, resp.encoding)
 
             if resp.status_code in (429, 500, 502, 503, 504):
                 delay = 2 ** attempt
@@ -111,8 +118,10 @@ class PoliteClient:
             # Some boards return HTTP 200 with an HTML 403 body to datacenter IPs.
             head = decoded.text[:800].lower()
             if "403 forbidden" in head or "just a moment" in head:
-                log.warning("soft-block body on %s, falling back to curl", url)
-                return await self._curl_get(url, encoding, timeout=req_timeout)
+                if curl_fallback:
+                    log.warning("soft-block body on %s, falling back to curl", url)
+                    return await self._curl_get(url, encoding, timeout=req_timeout)
+                log.warning("soft-block body on %s (curl fallback disabled)", url)
             return decoded
 
         if last_error:

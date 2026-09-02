@@ -25,25 +25,17 @@ class PpomppuSource:
     name = "ppomppu"
 
     async def fetch_latest(self, client: PoliteClient) -> list[RawPost]:
-        """RSS is the reliable path; list HTML is optional for richer thumbs/meta."""
-        list_posts: list[RawPost] = []
-        rss_posts: list[RawPost] = []
-        # Fetch RSS first so a hung list request cannot starve the collect tick.
-        try:
-            result = await client.get(RSS_URL, timeout=RSS_TIMEOUT_SEC)
-            if not result.not_modified and result.text:
-                rss_posts = parse_rss(result.text)
-        except Exception as exc:  # noqa: BLE001
-            log.warning("ppomppu rss fetch failed: %s", exc)
+        """RSS-only from datacenter hosts; CDN thumbs are derived from post id."""
         try:
             result = await client.get(
-                LIST_URL, encoding="euc-kr", timeout=LIST_TIMEOUT_SEC
+                RSS_URL, timeout=RSS_TIMEOUT_SEC, max_retries=2
             )
-            if not result.not_modified and result.text and not _looks_blocked(result.text):
-                list_posts = parse_list_html(result.text)
+            if result.not_modified or not result.text:
+                return []
+            return parse_rss(result.text)
         except Exception as exc:  # noqa: BLE001
-            log.warning("ppomppu list fetch failed: %s", exc)
-        return merge_list_and_rss(list_posts, rss_posts)
+            log.warning("ppomppu rss fetch failed: %s", exc)
+            return []
 
     async def fetch_page(self, client: PoliteClient, page: int) -> list[RawPost]:
         url = LIST_URL if page <= 1 else f"{LIST_URL}&page={page}"

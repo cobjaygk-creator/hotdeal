@@ -67,17 +67,19 @@ async def enrich_post(client: PoliteClient, source: str, url: str) -> DetailEnri
     # Prefer https; ppomppu RSS still emits http:// links that bounce via script.
     if url.startswith("http://"):
         url = "https://" + url[len("http://") :]
+    # One short attempt for ppomppu — no mobile hop / curl fallback (those stall collect).
     urls = [url]
-    if is_ppomppu and "www.ppomppu.co.kr" in url:
-        urls.append(url.replace("www.ppomppu.co.kr", "m.ppomppu.co.kr", 1))
-    # Keep ppomppu detail attempts short so a datacenter block cannot stall collect.
-    timeout = 8.0 if is_ppomppu else None
+    timeout = 5.0 if is_ppomppu else None
     encoding = "euc-kr" if is_ppomppu else None
     last_err: Exception | None = None
     for candidate in urls:
         try:
             result = await client.get(
-                candidate, encoding=encoding, timeout=timeout
+                candidate,
+                encoding=encoding,
+                timeout=timeout,
+                curl_fallback=not is_ppomppu,
+                max_retries=1 if is_ppomppu else None,
             )
             if result.not_modified or not result.text:
                 continue

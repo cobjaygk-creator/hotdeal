@@ -9,6 +9,7 @@ from app.config import (
     DETAIL_BACKFILL_PER_SOURCE,
     DETAIL_ENRICH_ENABLED,
     NAVER_SEED_ENABLED,
+    PPOMPPU_DETAIL_PER_TICK,
     RECENT_DEAL_HOURS,
 )
 from app.db import get_meta, set_meta, utcnow_iso
@@ -310,6 +311,11 @@ async def collect_and_process(conn, sources, client) -> dict:
             posts = await source.fetch_latest(client)
             new_count = 0
             backfill_left = DETAIL_BACKFILL_PER_SOURCE if DETAIL_ENRICH_ENABLED else 0
+            pp_detail_left = (
+                PPOMPPU_DETAIL_PER_TICK
+                if DETAIL_ENRICH_ENABLED and source.name == "ppomppu"
+                else 0
+            )
             for post in posts:
                 pid, inserted = await upsert_post(conn, post_to_row(post))
                 summary["posts"] += 1
@@ -323,7 +329,26 @@ async def collect_and_process(conn, sources, client) -> dict:
 
                 need_detail = False
                 if DETAIL_ENRICH_ENABLED:
-                    if inserted:
+                    if post.source == "ppomppu":
+                        # RSS tick must stay fast: only a couple short mall attempts.
+                        if pp_detail_left > 0 and not mall_url:
+                            if inserted:
+                                need_detail = True
+                            else:
+                                cur = await conn.execute(
+                                    """
+                                    SELECT d.mall_url AS mall
+                                    FROM deal_posts dp
+                                    JOIN deals d ON d.id=dp.deal_id
+                                    WHERE dp.post_id=?
+                                    LIMIT 1
+                                    """,
+                                    (pid,),
+                                )
+                                prow = await cur.fetchone()
+                                if prow is None or not prow["mall"]:
+                                    need_detail = True
+                    elif inserted:
                         need_detail = True
                     elif backfill_left > 0:
                         cur = await conn.execute(
@@ -341,11 +366,7 @@ async def collect_and_process(conn, sources, client) -> dict:
                             (pid,),
                         )
                         prow = await cur.fetchone()
-                        # Ppomppu thumbs come from CDN; only chase missing mall.
-                        if post.source == "ppomppu":
-                            if prow and not prow["mall"]:
-                                need_detail = True
-                        elif prow and (not prow["thumb"] or not prow["mall"]):
+                        if prow and (not prow["thumb"] or not prow["mall"]):
                             need_detail = True
 
                 if need_detail:
@@ -359,7 +380,12 @@ async def collect_and_process(conn, sources, client) -> dict:
                         mall_url = detail.mall_url
                     if detail.thumbnail_url:
                         thumbnail_url = detail.thumbnail_url
-                    if not inserted:
+                    if post.source == "ppomppu":
+                        pp_detail_left -= 1
+                        # If datacenter is blocked, stop burning the tick.
+                        if not detail.mall_url:
+                            pp_detail_left = 0
+                    elif not inserted:
                         backfill_left -= 1
 
                 if mall_url or thumbnail_url or (need_detail and post.title):
