@@ -82,6 +82,19 @@ h2 { font-size: var(--text-sm); margin-top: var(--space-6); color: var(--muted);
   cursor: pointer;
   font-size: 14px;
 }
+.account {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.account a {
+  color: var(--muted);
+  text-decoration: none;
+}
+.account-name { max-width: 7em; overflow: hidden; text-overflow: ellipsis; }
 .site-search {
   flex: 1 1 140px;
   min-width: 120px;

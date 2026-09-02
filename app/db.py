@@ -120,6 +120,40 @@ CREATE TABLE IF NOT EXISTS alert_sent (
     FOREIGN KEY (sub_id) REFERENCES alert_subs(id)
 );
 
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    display_name TEXT NOT NULL,
+    email TEXT,
+    notify_channel TEXT,
+    notify_target TEXT,
+    created_at TEXT NOT NULL,
+    last_login_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS oauth_identities (
+    provider TEXT NOT NULL,
+    subject TEXT NOT NULL,
+    user_id INTEGER NOT NULL,
+    email TEXT,
+    PRIMARY KEY (provider, subject)
+);
+
+CREATE TABLE IF NOT EXISTS user_bookmarks (
+    user_id INTEGER NOT NULL,
+    deal_id INTEGER NOT NULL,
+    created_at TEXT NOT NULL,
+    PRIMARY KEY (user_id, deal_id)
+);
+
+CREATE TABLE IF NOT EXISTS user_keywords (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    keyword TEXT NOT NULL,
+    min_grade TEXT NOT NULL DEFAULT '핫딜',
+    created_at TEXT NOT NULL,
+    UNIQUE(user_id, keyword)
+);
+
 CREATE INDEX IF NOT EXISTS idx_posts_posted ON posts(posted_at);
 CREATE INDEX IF NOT EXISTS idx_posts_source ON posts(source, source_post_id);
 CREATE INDEX IF NOT EXISTS idx_deals_seen ON deals(last_seen_at);
@@ -249,6 +283,63 @@ async def _ensure_columns(conn: aiosqlite.Connection) -> None:
         await seed_env_subs(conn)
     except Exception:
         logging.getLogger("hotdeal").exception("alert seed failed")
+    try:
+        await _ensure_auth_tables(conn)
+    except Exception:
+        logging.getLogger("hotdeal").exception("auth tables failed")
+
+
+async def _ensure_auth_tables(conn: aiosqlite.Connection) -> None:
+    await conn.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            display_name TEXT NOT NULL,
+            email TEXT,
+            notify_channel TEXT,
+            notify_target TEXT,
+            created_at TEXT NOT NULL,
+            last_login_at TEXT NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS oauth_identities (
+            provider TEXT NOT NULL,
+            subject TEXT NOT NULL,
+            user_id INTEGER NOT NULL,
+            email TEXT,
+            PRIMARY KEY (provider, subject)
+        );
+        CREATE TABLE IF NOT EXISTS user_bookmarks (
+            user_id INTEGER NOT NULL,
+            deal_id INTEGER NOT NULL,
+            created_at TEXT NOT NULL,
+            PRIMARY KEY (user_id, deal_id)
+        );
+        CREATE TABLE IF NOT EXISTS user_keywords (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            keyword TEXT NOT NULL,
+            min_grade TEXT NOT NULL DEFAULT '핫딜',
+            created_at TEXT NOT NULL,
+            UNIQUE(user_id, keyword)
+        );
+        """
+    )
+    cur = await conn.execute("PRAGMA table_info(alert_subs)")
+    cols = {row[1] for row in await cur.fetchall()}
+    if "user_id" not in cols:
+        await conn.execute("ALTER TABLE alert_subs ADD COLUMN user_id INTEGER")
+    cur = await conn.execute("PRAGMA table_info(users)")
+    user_cols = {row[1] for row in await cur.fetchall()}
+    for name, decl in (
+        ("email", "TEXT"),
+        ("notify_channel", "TEXT"),
+        ("notify_target", "TEXT"),
+        ("display_name", "TEXT"),
+        ("created_at", "TEXT"),
+        ("last_login_at", "TEXT"),
+    ):
+        if name not in user_cols:
+            await conn.execute(f"ALTER TABLE users ADD COLUMN {name} {decl}")
 
 
 async def _backfill_categories(conn: aiosqlite.Connection) -> None:

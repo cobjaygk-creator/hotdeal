@@ -42,6 +42,14 @@
       <input type="search" name="q" value="{{ q|default('') }}" placeholder="상품·판매처 검색" aria-label="검색">
     </form>
     <button type="button" class="theme-toggle" id="theme-toggle" aria-label="테마 전환" title="테마 전환">◐</button>
+    <div class="account">
+      {% if user %}
+      <a href="/alerts" class="account-name">{{ user.display_name }}</a>
+      <a href="/logout">로그아웃</a>
+      {% else %}
+      <a href="/login">로그인</a>
+      {% endif %}
+    </div>
   </header>
   <main>
     {% block body %}{% endblock %}

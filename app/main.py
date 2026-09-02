@@ -16,6 +16,7 @@ from fastapi import FastAPI, Form, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel, Field
 
 from app.config import (
     ADMIN_PASSWORD,
@@ -26,6 +27,7 @@ from app.config import (
     SITE_URL,
 )
 from app.db import connect, get_meta, upsert_family_sale, utcnow_iso
+from app.engine import auth as user_auth
 from app.engine.alerts import add_sub, channels_ready, default_target, delete_sub, list_subs
 from app.engine.category import CATEGORIES as DEAL_CATEGORIES
 from app.family.parse import parse_discount
@@ -60,6 +62,19 @@ TEMPLATES.env.globals["website_jsonld"] = {
         },
     ],
 }
+_orig_template_response = TEMPLATES.TemplateResponse
+
+
+def _template_response(name, context, *args, **kwargs):
+    ctx = dict(context)
+    req = ctx.get("request")
+    if req is not None:
+        ctx.setdefault("user", getattr(req.state, "user", None))
+        ctx.setdefault("oauth_ready", user_auth.providers_ready())
+    return _orig_template_response(name, ctx, *args, **kwargs)
+
+
+TEMPLATES.TemplateResponse = _template_response
 STATIC_DIR = Path(__file__).parent / "static"
 PAGE_SIZE = 40
 
@@ -118,6 +133,17 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="자동 핫딜 탐지기", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+
+@app.middleware("http")
+async def attach_user(request: Request, call_next):
+    request.state.user = None
+    if not request.url.path.startswith("/static") and state.get("db") is not None:
+        try:
+            request.state.user = await user_auth.user_from_request(request, state["db"])
+        except Exception:
+            log.exception("auth load failed")
+    return await call_next(request)
 
 
 async def _scheduled_collect() -> None:
@@ -370,6 +396,8 @@ async def family_admin_post(
 @app.get("/alerts", response_class=HTMLResponse)
 async def alerts_page(request: Request):
     subs = await list_subs(_db()) if _is_admin(request) else []
+    user = getattr(request.state, "user", None)
+    user_keywords = await user_auth.list_keywords(_db(), user["id"]) if user else []
     return TEMPLATES.TemplateResponse(
         "alerts.html",
         {
@@ -378,7 +406,8 @@ async def alerts_page(request: Request):
             "authed": _is_admin(request),
             "subs": [_public_sub(s) for s in subs],
             "ready": channels_ready(),
-            "error": None,
+            "user_keywords": user_keywords,
+            "error": request.query_params.get("error"),
         },
     )
 
@@ -404,7 +433,34 @@ async def alerts_post(
     channel: str | None = Form(None),
     target: str | None = Form(None),
     sub_id: int | None = Form(None),
+    keyword_id: int | None = Form(None),
 ):
+    user = getattr(request.state, "user", None)
+    if action == "user_notify" and user:
+        try:
+            await user_auth.set_notify(_db(), user["id"], channel or "", target or "")
+            user = await user_auth.get_user(_db(), user["id"])
+            await user_auth.sync_user_alert_subs(_db(), user or {})
+            await _db().commit()
+        except Exception:
+            log.exception("user notify failed")
+            return RedirectResponse("/alerts?error=notify", status_code=303)
+    if action == "user_keyword" and user:
+        try:
+            await user_auth.add_keyword(_db(), user["id"], keyword or "", min_grade or "핫딜")
+            user = await user_auth.get_user(_db(), user["id"])
+            await user_auth.sync_user_alert_subs(_db(), user or {})
+            await _db().commit()
+        except Exception:
+            log.exception("user keyword failed")
+            return RedirectResponse("/alerts?error=keyword", status_code=303)
+        return RedirectResponse("/alerts", status_code=303)
+    if action == "user_keyword_delete" and user and keyword_id:
+        await user_auth.delete_keyword(_db(), user["id"], keyword_id)
+        user = await user_auth.get_user(_db(), user["id"])
+        await user_auth.sync_user_alert_subs(_db(), user or {})
+        await _db().commit()
+        return RedirectResponse("/alerts", status_code=303)
     if action == "login":
         if ADMIN_PASSWORD and password == ADMIN_PASSWORD:
             resp = RedirectResponse("/alerts", status_code=303)
@@ -483,6 +539,115 @@ def _is_admin(request: Request) -> bool:
     return bool(ADMIN_PASSWORD) and request.cookies.get("family_admin") == _admin_token()
 
 
+def _require_user(request: Request) -> dict:
+    user = getattr(request.state, "user", None)
+    if not user:
+        raise HTTPException(401, "login required")
+    return user
+
+
+def _login_redirect(user_id: int, dest: str = "/") -> RedirectResponse:
+    resp = RedirectResponse(dest, status_code=303)
+    resp.set_cookie(
+        user_auth.SESSION_COOKIE,
+        user_auth.sign_user_id(user_id),
+        httponly=True,
+        samesite="lax",
+        secure=user_auth.cookie_secure(),
+        max_age=user_auth.SESSION_MAX_AGE,
+        path="/",
+    )
+    resp.delete_cookie(user_auth.OAUTH_COOKIE, path="/")
+    return resp
+
+
+@app.get("/login", response_class=HTMLResponse)
+async def login_page(request: Request, error: str | None = None):
+    if getattr(request.state, "user", None):
+        return RedirectResponse("/", status_code=303)
+    messages = {
+        "provider": "이 로그인 방법은 아직 설정되지 않았습니다.",
+        "oauth": "로그인에 실패했습니다. 잠시 후 다시 시도하세요.",
+        "state": "로그인 요청이 만료되었습니다. 다시 눌러 주세요.",
+        "denied": "로그인이 취소되었습니다.",
+    }
+    return TEMPLATES.TemplateResponse(
+        "login.html",
+        {"request": request, "nav": "hotdeal", "error": messages.get(error or "", "")},
+    )
+
+
+@app.get("/logout")
+async def logout():
+    resp = RedirectResponse("/", status_code=303)
+    resp.delete_cookie(user_auth.SESSION_COOKIE, path="/")
+    return resp
+
+
+@app.get("/auth/{provider}")
+async def auth_start(provider: str):
+    if provider not in user_auth.PROVIDERS or not user_auth.providers_ready().get(provider):
+        return RedirectResponse("/login?error=provider", status_code=303)
+    cookie, nonce = user_auth.new_oauth_state(provider)
+    resp = RedirectResponse(user_auth.authorize_url(provider, nonce), status_code=302)
+    resp.set_cookie(
+        user_auth.OAUTH_COOKIE,
+        cookie,
+        httponly=True,
+        samesite="lax",
+        secure=user_auth.cookie_secure(),
+        max_age=600,
+        path="/",
+    )
+    return resp
+
+
+@app.get("/auth/{provider}/callback")
+async def auth_callback(
+    provider: str,
+    request: Request,
+    code: str | None = None,
+    state: str | None = None,
+    error: str | None = None,
+):
+    if error:
+        return RedirectResponse("/login?error=denied", status_code=303)
+    if provider not in user_auth.PROVIDERS or not code:
+        return RedirectResponse("/login?error=oauth", status_code=303)
+    if not user_auth.oauth_cookie_ok(request.cookies.get(user_auth.OAUTH_COOKIE), provider, state):
+        return RedirectResponse("/login?error=state", status_code=303)
+    try:
+        profile = await user_auth.exchange_code(provider, code)
+        user = await user_auth.upsert_oauth_user(_db(), provider=provider, profile=profile)
+    except Exception:
+        log.exception("oauth callback failed provider=%s", provider)
+        return RedirectResponse("/login?error=oauth", status_code=303)
+    return _login_redirect(int(user["id"]), "/alerts")
+
+
+class BookmarkIn(BaseModel):
+    ids: list[int] = Field(default_factory=list)
+
+
+@app.get("/api/me")
+async def api_me(request: Request):
+    return {"user": user_auth.public_user(getattr(request.state, "user", None))}
+
+
+@app.get("/api/me/bookmarks")
+async def api_me_bookmarks(request: Request):
+    user = _require_user(request)
+    ids = await user_auth.list_bookmark_ids(_db(), user["id"])
+    return {"ids": ids}
+
+
+@app.put("/api/me/bookmarks")
+async def api_me_bookmarks_put(request: Request, payload: BookmarkIn):
+    user = _require_user(request)
+    ids = await user_auth.replace_bookmarks(_db(), user["id"], payload.ids)
+    return {"ids": ids}
+
+
 @app.get("/deal/{deal_id}", response_class=HTMLResponse)
 async def deal_detail(request: Request, deal_id: int):
     deal = await _get_deal(deal_id)
@@ -558,6 +723,8 @@ async def robots():
         "Disallow: /api/\n"
         "Disallow: /family/admin\n"
         "Disallow: /alerts\n"
+        "Disallow: /login\n"
+        "Disallow: /auth/\n"
         f"Sitemap: {SITE_URL}/sitemap.xml\n"
     )
     return PlainTextResponse(body)

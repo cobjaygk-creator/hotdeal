@@ -32,6 +32,41 @@ function saveBookmarks(ids) {
   try {
     localStorage.setItem(BOOKMARK_KEY, JSON.stringify(ids.map((x) => Number(x))));
   } catch (e) {}
+  scheduleBookmarkSync(ids);
+}
+
+let meLoggedIn = false;
+let bookmarkTimer = null;
+
+function scheduleBookmarkSync(ids) {
+  if (!meLoggedIn) return;
+  clearTimeout(bookmarkTimer);
+  bookmarkTimer = setTimeout(() => {
+    fetch("/api/me/bookmarks", {
+      method: "PUT",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ids: ids.map((x) => Number(x)).filter((n) => n > 0).slice(0, 200),
+      }),
+    }).catch(() => {});
+  }, 400);
+}
+
+async function syncBookmarksFromServer() {
+  try {
+    const me = await fetch("/api/me", { credentials: "same-origin" }).then((r) => r.json());
+    meLoggedIn = !!(me && me.user);
+    if (!meLoggedIn) return;
+    const data = await fetch("/api/me/bookmarks", { credentials: "same-origin" }).then((r) => r.json());
+    const remote = (data.ids || []).map(String);
+    const merged = Array.from(new Set(loadBookmarks().concat(remote)));
+    try {
+      localStorage.setItem(BOOKMARK_KEY, JSON.stringify(merged.map((x) => Number(x))));
+    } catch (e) {}
+    paintBookmarkButtons();
+    scheduleBookmarkSync(merged);
+  } catch (e) {}
 }
 
 function isBookmarked(id) {
@@ -477,6 +512,7 @@ if (bodyEl) {
 } else {
   paintBookmarkButtons();
 }
+syncBookmarksFromServer();
 
 const modal = document.getElementById("deal-modal");
 const modalBody = document.getElementById("modal-body");

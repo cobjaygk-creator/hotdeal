@@ -127,6 +127,27 @@ table.calendar td.sel {
   background: var(--bg-elevated);
   color: var(--ink);
 }
+.oauth-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+.oauth-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 12px;
+  font-weight: 800;
+  text-decoration: none;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  background: var(--card);
+}
+.oauth-btn.kakao { background: #fee500; color: #191919; border-color: #fee500; }
+.oauth-btn.google { background: var(--card); }
 
 @media (min-width: 900px) {
   .family-layout { grid-template-columns: 300px 1fr; }

@@ -95,10 +95,19 @@ async def seed_env_subs(conn) -> None:
             )
 
 
-async def list_subs(conn) -> list[dict]:
-    cur = await conn.execute(
-        "SELECT * FROM alert_subs ORDER BY enabled DESC, id DESC"
-    )
+async def list_subs(conn, *, include_user: bool = False) -> list[dict]:
+    if include_user:
+        cur = await conn.execute(
+            "SELECT * FROM alert_subs ORDER BY enabled DESC, id DESC"
+        )
+    else:
+        cur = await conn.execute(
+            """
+            SELECT * FROM alert_subs
+            WHERE COALESCE(origin, 'admin') != 'user'
+            ORDER BY enabled DESC, id DESC
+            """
+        )
     return [dict(r) for r in await cur.fetchall()]
 
 
@@ -124,6 +133,42 @@ async def add_sub(conn, *, keyword: str, min_grade: str, channel: str, target: s
 async def delete_sub(conn, sub_id: int) -> None:
     await conn.execute("DELETE FROM alert_sent WHERE sub_id=?", (sub_id,))
     await conn.execute("DELETE FROM alert_subs WHERE id=?", (sub_id,))
+
+
+async def delete_user_subs(conn, user_id: int) -> None:
+    cur = await conn.execute("SELECT id FROM alert_subs WHERE user_id=?", (user_id,))
+    ids = [int(r["id"]) for r in await cur.fetchall()]
+    for sub_id in ids:
+        await conn.execute("DELETE FROM alert_sent WHERE sub_id=?", (sub_id,))
+    await conn.execute("DELETE FROM alert_subs WHERE user_id=?", (user_id,))
+
+
+async def add_user_sub(
+    conn,
+    *,
+    user_id: int,
+    keyword: str,
+    min_grade: str,
+    channel: str,
+    target: str,
+) -> None:
+    keyword = keyword.strip()
+    channel = channel.strip().lower()
+    target = target.strip()
+    if not keyword or channel not in CHANNELS or not target:
+        return
+    await conn.execute(
+        """
+        INSERT INTO alert_subs(keyword, min_grade, channel, target, enabled, origin, created_at, user_id)
+        VALUES(?, ?, ?, ?, 1, 'user', ?, ?)
+        ON CONFLICT(keyword, channel, target) DO UPDATE SET
+            min_grade=excluded.min_grade,
+            enabled=1,
+            origin='user',
+            user_id=excluded.user_id
+        """,
+        (keyword, min_grade.strip() or "핫딜", channel, target, utcnow_iso(), user_id),
+    )
 
 
 def default_target(channel: str) -> str:

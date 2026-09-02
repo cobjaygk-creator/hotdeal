@@ -75,3 +75,13 @@ TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "").strip()
 DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL", "").strip()
 ALERT_KEYWORDS = os.environ.get("ALERT_KEYWORDS", "").strip()
 ALERT_MIN_GRADE = os.environ.get("ALERT_MIN_GRADE", "핫딜").strip() or "핫딜"
+
+SESSION_SECRET = (
+    os.environ.get("SESSION_SECRET") or ADMIN_PASSWORD or "hotdeal-dev-session"
+).strip()
+GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "").strip()
+GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "").strip()
+KAKAO_CLIENT_ID = (
+    os.environ.get("KAKAO_CLIENT_ID") or os.environ.get("KAKAO_REST_API_KEY") or ""
+).strip()
+KAKAO_CLIENT_SECRET = os.environ.get("KAKAO_CLIENT_SECRET", "").strip()
