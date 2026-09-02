@@ -30,11 +30,15 @@ AMAZON_JP_ASSOCIATE_TAG = os.environ.get("AMAZON_JP_ASSOCIATE_TAG", "").strip()
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
 
 
-def _env_flag(name: str) -> bool:
+def _env_flag(name: str, default: bool = False) -> bool:
     raw = os.environ.get(name)
     if raw is None:
-        return False
+        return default
     return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
+# Hidden for now; set AMAZON_JP_ENABLED=1 to show nav + schedule again.
+AMAZON_JP_ENABLED = _env_flag("AMAZON_JP_ENABLED", default=False)
 
 
 # Local/company machines stay quiet unless ENABLE_COLLECT=1.

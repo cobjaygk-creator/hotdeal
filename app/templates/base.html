@@ -62,7 +62,9 @@
       <div class="sidebar-label">메뉴</div>
       <nav class="sidebar-nav">
         <a href="/" class="{% if current_nav == 'hotdeal' %}on{% endif %}"><span class="nav-ico">⚡</span> 핫딜</a>
+        {% if amazon_jp_enabled %}
         <a href="/amazon-jp" class="{% if current_nav == 'amazon_jp' %}on{% endif %}"><span class="nav-ico">JP</span> 일마존</a>
+        {% endif %}
         <a href="/family" class="{% if current_nav == 'family' %}on{% endif %}"><span class="nav-ico">📅</span> 패밀리세일</a>
         <a href="/search" class="{% if current_nav == 'search' %}on{% endif %}"><span class="nav-ico">⌕</span> 검색</a>
         <a href="/alerts" class="{% if current_nav == 'alerts' %}on{% endif %}"><span class="nav-ico">🔔</span> 알림</a>

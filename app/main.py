@@ -22,6 +22,7 @@ from app.amazon_jp.pipeline import collect_amazon_jp
 from app.amazon_jp.query import list_amazon_jp_deals
 from app.config import (
     ADMIN_PASSWORD,
+    AMAZON_JP_ENABLED,
     AMAZON_JP_INTERVAL_MINUTES,
     COLLECT_INTERVAL_MINUTES,
     ENABLE_COLLECT,
@@ -53,6 +54,7 @@ TEMPLATES.env.filters["kst"] = format_kst
 TEMPLATES.env.filters["reltime"] = format_relative
 TEMPLATES.env.filters["clock"] = format_clock
 TEMPLATES.env.globals["site_url"] = SITE_URL
+TEMPLATES.env.globals["amazon_jp_enabled"] = AMAZON_JP_ENABLED
 TEMPLATES.env.globals["website_jsonld"] = {
     "@context": "https://schema.org",
     "@graph": [
@@ -125,15 +127,16 @@ async def lifespan(app: FastAPI):
             coalesce=True,
             next_run_time=datetime.now() + timedelta(seconds=25),
         )
-        scheduler.add_job(
-            _scheduled_amazon_jp,
-            "interval",
-            minutes=AMAZON_JP_INTERVAL_MINUTES,
-            id="collect_amazon_jp",
-            max_instances=1,
-            coalesce=True,
-            next_run_time=datetime.now() + timedelta(seconds=40),
-        )
+        if AMAZON_JP_ENABLED:
+            scheduler.add_job(
+                _scheduled_amazon_jp,
+                "interval",
+                minutes=AMAZON_JP_INTERVAL_MINUTES,
+                id="collect_amazon_jp",
+                max_instances=1,
+                coalesce=True,
+                next_run_time=datetime.now() + timedelta(seconds=40),
+            )
         if PPOMPPU_PROXY_URL:
             scheduler.add_job(
                 _scheduled_ppomppu_mall_enrich,
@@ -297,9 +300,14 @@ async def index(
         for d in deals:
             name = html.escape(str(d.get("product_name") or "(제목 없음)"))
             items.append(f"<li>{name}</li>")
+        nav_links = (
+            "<a href='/amazon-jp'>일마존</a> · <a href='/family'>패밀리세일</a>"
+            if AMAZON_JP_ENABLED
+            else "<a href='/family'>패밀리세일</a>"
+        )
         return HTMLResponse(
             "<!doctype html><html lang='ko'><meta charset='utf-8'><title>핫딜모음</title>"
-            "<body><p><a href='/amazon-jp'>일마존</a> · <a href='/family'>패밀리세일</a></p><h1>핫딜</h1><ul>"
+            f"<body><p>{nav_links}</p><h1>핫딜</h1><ul>"
             + "".join(items)
             + "</ul></body></html>"
         )
@@ -574,6 +582,8 @@ def _require_collect() -> None:
 
 @app.get("/amazon-jp", response_class=HTMLResponse)
 async def amazon_jp_index(request: Request):
+    if not AMAZON_JP_ENABLED:
+        raise HTTPException(404, "일마존 메뉴가 비활성화되어 있습니다")
     deals = await list_amazon_jp_deals(_db())
     last = await get_meta(_db(), "last_amazon_jp_collect_at")
     return TEMPLATES.TemplateResponse(
@@ -597,6 +607,8 @@ async def api_family_collect():
 
 @app.post("/api/amazon-jp/collect")
 async def api_amazon_jp_collect():
+    if not AMAZON_JP_ENABLED:
+        raise HTTPException(404, "일마존 메뉴가 비활성화되어 있습니다")
     _require_collect()
     async with state["collect_lock"]:
         summary = await collect_amazon_jp(state["db"], state["http"])
@@ -813,9 +825,13 @@ async def sitemap():
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
         f"<url><loc>{SITE_URL}/</loc><changefreq>hourly</changefreq></url>",
         f"<url><loc>{SITE_URL}/family</loc><changefreq>daily</changefreq></url>",
-        f"<url><loc>{SITE_URL}/amazon-jp</loc><changefreq>hourly</changefreq></url>",
         f"<url><loc>{SITE_URL}/search</loc><changefreq>weekly</changefreq></url>",
     ]
+    if AMAZON_JP_ENABLED:
+        chunks.insert(
+            4,
+            f"<url><loc>{SITE_URL}/amazon-jp</loc><changefreq>hourly</changefreq></url>",
+        )
     for row in rows:
         chunks.append(f"<url><loc>{SITE_URL}/deal/{row['id']}</loc></url>")
     chunks.append("</urlset>")
