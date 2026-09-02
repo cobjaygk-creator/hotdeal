@@ -53,18 +53,21 @@
 .summary-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
+  gap: 5px;
+  padding: 7px 12px;
   border-radius: var(--radius-pill);
   border: 1px solid var(--line);
   background: var(--card);
-  font-size: var(--text-xs);
-  font-weight: 700;
-  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+  min-height: 34px;
+  box-sizing: border-box;
 }
 .summary-chip strong {
   color: var(--ink);
   font-variant-numeric: tabular-nums;
+  font-weight: 700;
 }
 
 /* Stats */
@@ -98,26 +101,27 @@
   flex-wrap: wrap;
   align-items: center;
 }
-select, button, .detail-btn, input[type="text"], input[type="password"], input[type="number"], input[type="url"], input[type="date"] {
-  padding: 10px 12px;
-  border-radius: 12px;
+select, button, .detail-btn, input[type="text"], input[type="password"], input[type="number"], input[type="url"], input[type="date"], input[type="search"] {
+  padding: 8px 12px;
+  border-radius: 10px;
   border: 1px solid var(--line);
   background: var(--card);
   color: var(--ink);
   font: inherit;
+  font-size: 13px;
   cursor: pointer;
-  min-height: 42px;
+  min-height: 36px;
 }
-button { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 700; }
-.btn-secondary { background: var(--card); color: var(--ink); border-color: var(--line); }
+button { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
+.btn-secondary { background: var(--card); color: var(--ink); border-color: var(--line); font-weight: 600; }
 .detail-btn {
   flex-shrink: 0;
   align-self: center;
   background: transparent;
   color: var(--accent);
   border: 0;
-  font-size: var(--text-sm);
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 600;
   min-height: auto;
   padding: 0;
 }
@@ -126,65 +130,77 @@ button { background: var(--accent); color: #fff; border-color: var(--accent); fo
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 10px 14px;
+  padding: 8px 14px;
   background: var(--accent);
   color: #fff !important;
-  border-radius: 12px;
+  border-radius: 10px;
   text-decoration: none;
-  font-weight: 700;
-  min-height: 42px;
+  font-weight: 600;
+  font-size: 13px;
+  min-height: 36px;
 }
 a.btn.ghost, .ghost {
   display: inline-flex;
   align-items: center;
-  padding: 10px 12px;
-  border-radius: 12px;
+  padding: 8px 12px;
+  border-radius: 10px;
   border: 1px solid var(--line);
   background: var(--card);
   color: var(--ink) !important;
   text-decoration: none;
-  font-size: var(--text-md);
+  font-size: 13px;
   font-weight: 600;
-  min-height: 42px;
+  min-height: 36px;
 }
 
-/* Chips (Phase 1 ready) */
+/* Tabs / chips — match UX Insight */
 .chip,
-.filter-chip {
+.filter-chip,
+.seg-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: var(--text-sm);
+  gap: 5px;
+  font-size: 13px;
   font-weight: 600;
+  line-height: 1.2;
   background: var(--card);
   border: 1px solid var(--line);
-  padding: 8px 12px;
+  padding: 7px 14px;
   border-radius: var(--radius-pill);
-  color: var(--ink);
+  color: #4b5563;
   cursor: pointer;
   user-select: none;
+  text-decoration: none;
+  min-height: 34px;
+  box-sizing: border-box;
 }
-.chip input { accent-color: var(--accent); }
+.chip:hover,
+.filter-chip:hover,
+.seg-chip:hover { opacity: 1; color: var(--ink); }
+.chip input { accent-color: var(--accent); margin: 0; }
+
+/* Blue segment tabs (상태/등급) */
+.seg-chip { color: #6b7280; }
+.seg-chip.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* Black count chips (카테고리·커뮤니티) */
 .filter-chip.on,
 .chip:has(input:checked) {
-  background: var(--ink);
-  border-color: var(--ink);
+  background: var(--chip-ink, #111827);
+  border-color: var(--chip-ink, #111827);
   color: #fff;
 }
 .filter-chip .count,
-.chip .count {
+.chip .count,
+.seg-chip .count {
   display: inline-flex;
-  min-width: 1.4em;
-  justify-content: center;
   font-variant-numeric: tabular-nums;
-  opacity: 0.85;
-}
-.filter-chip {
-  border: 1px solid var(--line);
-  background: var(--card);
-  color: var(--ink);
-  min-height: 36px;
-  padding: 6px 12px;
+  font-weight: 700;
+  opacity: 0.9;
 }
 .is-filtered-out { display: none !important; }
 .more-wrap {
@@ -193,14 +209,16 @@ a.btn.ghost, .ghost {
   margin: 18px 0 8px;
 }
 #more-btn {
-  min-width: 160px;
+  min-width: 140px;
+  font-size: 13px;
 }
 .chip-row {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
+.chip-row.seg-row { margin-bottom: 12px; }
 .time-rel {
   font-variant-numeric: tabular-nums;
   color: var(--muted);
@@ -208,17 +226,18 @@ a.btn.ghost, .ghost {
   font-weight: 600;
 }
 
-/* Grade chips */
+/* Grade chips — compact status pills like reference */
 .grade-chip {
   display: inline-flex;
   align-items: center;
-  padding: 2px 8px;
+  padding: 3px 8px;
   border-radius: var(--radius-pill);
   background: var(--hot-bg);
   color: var(--hot);
-  font-weight: 800;
+  font-weight: 700;
   font-size: 11px;
   letter-spacing: -0.01em;
+  border: 1px solid color-mix(in srgb, currentColor 28%, transparent);
 }
 .grade-chip.grade-super { background: var(--super-bg); color: var(--super); }
 .grade-chip.grade-special { background: var(--special-bg); color: var(--special); }
@@ -295,19 +314,19 @@ a.btn.ghost, .ghost {
 .deal-body {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px 14px 14px;
+  gap: 6px;
+  padding: 12px 14px 12px;
   flex: 1;
   min-width: 0;
 }
 .deal-topline {
   display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  font-size: var(--text-xs);
+  gap: 6px;
+  font-size: 12px;
   color: var(--muted);
-  font-weight: 600;
+  font-weight: 500;
 }
 .deal-title {
   display: -webkit-box;
@@ -316,11 +335,11 @@ a.btn.ghost, .ghost {
   overflow: hidden;
   color: var(--ink);
   text-decoration: none;
-  font-size: var(--text-md);
-  font-weight: 800;
-  line-height: 1.35;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.4;
   letter-spacing: -0.02em;
-  min-height: 2.7em;
+  min-height: 2.8em;
 }
 .deal-title:hover { color: var(--accent); text-decoration: none; opacity: 1; }
 .deal-price-row {
@@ -330,7 +349,7 @@ a.btn.ghost, .ghost {
   gap: 8px;
 }
 .deal-price {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 800;
   line-height: 1.2;
   font-variant-numeric: tabular-nums;
@@ -340,9 +359,10 @@ a.btn.ghost, .ghost {
   display: flex;
   flex-wrap: wrap;
   gap: 6px 10px;
-  font-size: var(--text-xs);
+  font-size: 12px;
   color: var(--muted);
   align-items: center;
+  font-weight: 500;
 }
 .deal-foot {
   display: flex;
@@ -350,13 +370,13 @@ a.btn.ghost, .ghost {
   justify-content: space-between;
   gap: 8px;
   margin-top: auto;
-  padding-top: 4px;
+  padding-top: 6px;
 }
 .deal-cta {
   margin-left: auto;
   color: var(--accent);
-  font-size: var(--text-sm);
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 600;
   text-decoration: none;
   background: none;
   border: 0;
@@ -367,13 +387,13 @@ a.btn.ghost, .ghost {
 .deal-cta:hover { opacity: 0.85; }
 .bookmark-btn {
   flex-shrink: 0;
-  width: 36px;
-  min-height: 36px;
-  border-radius: 10px;
+  width: 32px;
+  min-height: 32px;
+  border-radius: 8px;
   border: 1px solid var(--line);
   background: var(--bg);
   color: var(--muted);
-  font-size: 16px;
+  font-size: 15px;
   cursor: pointer;
   padding: 0;
 }

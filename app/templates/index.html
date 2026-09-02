@@ -16,23 +16,36 @@
   </div>
 </div>
 
-<p class="hero muted" style="margin-top:-6px">커뮤니티 특가를 모으고 가격 이력으로 진짜 싼지 가려줍니다.</p>
-
-<div class="summary-chips">
-  <span class="summary-chip">오늘 핫딜 <strong id="stat-hot">{{ stats.today_hot }}</strong></span>
+<div class="chip-row seg-row" id="grade-chips" role="group" aria-label="등급">
+  <a class="seg-chip {% if not grade %}on{% endif %}" href="/{% if category %}?cat={{ category }}{% endif %}{% if seller %}{% if category %}&{% else %}?{% endif %}seller={{ seller }}{% endif %}">전체</a>
+  {% for g in ["핫딜", "특가", "초특가", "관심"] %}
+  <a class="seg-chip {% if grade == g %}on{% endif %}" href="/?grade={{ g }}{% if category %}&cat={{ category }}{% endif %}{% if seller %}&seller={{ seller }}{% endif %}">{{ g }}</a>
+  {% endfor %}
+  <a class="seg-chip {% if grade == '이력없음' %}on{% endif %}" href="/?grade=이력없음{% if category %}&cat={{ category }}{% endif %}{% if seller %}&seller={{ seller }}{% endif %}">이력없음</a>
+  <span class="summary-chip" style="margin-left:4px">오늘 <strong id="stat-hot">{{ stats.today_hot }}</strong></span>
   <span class="summary-chip">강력 <strong id="stat-strong">{{ stats.strong }}</strong></span>
   <span class="summary-chip">게시글 <strong id="stat-posts">{{ stats.posts }}</strong></span>
 </div>
 <div class="ticker" id="ticker" aria-live="polite"></div>
 
-<form class="toolbar" method="get" action="/">
+<div class="chip-row" id="cat-chips" role="group" aria-label="카테고리">
+  <a class="filter-chip {% if not category %}on{% endif %}" href="/{% if grade %}?grade={{ grade }}{% endif %}{% if seller %}{% if grade %}&{% else %}?{% endif %}seller={{ seller }}{% endif %}">전체</a>
+  {% for c in categories %}
+  <a class="filter-chip {% if category == c %}on{% endif %}" href="/?cat={{ c }}{% if grade %}&grade={{ grade }}{% endif %}{% if seller %}&seller={{ seller }}{% endif %}">{{ c }}</a>
+  {% endfor %}
+</div>
+
+<div class="chip-row" id="source-chips" role="group" aria-label="커뮤니티">
+  <button type="button" class="filter-chip on" data-source="*">전체</button>
+  {% for s in sources %}
+  <button type="button" class="filter-chip" data-source="{{ s }}">{{ source_labels.get(s, s) }}</button>
+  {% endfor %}
+  <button type="button" class="filter-chip" id="bookmark-chip" data-bookmarks="1">저장한 딜</button>
+</div>
+
+<form class="toolbar" method="get" action="/" style="margin-top:2px">
   {% if category %}<input type="hidden" name="cat" value="{{ category }}">{% endif %}
-  <select name="grade">
-    <option value="">등급 전체</option>
-    {% for g in ["핫딜", "특가", "초특가", "관심", "일반", "이력없음", "확인필요"] %}
-      <option value="{{ g }}" {% if grade == g %}selected{% endif %}>{{ g }}</option>
-    {% endfor %}
-  </select>
+  {% if grade %}<input type="hidden" name="grade" value="{{ grade }}">{% endif %}
   <select name="seller">
     <option value="">판매처 전체</option>
     {% for s in sellers %}
@@ -42,21 +55,6 @@
   <button type="submit">적용</button>
   <button type="button" id="collect-btn" class="btn-secondary">지금 수집</button>
 </form>
-
-<div class="chip-row" id="cat-chips" role="group" aria-label="카테고리">
-  <a class="filter-chip {% if not category %}on{% endif %}" href="/{% if grade or seller %}?{% if grade %}grade={{ grade }}{% endif %}{% if grade and seller %}&{% endif %}{% if seller %}seller={{ seller }}{% endif %}{% endif %}">전체</a>
-  {% for c in categories %}
-  <a class="filter-chip {% if category == c %}on{% endif %}" href="/?cat={{ c }}{% if grade %}&grade={{ grade }}{% endif %}{% if seller %}&seller={{ seller }}{% endif %}">{{ c }}</a>
-  {% endfor %}
-</div>
-
-<div class="chip-row" id="source-chips" role="group" aria-label="커뮤니티">
-  <button type="button" class="filter-chip on" data-source="*">전체</button>
-  {% for s in sources %}
-  <button type="button" class="filter-chip on" data-source="{{ s }}">{{ source_labels.get(s, s) }}</button>
-  {% endfor %}
-  <button type="button" class="filter-chip" id="bookmark-chip" data-bookmarks="1">저장한 딜</button>
-</div>
 
 <ul class="deal-cards" id="deal-body">
   {% for d in deals %}

@@ -9,8 +9,9 @@
   --line: #e5e7eb;
   --line-strong: #d1d5db;
 
-  --accent: #2563eb;
+  --accent: #3b82f6;
   --accent-soft: #eff6ff;
+  --chip-ink: #111827;
   --down: #dc2626;
   --up: #0f766e;
 
@@ -47,9 +48,9 @@
   --font: "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
   --text-xs: 12px;
   --text-sm: 13px;
-  --text-md: 15px;
-  --text-lg: 18px;
-  --text-xl: 22px;
+  --text-md: 14px;
+  --text-lg: 16px;
+  --text-xl: 24px;
   --text-2xl: 28px;
 
   --header-h: 52px;
@@ -69,6 +70,7 @@
     --line-strong: #3b4252;
     --accent: #60a5fa;
     --accent-soft: #1e293b;
+    --chip-ink: #f3f4f6;
     --down: #f87171;
     --up: #5eead4;
     --hot: #fb923c;
@@ -98,6 +100,7 @@
   --line-strong: #3b4252;
   --accent: #60a5fa;
   --accent-soft: #1e293b;
+  --chip-ink: #f3f4f6;
   --down: #f87171;
   --up: #5eead4;
   --hot: #fb923c;

@@ -274,7 +274,8 @@ function paintChips() {
   const all = !selectedSources || !selectedSources.length;
   chipRow.querySelectorAll("[data-source]").forEach((btn) => {
     const src = btn.dataset.source;
-    const on = src === "*" ? all : all || selectedSources.includes(src);
+    // Match UX Insight: only "전체" is filled when everything is selected.
+    const on = src === "*" ? all : !all && selectedSources.includes(src);
     btn.classList.toggle("on", on);
     btn.setAttribute("aria-pressed", on ? "true" : "false");
   });
