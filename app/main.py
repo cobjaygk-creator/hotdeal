@@ -79,7 +79,7 @@ async def lifespan(app: FastAPI):
             id="collect_ppomppu",
             max_instances=1,
             coalesce=True,
-            next_run_time=datetime.now(),
+            next_run_time=datetime.now() + timedelta(seconds=20),
         )
         scheduler.add_job(
             _scheduled_collect_others,

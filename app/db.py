@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -124,7 +125,6 @@ CREATE INDEX IF NOT EXISTS idx_posts_source ON posts(source, source_post_id);
 CREATE INDEX IF NOT EXISTS idx_deals_seen ON deals(last_seen_at);
 CREATE INDEX IF NOT EXISTS idx_deals_grade ON deals(grade);
 CREATE INDEX IF NOT EXISTS idx_deals_key ON deals(product_key);
-CREATE INDEX IF NOT EXISTS idx_deals_category ON deals(category);
 CREATE INDEX IF NOT EXISTS idx_price_key_time ON price_points(product_key, observed_at);
 CREATE INDEX IF NOT EXISTS idx_family_dates ON family_sales(start_date, end_date);
 CREATE INDEX IF NOT EXISTS idx_family_group ON family_sales(group_id);
@@ -142,7 +142,10 @@ async def connect(path: Path | None = None) -> aiosqlite.Connection:
     conn.row_factory = aiosqlite.Row
     await conn.execute("PRAGMA journal_mode=WAL")
     await conn.execute("PRAGMA foreign_keys=ON")
-    await conn.executescript(SCHEMA)
+    try:
+        await conn.executescript(SCHEMA)
+    except Exception:
+        logging.getLogger("hotdeal").exception("schema apply failed; continuing with alters")
     await _ensure_columns(conn)
     await conn.commit()
     return conn
@@ -157,6 +160,33 @@ async def _ensure_columns(conn: aiosqlite.Connection) -> None:
         await conn.execute("ALTER TABLE deals ADD COLUMN thumbnail_url TEXT")
     if "category" not in deal_cols:
         await conn.execute("ALTER TABLE deals ADD COLUMN category TEXT")
+    await conn.execute("CREATE INDEX IF NOT EXISTS idx_deals_category ON deals(category)")
+
+    await conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS alert_subs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            keyword TEXT NOT NULL,
+            min_grade TEXT NOT NULL DEFAULT '핫딜',
+            channel TEXT NOT NULL,
+            target TEXT NOT NULL,
+            enabled INTEGER NOT NULL DEFAULT 1,
+            origin TEXT NOT NULL DEFAULT 'admin',
+            created_at TEXT NOT NULL,
+            UNIQUE(keyword, channel, target)
+        )
+        """
+    )
+    await conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS alert_sent (
+            sub_id INTEGER NOT NULL,
+            deal_id INTEGER NOT NULL,
+            sent_at TEXT NOT NULL,
+            PRIMARY KEY (sub_id, deal_id)
+        )
+        """
+    )
 
     cur = await conn.execute("PRAGMA table_info(posts)")
     post_cols = {row[1] for row in await cur.fetchall()}
@@ -190,11 +220,20 @@ async def _ensure_columns(conn: aiosqlite.Connection) -> None:
         )
         await set_meta(conn, "cleaned_truncated_mall_urls", "1")
 
-    await _backfill_categories(conn)
-    await _ensure_fts(conn)
-    from app.engine.alerts import seed_env_subs
+    try:
+        await _backfill_categories(conn)
+    except Exception:
+        logging.getLogger("hotdeal").exception("category backfill failed")
+    try:
+        await _ensure_fts(conn)
+    except Exception:
+        logging.getLogger("hotdeal").exception("fts setup failed")
+    try:
+        from app.engine.alerts import seed_env_subs
 
-    await seed_env_subs(conn)
+        await seed_env_subs(conn)
+    except Exception:
+        logging.getLogger("hotdeal").exception("alert seed failed")
 
 
 async def _backfill_categories(conn: aiosqlite.Connection) -> None:
@@ -225,42 +264,47 @@ async def _ensure_fts(conn: aiosqlite.Connection) -> None:
             """
         )
     except Exception:
+        logging.getLogger("hotdeal").exception("fts table create failed")
         return
-    await conn.execute(
-        """
-        CREATE TRIGGER IF NOT EXISTS deals_ai AFTER INSERT ON deals BEGIN
-            INSERT INTO deals_fts(rowid, product_name, seller)
-            VALUES (new.id, new.product_name, new.seller);
-        END
-        """
-    )
-    await conn.execute(
-        """
-        CREATE TRIGGER IF NOT EXISTS deals_ad AFTER DELETE ON deals BEGIN
-            INSERT INTO deals_fts(deals_fts, rowid, product_name, seller)
-            VALUES('delete', old.id, old.product_name, old.seller);
-        END
-        """
-    )
-    await conn.execute(
-        """
-        CREATE TRIGGER IF NOT EXISTS deals_au AFTER UPDATE ON deals BEGIN
-            INSERT INTO deals_fts(deals_fts, rowid, product_name, seller)
-            VALUES('delete', old.id, old.product_name, old.seller);
-            INSERT INTO deals_fts(rowid, product_name, seller)
-            VALUES (new.id, new.product_name, new.seller);
-        END
-        """
-    )
-    cur = await conn.execute("SELECT COUNT(*) AS n FROM deals")
-    deals_n = int((await cur.fetchone())["n"])
     try:
+        await conn.execute(
+            """
+            CREATE TRIGGER IF NOT EXISTS deals_ai AFTER INSERT ON deals BEGIN
+                INSERT INTO deals_fts(rowid, product_name, seller)
+                VALUES (new.id, new.product_name, new.seller);
+            END
+            """
+        )
+        await conn.execute(
+            """
+            CREATE TRIGGER IF NOT EXISTS deals_ad AFTER DELETE ON deals BEGIN
+                INSERT INTO deals_fts(deals_fts, rowid, product_name, seller)
+                VALUES('delete', old.id, old.product_name, old.seller);
+            END
+            """
+        )
+        await conn.execute(
+            """
+            CREATE TRIGGER IF NOT EXISTS deals_au AFTER UPDATE ON deals BEGIN
+                INSERT INTO deals_fts(deals_fts, rowid, product_name, seller)
+                VALUES('delete', old.id, old.product_name, old.seller);
+                INSERT INTO deals_fts(rowid, product_name, seller)
+                VALUES (new.id, new.product_name, new.seller);
+            END
+            """
+        )
+    except Exception:
+        logging.getLogger("hotdeal").exception("fts trigger create failed")
+        return
+    try:
+        cur = await conn.execute("SELECT COUNT(*) AS n FROM deals")
+        deals_n = int((await cur.fetchone())["n"])
         cur = await conn.execute("SELECT COUNT(*) AS n FROM deals_fts")
         fts_n = int((await cur.fetchone())["n"])
+        if deals_n and fts_n != deals_n:
+            await conn.execute("INSERT INTO deals_fts(deals_fts) VALUES('rebuild')")
     except Exception:
-        return
-    if deals_n and fts_n != deals_n:
-        await conn.execute("INSERT INTO deals_fts(deals_fts) VALUES('rebuild')")
+        logging.getLogger("hotdeal").exception("fts rebuild skipped")
 
 
 async def set_meta(conn: aiosqlite.Connection, key: str, value: str) -> None:
