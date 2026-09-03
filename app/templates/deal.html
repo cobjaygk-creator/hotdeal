@@ -157,6 +157,7 @@
 <script id="price-history" type="application/json">{{ history | tojson }}</script>
 <script id="live-config" type="application/json">{"live": false, "sourceLabels": {{ source_labels | tojson }}}</script>
 <script src="/static/comments.js"></script>
+<script src="/static/chat-pin.js"></script>
 <script src="/static/live.js"></script>
 <script>
 (function () {
@@ -187,6 +188,7 @@
   loadMarket();
 
   if (window.DealChat) window.DealChat.open({{ deal.id }});
+  if (window.DealChatPin) window.DealChatPin.bind();
 
   document.querySelector("[data-copy-link]")?.addEventListener("click", async () => {
     try { await navigator.clipboard.writeText(location.href); } catch (e) {}

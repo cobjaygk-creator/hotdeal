@@ -670,6 +670,7 @@ function closeModal(opts) {
     modalCta.hidden = true;
   }
   marketLoadedFor = null;
+  if (window.DealChatPin) window.DealChatPin.unbind();
   if (window.DealChat) window.DealChat.stop();
   const wasOpen = modalOpenId;
   modalOpenId = null;
@@ -874,6 +875,7 @@ async function openModal(id, opts) {
   }
   loadMarketCompare(id);
   if (window.DealChat) window.DealChat.open(id);
+  if (window.DealChatPin) window.DealChatPin.bind();
 }
 
 function renderMarketBars(items) {
