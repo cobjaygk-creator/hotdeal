@@ -525,15 +525,15 @@ async def _ensure_amazon_jp_table(conn: aiosqlite.Connection) -> None:
 async def _backfill_categories(conn: aiosqlite.Connection) -> None:
     from app.engine.category import classify
 
-    cur = await conn.execute(
-        "SELECT id, product_name, seller FROM deals WHERE category IS NULL OR category=''"
-    )
+    cur = await conn.execute("SELECT id, product_name, seller, category FROM deals")
     rows = await cur.fetchall()
     for row in rows:
-        await conn.execute(
-            "UPDATE deals SET category=? WHERE id=?",
-            (classify(row["product_name"], row["seller"]), row["id"]),
-        )
+        cat = classify(row["product_name"], row["seller"])
+        if cat != (row["category"] or ""):
+            await conn.execute(
+                "UPDATE deals SET category=? WHERE id=?",
+                (cat, row["id"]),
+            )
 
 
 async def _ensure_fts(conn: aiosqlite.Connection) -> None:
