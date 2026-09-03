@@ -25,7 +25,13 @@
         {% if d.discount_rate is defined and d.discount_rate is not none %}
         <span class="deal-off">{{ "%.0f"|format(-d.discount_rate * 100) }}%</span>
         {% endif %}
-        {% if d.min_price is defined and d.min_price and d.price and d.price <= d.min_price %}
+        {#
+          최저가 배지는 가격 이력이 실제로 쌓였을 때만 의미가 있습니다.
+          표본 1건이면 min_price == price 라서 모든 딜에 붙어버립니다.
+        #}
+        {% if d.sample_count is defined and d.sample_count and d.sample_count >= 3
+              and d.min_price and d.baseline_price and d.price
+              and d.price <= d.min_price and d.price < d.baseline_price %}
         <span class="deal-lowest">
           <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M3 8.5l3 3 7-7"></path></svg>최저가
         </span>

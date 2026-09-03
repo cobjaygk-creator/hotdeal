@@ -11,15 +11,20 @@
   <meta property="og:locale" content="ko_KR">
   {% block extra_head %}{% endblock %}
   <script type="application/ld+json">{{ website_jsonld | tojson }}</script>
+  {# asset_v는 main.py에서 주입. 없으면 빈 문자열이 되어 아무 영향 없음 #}
+  {% set v = asset_v | default('', true) %}
   <link rel="preload" href="/static/fonts/PretendardVariable.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="/static/fonts.css">
-  <link rel="stylesheet" href="/static/tokens.css">
-  <link rel="stylesheet" href="/static/base.css">
-  <link rel="stylesheet" href="/static/components.css">
-  <link rel="stylesheet" href="/static/pages.css">
+  <link rel="stylesheet" href="/static/fonts.css?v={{ v }}">
+  <link rel="stylesheet" href="/static/tokens.css?v={{ v }}">
+  <link rel="stylesheet" href="/static/base.css?v={{ v }}">
+  <link rel="stylesheet" href="/static/components.css?v={{ v }}">
+  <link rel="stylesheet" href="/static/pages.css?v={{ v }}">
+  <link rel="stylesheet" href="/static/detail.css?v={{ v }}">
   <!-- Chart.js: 3개 템플릿에서 중복 로드하던 것을 여기 1회로 -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
-  <script src="/static/deal-chart.js" defer></script>
+  <script src="/static/deal-chart.js?v={{ v }}" defer></script>
+  <!-- market.js: live.js보다 뒤에 실행되어야 하므로 defer -->
+  <script src="/static/market.js?v={{ v }}" defer></script>
   <script>
     (function () {
       try {

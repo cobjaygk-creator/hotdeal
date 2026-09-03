@@ -1,0 +1,150 @@
+/* ============================================================
+   detail.css — 상세/모달 보정 레이어
+   tokens/base/components/pages 다음에 로드합니다.
+   기존 파일을 고치지 않고 이 파일만 추가/교체하면 됩니다.
+   ============================================================ */
+
+/* ---- 1) CTA: 콘텐츠 위에 반투명하게 뜨던 것을 불투명 바로 ---- */
+.dd-cta {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  display: flex;
+  gap: 10px;
+  margin: 24px -20px 0;
+  padding: 14px 20px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -10px 18px -14px rgba(22, 24, 29, 0.22);
+}
+.dd-cta:empty { display: none; }
+.dd-cta .btn,
+.dd-cta a.btn {
+  flex: 1;
+  justify-content: center;
+  height: 48px;
+  min-height: 48px;
+  font-size: var(--text-card-title);
+  border-radius: 9px;
+}
+.dd-cta .btn-secondary,
+.dd-cta .ghost {
+  flex: 0 0 auto;
+  height: 48px;
+  min-height: 48px;
+  border-radius: 9px;
+}
+@media (max-width: 639px) {
+  .dd-cta { margin: 20px -16px 0; padding: 12px 16px; }
+}
+
+/* ---- 2) 쇼핑몰 시세: 캔버스 대신 HTML 바 ---- */
+.dd-market-chart-wrap { display: none; }   /* Chart.js 캔버스 숨김 */
+
+.mkt {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin: 10px 0 0;
+}
+.mkt-row {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr) 100px;
+  align-items: center;
+  gap: 12px;
+}
+.mkt-mall {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mkt-track {
+  display: block;
+  height: 22px;
+  border-radius: 5px;
+  background: var(--surface-sunken);
+  overflow: hidden;
+}
+.mkt-bar {
+  display: block;
+  height: 100%;
+  border-radius: 5px;
+  background: var(--border-strong);
+  transition: width 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.mkt-price {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.mkt-price a { color: inherit; text-decoration: none; }
+.mkt-price a:hover { text-decoration: underline; color: var(--accent); }
+
+.mkt-row.is-deal .mkt-mall,
+.mkt-row.is-deal .mkt-price { color: var(--price); font-weight: 800; }
+.mkt-row.is-deal .mkt-bar { background: var(--price); }
+
+.mkt-note {
+  margin: 12px 0 0;
+  font-size: var(--text-label);
+  color: var(--ink-faint);
+  line-height: 1.55;
+}
+@media (max-width: 639px) {
+  .mkt-row { grid-template-columns: 74px minmax(0, 1fr) 88px; gap: 8px; }
+  .mkt-mall, .mkt-price { font-size: var(--text-label); }
+}
+
+/* ---- 3) 판정 문장 ---- */
+.dd-verdict {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-muted);
+}
+.dd-verdict strong { color: var(--success); font-weight: 800; }
+.dd-verdict:empty { display: none; }
+/* 데이터가 없을 때는 초록 강조를 쓰지 않는다 */
+.dd-verdict.is-unknown { color: var(--ink-faint); }
+.dd-verdict.is-unknown strong { color: var(--ink-muted); }
+
+/* ---- 4) 빈 상태 ---- */
+.dd-empty {
+  margin: 10px 0 0;
+  padding: 14px 16px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-lg);
+  color: var(--ink-faint);
+  font-size: var(--text-body-sm);
+  line-height: 1.55;
+  background: transparent;
+}
+
+/* ---- 5) 상세 히어로 ---- */
+.dd-hero { align-items: flex-start; }
+.dd-hero h1 { margin: 0 0 10px; }
+.modal-price { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; }
+.modal-price .deal-off { margin-left: 0; }
+
+/* 이미지가 상품 사진이 아니라 원문 스크린샷인 경우가 많아 contain으로 */
+.dd-hero .modal-thumb {
+  object-fit: contain;
+  background: var(--surface-sunken);
+}
+
+/* ---- 6) 스펙 표 ---- */
+.dd-spec-row:last-child { border-bottom: 0; }
+
+/* ---- 7) 채팅 빈 상태에서 리액션 숨김 ---- */
+.dd-chat.is-empty .chat-reactions { display: none; }
+.chat-reply-bar:not([hidden]):has(.chat-reply-target:empty) { display: none; }
