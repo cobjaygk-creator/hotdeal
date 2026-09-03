@@ -39,10 +39,12 @@
 
 <div class="chip-row" id="cat-chips" role="tablist" aria-label="카테고리">
   <a class="filter-chip {% if not category %}on{% endif %}" href="/" role="tab" aria-selected="{{ 'true' if not category else 'false' }}">
+    {% with name='전체' %}{% include "_cat_icon.html" %}{% endwith %}
     전체 <span class="count">{{ "{:,}".format(deals_total|default(0)) }}</span>
   </a>
   {% for c in categories %}
   <a class="filter-chip {% if category == c %}on{% endif %}" href="/?cat={{ c }}" role="tab" aria-selected="{{ 'true' if category == c else 'false' }}">
+    {% with name=c %}{% include "_cat_icon.html" %}{% endwith %}
     {{ c }} <span class="count">{{ "{:,}".format(category_counts.get(c, 0)) }}</span>
   </a>
   {% endfor %}

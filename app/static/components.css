@@ -296,6 +296,18 @@ button:disabled,
   box-sizing: border-box;
 }
 .chip-row:has(.filter-chip)::-webkit-scrollbar { display: none; }
+.filter-chip-ico {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 15px;
+  height: 15px;
+  color: inherit;
+  opacity: 0.78;
+}
+.filter-chip.on .filter-chip-ico { opacity: 1; }
+.filter-chip-ico svg { display: block; }
 .filter-chip {
   display: inline-flex;
   align-items: center;
