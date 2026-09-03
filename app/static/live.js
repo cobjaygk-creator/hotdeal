@@ -755,7 +755,13 @@ async function openModal(id, opts) {
         .map((s) => `<li><a href="/deal/${s.id}" data-deal-id="${s.id}">${esc(s.product_name)}${s.price ? " · " + won(s.price) : ""}</a></li>`)
         .join("")}</ul>`
     : "";
-  const showChart = priceHistory.length >= 2;
+  const chartIsDemo = priceHistory.length < 2;
+  const chartPoints = chartIsDemo
+    ? (window.demoPricePoints
+        ? window.demoPricePoints(deal.price, deal.baseline_price)
+        : [])
+    : priceHistory;
+  const showChart = chartPoints.length >= 2;
   const cheaper =
     hasBaseline && deal.price && Number(deal.baseline_price) > Number(deal.price);
   const saveAmt = cheaper ? Number(deal.baseline_price) - Number(deal.price) : 0;
@@ -770,11 +776,14 @@ async function openModal(id, opts) {
       `평소가(중앙값) ${won(deal.baseline_price)}보다 ${Number(saveAmt).toLocaleString("ko-KR")}원 저렴` +
       `</p>`
     : "";
+  const chartSub = chartIsDemo
+    ? `예시 데이터 · 실제 이력이 쌓이면 교체됩니다`
+    : `딜 게시 가격 · 표본 ${priceHistory.length}건`;
   const chartHtml = showChart
-    ? `<div class="dd-chart" id="dd-chart-root">` +
+    ? `<div class="dd-chart${chartIsDemo ? " is-demo" : ""}" id="dd-chart-root">` +
       `<div class="dd-chart-head">` +
-      `<div><span class="dd-chart-title">가격 흐름</span>` +
-      `<span class="dd-chart-sub">딜 게시 가격 · 표본 ${priceHistory.length}건</span></div>` +
+      `<div><span class="dd-chart-title">가격 흐름${chartIsDemo ? ' <span class="dd-demo-badge">예시</span>' : ""}</span>` +
+      `<span class="dd-chart-sub">${chartSub}</span></div>` +
       `<div class="seg-group dd-chart-range" role="tablist" aria-label="기간">` +
       `<button type="button" class="seg-chip" data-range="30" role="tab" aria-selected="false">30일</button>` +
       `<button type="button" class="seg-chip on" data-range="90" role="tab" aria-selected="true">90일</button>` +
@@ -783,7 +792,7 @@ async function openModal(id, opts) {
       `<div class="dd-chart-box"><canvas id="modal-chart"></canvas></div>` +
       `<div class="dd-chart-legend">` +
       `<span><span class="dd-legend-line"></span>딜 가격</span>` +
-      (hasBaseline ? `<span><span class="dd-legend-dash"></span>평소가 중앙값</span>` : "") +
+      (hasBaseline || chartIsDemo ? `<span><span class="dd-legend-dash"></span>평소가 중앙값</span>` : "") +
       `<span><span class="dd-legend-dot"></span>현재 딜</span>` +
       `</div></div>`
     : `<div class="dd-empty">같은 상품의 딜 가격 이력이 아직 부족해 가격 흐름을 그릴 수 없습니다.</div>`;
@@ -887,11 +896,14 @@ async function openModal(id, opts) {
   });
   if (showChart) {
     const root = document.getElementById("dd-chart-root");
-    const baseline = hasBaseline ? deal.baseline_price : null;
+    const baseline =
+      hasBaseline ? deal.baseline_price
+        : chartIsDemo && deal.price ? Math.round(Number(deal.price) * 1.25)
+        : null;
     if (window.bindPriceChartRange) {
-      chart = window.bindPriceChartRange(root, "modal-chart", priceHistory, baseline, 90);
+      chart = window.bindPriceChartRange(root, "modal-chart", chartPoints, baseline, 90);
     } else if (window.renderPriceChart) {
-      chart = window.renderPriceChart("modal-chart", priceHistory, baseline);
+      chart = window.renderPriceChart("modal-chart", chartPoints, baseline);
     }
   }
   if (modalCta) {

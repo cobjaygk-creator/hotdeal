@@ -27,6 +27,30 @@
     return filtered.length >= 2 ? filtered : points.slice();
   };
 
+  /* 실제 이력이 부족할 때 쓰는 임시 예시 곡선 (현재가 기준 하향) */
+  window.demoPricePoints = function (dealPrice, baseline) {
+    var end = Number(dealPrice) || Number(baseline) || 30000;
+    if (!(end > 0)) end = 30000;
+    var start = Number(baseline) > end ? Number(baseline) * 1.12 : end * 1.45;
+    var mid = (start + end) / 2;
+    var factors = [1, 0.97, 0.94, 0.96, 0.91, 0.9, 0.88, 0.86, 0.84, 0.82, 0.78, 0.74, 0.7, 0.66];
+    var now = Date.now();
+    var span = 90 * 86400000;
+    var points = factors.map(function (f, i) {
+      var t = now - span + (span * i) / (factors.length - 1);
+      var wobble = ((i % 3) - 1) * end * 0.012;
+      var price = Math.round(start * f + wobble * 0.2);
+      if (i === factors.length - 1) price = Math.round(end);
+      if (i === Math.floor(factors.length / 2)) price = Math.round(mid);
+      var d = new Date(t);
+      var y = d.getFullYear();
+      var m = String(d.getMonth() + 1).padStart(2, "0");
+      var day = String(d.getDate()).padStart(2, "0");
+      return { observed_at: y + "-" + m + "-" + day + " 12:00:00", price: price, demo: true };
+    });
+    return points;
+  };
+
   window.renderPriceChart = function (canvasId, points, baseline) {
     var el = document.getElementById(canvasId);
     if (!el || !window.Chart || !points || points.length < 2) return null;

@@ -70,12 +70,11 @@
         </div>
       </div>
 
-      {% if history|length >= 2 %}
-      <div class="dd-chart" id="dd-chart-root">
+      <div class="dd-chart{% if history|length < 2 %} is-demo{% endif %}" id="dd-chart-root">
         <div class="dd-chart-head">
           <div>
-            <span class="dd-chart-title">가격 흐름</span>
-            <span class="dd-chart-sub">딜 게시 가격 · 표본 {{ history|length }}건</span>
+            <span class="dd-chart-title">가격 흐름{% if history|length < 2 %} <span class="dd-demo-badge">예시</span>{% endif %}</span>
+            <span class="dd-chart-sub">{% if history|length >= 2 %}딜 게시 가격 · 표본 {{ history|length }}건{% else %}예시 데이터 · 실제 이력이 쌓이면 교체됩니다{% endif %}</span>
           </div>
           <div class="seg-group dd-chart-range" role="tablist" aria-label="기간">
             <button type="button" class="seg-chip" data-range="30" role="tab" aria-selected="false">30일</button>
@@ -86,13 +85,10 @@
         <div class="dd-chart-box"><canvas id="chart"></canvas></div>
         <div class="dd-chart-legend">
           <span><span class="dd-legend-line"></span>딜 가격</span>
-          {% if has_baseline %}<span><span class="dd-legend-dash"></span>평소가 중앙값</span>{% endif %}
+          <span><span class="dd-legend-dash"></span>평소가 중앙값</span>
           <span><span class="dd-legend-dot"></span>현재 딜</span>
         </div>
       </div>
-      {% else %}
-      <div class="dd-empty">같은 상품의 딜 가격 이력이 아직 부족해 가격 흐름을 그릴 수 없습니다.</div>
-      {% endif %}
 
       <h2 class="dd-section">쇼핑몰 시세 <span class="dd-section-sub">커뮤니티 기준</span></h2>
       <div class="dd-market">
@@ -192,8 +188,13 @@
     if (!node) return;
     var points = [];
     try { points = JSON.parse(node.textContent) || []; } catch (e) { return; }
-    if (points.length < 2) return;
+    var dealPrice = {{ deal.price if deal.price else 'null' }};
     var baseline = {{ deal.baseline_price if has_baseline else 'null' }};
+    if (points.length < 2) {
+      points = window.demoPricePoints ? window.demoPricePoints(dealPrice, baseline) : [];
+      if (baseline == null && dealPrice) baseline = Math.round(Number(dealPrice) * 1.25);
+    }
+    if (points.length < 2) return;
     var root = document.getElementById("dd-chart-root");
     if (window.bindPriceChartRange) window.bindPriceChartRange(root, "chart", points, baseline, 90);
     else window.renderPriceChart("chart", points, baseline);
