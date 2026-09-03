@@ -234,33 +234,6 @@
 }
 
 /* ---- 5) 상세 히어로 (목업: 썸네일 좌 + 메타/제목/가격 우) ---- */
-.dd-head-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  margin: 0 0 6px;
-}
-.dd-head-actions a,
-.dd-head-actions .dd-report-btn {
-  height: auto;
-  min-height: auto;
-  padding: 0;
-  background: none;
-  border: 0;
-  color: var(--ink-muted) !important;
-  font: inherit;
-  font-size: var(--text-label);
-  font-weight: 600;
-  cursor: pointer;
-  text-decoration: none;
-}
-.dd-head-actions a:hover,
-.dd-head-actions .dd-report-btn:hover {
-  background: none;
-  text-decoration: underline;
-  color: var(--ink) !important;
-}
-
 .dd-hero {
   display: flex;
   align-items: flex-start;

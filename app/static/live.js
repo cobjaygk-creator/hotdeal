@@ -800,10 +800,6 @@ async function openModal(id, opts) {
     ? `${specRow("중앙값", won(deal.baseline_price))}${specRow("최저가", won(deal.min_price))}${specRow("표본", esc(sampleCount) + "건")}`
     : (sampleCount ? specRow("표본", esc(sampleCount) + "건") : "");
   modalBody.innerHTML = `
-    <div class="dd-head-actions">
-      ${isPostUrl(deal.deal_url) ? `<a href="${esc(deal.deal_url)}" target="_blank" rel="noopener">원본글</a>` : ""}
-      <button type="button" class="dd-report-btn" data-open-report>신고</button>
-    </div>
     <div class="dd-hero">
       ${thumb}
       <div class="dd-hero-body">
@@ -847,22 +843,6 @@ async function openModal(id, opts) {
       <button type="button" class="btn-secondary btn-sm" data-copy-link>링크 복사</button>
       <button type="button" class="btn-secondary btn-sm" data-share-link>공유</button>
     </p>
-    <form class="dd-report" id="dd-report" hidden>
-      <p style="margin:0;font-size:var(--text-body-sm);font-weight:700">신고하기</p>
-      <select name="reason">
-        <option value="price">가격 정보가 이상해요</option>
-        <option value="link">구매 링크가 이상해요</option>
-        <option value="spam">스팸 같아요</option>
-        <option value="soldout">품절·종료된 게시물</option>
-        <option value="illegal">불법/유해 내용</option>
-        <option value="other">기타</option>
-      </select>
-      <textarea name="detail" maxlength="2000" placeholder="내용 (기타는 필수)"></textarea>
-      <div class="dd-report-actions">
-        <button type="submit" class="btn">보내기</button>
-        <button type="button" class="btn-secondary" data-close-report>닫기</button>
-      </div>
-    </form>
   `;
   modalBody.querySelector("[data-copy-link]")?.addEventListener("click", async () => {
     try { await navigator.clipboard.writeText(location.href); } catch (e) {}
@@ -873,26 +853,6 @@ async function openModal(id, opts) {
     } else {
       try { await navigator.clipboard.writeText(location.href); } catch (e) {}
     }
-  });
-  modalBody.querySelector("[data-open-report]")?.addEventListener("click", () => {
-    const form = document.getElementById("dd-report");
-    if (form) form.hidden = !form.hidden;
-  });
-  modalBody.querySelector("[data-close-report]")?.addEventListener("click", () => {
-    const form = document.getElementById("dd-report");
-    if (form) form.hidden = true;
-  });
-  document.getElementById("dd-report")?.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const form = e.target;
-    const res = await fetch("/api/deals/" + id + "/report", {
-      method: "POST",
-      credentials: "same-origin",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ reason: form.reason.value, detail: form.detail.value }),
-    });
-    if (res.ok) form.hidden = true;
-    else window.alert("신고를 보내지 못했습니다.");
   });
   if (showChart) {
     const root = document.getElementById("dd-chart-root");
