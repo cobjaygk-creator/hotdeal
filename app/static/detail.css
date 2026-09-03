@@ -38,8 +38,27 @@
   .dd-cta { margin: 20px -16px 0; padding: 12px 16px; }
 }
 
-/* ---- 2) 쇼핑몰 시세: 캔버스 대신 HTML 바 ---- */
-.dd-market-chart-wrap { display: none; }   /* Chart.js 캔버스 숨김 */
+/* ---- 2) 쇼핑몰 시세: HTML 바 (커뮤니티) ---- */
+.dd-market-chart-wrap { display: none; }
+.dd-section-sub {
+  margin-left: 6px;
+  font-size: var(--text-label);
+  font-weight: 600;
+  color: var(--ink-faint);
+}
+.dd-chart-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.dd-chart-range { margin: 0; flex: none; }
+.dd-chart-range .seg-chip {
+  min-height: 30px;
+  padding: 0 10px;
+  font-size: var(--text-label);
+}
 
 .mkt {
   display: flex;
@@ -49,7 +68,7 @@
 }
 .mkt-row {
   display: grid;
-  grid-template-columns: 92px minmax(0, 1fr) 100px;
+  grid-template-columns: 110px minmax(0, 1fr) 100px;
   align-items: center;
   gap: 12px;
 }
@@ -88,7 +107,7 @@
 
 .mkt-row.is-deal .mkt-mall,
 .mkt-row.is-deal .mkt-price { color: var(--price); font-weight: 800; }
-.mkt-row.is-deal .mkt-bar { background: var(--price); }
+.mkt-row.is-deal .mkt-bar { background: var(--price, #e11d48); }
 
 .mkt-note {
   margin: 12px 0 0;

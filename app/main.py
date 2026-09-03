@@ -38,7 +38,6 @@ from app.engine import auth as user_auth
 from app.engine import comments as deal_comments
 from app.engine.alerts import add_sub, channels_ready, default_target, delete_sub, list_subs
 from app.engine.category import CATEGORIES as DEAL_CATEGORIES
-from app.engine.naver_seed import get_market_compare
 from app.engine.ppomppu_enrich import enrich_missing_ppomppu_malls
 from app.family.parse import parse_discount
 from app.family.pipeline import collect_family_sales
@@ -951,17 +950,15 @@ async def api_deal(deal_id: int):
 
 @app.get("/api/deals/{deal_id}/market")
 async def api_deal_market(deal_id: int, refresh: int = 0):
+    """커뮤니티 price_points 기반 판매처별 최저가 비교 (네이버 API 미사용)."""
     deal = await _get_deal(deal_id)
     if not deal:
         raise HTTPException(404, "deal not found")
-    return await get_market_compare(
-        _db(),
+    return await _community_market_compare(
         product_key=deal.get("product_key") or "",
-        product_name=deal.get("product_name") or "",
         deal_price=deal.get("price"),
         deal_seller=deal.get("seller"),
         deal_url=deal.get("mall_url") or deal.get("deal_url"),
-        force=bool(refresh),
     )
 
 
@@ -1679,16 +1676,102 @@ async def _deal_posts(deal_id: int) -> list[dict]:
 
 
 async def _price_history(product_key: str) -> list[dict]:
+    """딜 게시 가격 이력. 네이버 시드 행은 제외하고 커뮤니티 관측만 반환."""
     cur = await _db().execute(
         """
         SELECT observed_at, price, seller, source
         FROM price_points
         WHERE product_key=?
+          AND IFNULL(source, '') != 'naver'
         ORDER BY observed_at
         """,
         (product_key,),
     )
     return [dict(r) for r in await cur.fetchall()]
+
+
+def _norm_mall(name: str | None) -> str:
+    return "".join(ch for ch in (name or "").lower() if ch.isalnum())
+
+
+async def _community_market_compare(
+    *,
+    product_key: str,
+    deal_price: int | None,
+    deal_seller: str | None,
+    deal_url: str | None,
+) -> dict:
+    """동일 product_key의 커뮤니티 관측을 판매처별 최저가로 묶는다."""
+    if not product_key:
+        return {
+            "enabled": True,
+            "mode": "community",
+            "items": [],
+            "note": "비교할 가격 이력이 아직 없습니다.",
+            "fetched_at": None,
+        }
+    cur = await _db().execute(
+        """
+        SELECT
+          COALESCE(NULLIF(TRIM(seller), ''), '기타') AS mall,
+          MIN(price) AS price,
+          COUNT(*) AS cnt,
+          MAX(observed_at) AS last_seen
+        FROM price_points
+        WHERE product_key=?
+          AND IFNULL(source, '') != 'naver'
+        GROUP BY mall
+        ORDER BY price ASC
+        LIMIT 12
+        """,
+        (product_key,),
+    )
+    rows = [dict(r) for r in await cur.fetchall()]
+    items: list[dict] = []
+    deal_norm = _norm_mall(deal_seller)
+    if deal_price:
+        label = f"이 딜 · {deal_seller}" if deal_seller else "이 딜 · 현재"
+        items.append(
+            {
+                "mall": label,
+                "title": label,
+                "price": int(deal_price),
+                "url": deal_url,
+                "is_deal": True,
+                "count": 1,
+                "similarity": 1.0,
+            }
+        )
+    for row in rows:
+        mall = row.get("mall") or "기타"
+        if deal_norm and _norm_mall(mall) == deal_norm:
+            continue
+        items.append(
+            {
+                "mall": mall,
+                "title": mall,
+                "price": int(row["price"]),
+                "url": None,
+                "is_deal": False,
+                "count": int(row.get("cnt") or 0),
+                "similarity": 1.0,
+                "last_seen": row.get("last_seen"),
+            }
+        )
+    items.sort(key=lambda x: (0 if x.get("is_deal") else 1, x.get("price") or 10**12))
+    if not items:
+        note = "비교할 가격 이력이 아직 없습니다."
+    elif len(items) == 1:
+        note = "다른 판매처 이력이 아직 적어, 현재 딜 가격만 표시합니다."
+    else:
+        note = "커뮤니티에 올라온 동일 상품의 판매처별 최저가입니다."
+    return {
+        "enabled": True,
+        "mode": "community",
+        "items": items,
+        "note": note,
+        "fetched_at": None,
+    }
 
 
 async def _distinct(column: str) -> list[str]:

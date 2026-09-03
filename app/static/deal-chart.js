@@ -1,15 +1,40 @@
-/* 가격 흐름 차트 — 스타일 규칙을 한곳에 모음.
+/* 가격 흐름 차트 — 커뮤니티 딜 게시 가격
    호출: window.renderPriceChart("chart", points, baseline)
-   points: [{observed_at, price}, ...]                            */
+   기간: window.filterPricePoints(points, days)  days=0 → 전체   */
 (function () {
+  var charts = {};
+
   function cssVar(name, fallback) {
     var v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
     return v || fallback;
   }
 
+  function parseDate(raw) {
+    if (!raw) return null;
+    var d = new Date(String(raw).replace(" ", "T"));
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  window.filterPricePoints = function (points, days) {
+    if (!points || !points.length) return [];
+    var n = Number(days) || 0;
+    if (n <= 0) return points.slice();
+    var cutoff = Date.now() - n * 86400000;
+    var filtered = points.filter(function (p) {
+      var d = parseDate(p.observed_at);
+      return d && d.getTime() >= cutoff;
+    });
+    return filtered.length >= 2 ? filtered : points.slice();
+  };
+
   window.renderPriceChart = function (canvasId, points, baseline) {
     var el = document.getElementById(canvasId);
     if (!el || !window.Chart || !points || points.length < 2) return null;
+
+    if (charts[canvasId]) {
+      try { charts[canvasId].destroy(); } catch (e) {}
+      charts[canvasId] = null;
+    }
 
     var ink = cssVar("--ink", "#16181d");
     var faint = cssVar("--ink-faint", "#8b94a3");
@@ -22,14 +47,14 @@
 
     var prices = points.map(function (p) { return p.price; });
     var labels = points.map(function (p) {
-      var d = new Date(p.observed_at);
-      return isNaN(d) ? String(p.observed_at).slice(5, 10) : (d.getMonth() + 1) + "/" + d.getDate();
+      var d = parseDate(p.observed_at);
+      return d ? (d.getMonth() + 1) + "/" + d.getDate() : String(p.observed_at).slice(5, 10);
     });
     var last = prices.length - 1;
 
     var ctx = el.getContext("2d");
     var grad = ctx.createLinearGradient(0, 0, 0, el.clientHeight || 230);
-    grad.addColorStop(0, accent + "24");
+    grad.addColorStop(0, accent + "1F");
     grad.addColorStop(1, accent + "00");
 
     var datasets = [{
@@ -60,7 +85,7 @@
       });
     }
 
-    return new window.Chart(ctx, {
+    var chart = new window.Chart(ctx, {
       type: "line",
       data: { labels: labels, datasets: datasets },
       options: {
@@ -108,5 +133,30 @@
         }
       }
     });
+    charts[canvasId] = chart;
+    return chart;
+  };
+
+  window.bindPriceChartRange = function (root, canvasId, allPoints, baseline, defaultDays) {
+    if (!root) return null;
+    var days = defaultDays == null ? 90 : Number(defaultDays);
+    function paint() {
+      var pts = window.filterPricePoints(allPoints, days);
+      var sub = root.querySelector(".dd-chart-sub");
+      if (sub) sub.textContent = "딜 게시 가격 · 표본 " + pts.length + "건";
+      return window.renderPriceChart(canvasId, pts, baseline);
+    }
+    root.querySelectorAll("[data-range]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        days = Number(btn.getAttribute("data-range") || 0);
+        root.querySelectorAll("[data-range]").forEach(function (b) {
+          var on = b === btn;
+          b.classList.toggle("on", on);
+          b.setAttribute("aria-selected", on ? "true" : "false");
+        });
+        paint();
+      });
+    });
+    return paint();
   };
 })();

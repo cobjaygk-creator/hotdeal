@@ -673,6 +673,8 @@ async function openModal(id, opts) {
   const posts = deal.posts || [];
   const priceHistory = deal.history || [];
   const similar = deal.similar || [];
+  const sampleCount = Number(deal.sample_count) || 0;
+  const hasBaseline = sampleCount >= 3 && deal.baseline_price;
   const postHtml = posts.length
     ? posts
         .map(
@@ -691,8 +693,11 @@ async function openModal(id, opts) {
   const thumb = deal.thumbnail_url
     ? `<div class="modal-thumb-wrap"><img class="modal-thumb" src="${esc(deal.thumbnail_url)}" alt="" referrerpolicy="no-referrer"></div>`
     : "";
+  const buyLabel = deal.seller
+    ? `${esc(deal.seller)}에서 ${won(deal.price)} 구매`
+    : `${won(deal.price)} 구매하기`;
   const cta = deal.mall_url
-    ? `<a class="btn" href="${esc(deal.mall_url)}" target="_blank" rel="noopener">${esc(deal.seller || "")} ${won(deal.price)} 구매하기</a>` +
+    ? `<a class="btn" href="${esc(deal.mall_url)}" target="_blank" rel="noopener">${buyLabel}</a>` +
       (isPostUrl(deal.deal_url) ? `<a class="btn-secondary" href="${esc(deal.deal_url)}" target="_blank" rel="noopener">원문</a>` : "")
     : isPostUrl(deal.deal_url)
       ? `<a class="btn" href="${esc(deal.deal_url)}" target="_blank" rel="noopener">원문에서 확인</a>`
@@ -704,32 +709,39 @@ async function openModal(id, opts) {
     : "";
   const showChart = priceHistory.length >= 2;
   const cheaper =
-    deal.baseline_price && deal.price && Number(deal.baseline_price) > Number(deal.price);
+    hasBaseline && deal.price && Number(deal.baseline_price) > Number(deal.price);
   const saveAmt = cheaper ? Number(deal.baseline_price) - Number(deal.price) : 0;
   const isLowest =
-    deal.min_price && deal.price && Number(deal.price) <= Number(deal.min_price);
+    hasBaseline && deal.min_price && deal.price && Number(deal.price) <= Number(deal.min_price);
+  const checkSvg =
+    `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--success)" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 8.5l3 3 7-7"></path></svg>`;
   const verdictHtml = cheaper
-    ? `<p class="dd-verdict">` +
-      `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--success)" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 8.5l3 3 7-7"></path></svg>` +
-      `<strong>${isLowest ? "역대 최저가" : "평소보다 저렴"}</strong>` +
+    ? `<p class="dd-verdict">${checkSvg}` +
+      `<strong>${isLowest ? "90일 최저가" : "평소보다 저렴"}</strong>` +
       `<span class="status-sep">·</span>` +
-      `평소가 ${won(deal.baseline_price)}보다 ${Number(saveAmt).toLocaleString("ko-KR")}원 낮음` +
-      (deal.sample_count ? ` (표본 ${esc(deal.sample_count)}건)` : "") +
+      `평소가(중앙값) ${won(deal.baseline_price)}보다 ${Number(saveAmt).toLocaleString("ko-KR")}원 저렴` +
       `</p>`
     : "";
   const chartHtml = showChart
-    ? `<div class="dd-chart">` +
-      `<div class="dd-chart-head"><div style="display:flex;align-items:baseline;gap:8px">` +
-      `<span class="dd-chart-title">가격 흐름</span>` +
-      `<span class="dd-chart-sub">딜 게시 가격 · 표본 ${priceHistory.length}건</span>` +
+    ? `<div class="dd-chart" id="dd-chart-root">` +
+      `<div class="dd-chart-head">` +
+      `<div><span class="dd-chart-title">가격 흐름</span>` +
+      `<span class="dd-chart-sub">딜 게시 가격 · 표본 ${priceHistory.length}건</span></div>` +
+      `<div class="seg-group dd-chart-range" role="tablist" aria-label="기간">` +
+      `<button type="button" class="seg-chip" data-range="30" role="tab" aria-selected="false">30일</button>` +
+      `<button type="button" class="seg-chip on" data-range="90" role="tab" aria-selected="true">90일</button>` +
+      `<button type="button" class="seg-chip" data-range="0" role="tab" aria-selected="false">전체</button>` +
       `</div></div>` +
       `<div class="dd-chart-box"><canvas id="modal-chart"></canvas></div>` +
       `<div class="dd-chart-legend">` +
       `<span><span class="dd-legend-line"></span>딜 가격</span>` +
-      (deal.baseline_price ? `<span><span class="dd-legend-dash"></span>평소가 중앙값</span>` : "") +
+      (hasBaseline ? `<span><span class="dd-legend-dash"></span>평소가 중앙값</span>` : "") +
       `<span><span class="dd-legend-dot"></span>현재 딜</span>` +
       `</div></div>`
-    : "";
+    : `<div class="dd-empty">같은 상품의 딜 가격 이력이 아직 부족해 가격 흐름을 그릴 수 없습니다.</div>`;
+  const baselineRows = hasBaseline
+    ? `${specRow("중앙값", won(deal.baseline_price))}${specRow("최저가", won(deal.min_price))}${specRow("표본", esc(sampleCount) + "건")}`
+    : (sampleCount ? specRow("표본", esc(sampleCount) + "건") : "");
   modalBody.innerHTML = `
     <p class="dd-meta">
       ${sourceBits}
@@ -746,31 +758,30 @@ async function openModal(id, opts) {
       <div style="min-width:0">
         <h1 id="modal-title">${esc(deal.product_name)}</h1>
         <p class="modal-price">${priceHtml(deal.price)}${offHtml(deal.discount_rate)}
-          ${cheaper ? `<span style="margin-left:8px;font-size:var(--text-body-sm);font-weight:600;color:var(--ink-faint);text-decoration:line-through;font-variant-numeric:tabular-nums;letter-spacing:0">${won(deal.baseline_price)}</span>` : ""}
+          ${cheaper ? `<span class="mkt-strike">${won(deal.baseline_price)}</span>` : ""}
         </p>
         ${verdictHtml}
       </div>
     </div>
     ${chartHtml}
+    <h2 class="dd-section">쇼핑몰 시세 <span class="dd-section-sub">커뮤니티 기준</span></h2>
+    <div class="dd-market">
+      <p class="muted" id="market-status" style="font-size:var(--text-body-sm)">시세를 불러오는 중…</p>
+      <div id="market-bars" class="mkt" hidden></div>
+      <ul class="dd-market-list" id="market-list" hidden></ul>
+      <p class="mkt-note" id="market-note" hidden></p>
+    </div>
     <h2 class="dd-section">상품 정보</h2>
     <div class="dd-spec">
       ${specRow("쇼핑몰", esc(deal.seller || ""))}
       ${specRow("가격", won(deal.price))}
       ${deal.shipping_fee != null ? specRow("배송비", won(deal.shipping_fee)) : ""}
       ${deal.unit_price ? specRow("단가", won(deal.unit_price)) : ""}
-      ${specRow("중앙값", won(deal.baseline_price))}
-      ${specRow("최저가", won(deal.min_price))}
-      ${deal.sample_count ? specRow("표본", esc(deal.sample_count) + "건") : ""}
+      ${baselineRows}
       ${specRow("카테고리", esc(deal.category || ""))}
       ${deal.first_seen_at ? specRow("최초 확인", esc(kst(deal.first_seen_at))) : ""}
     </div>
-    <h2 class="dd-section">쇼핑몰 시세</h2>
-    <div class="dd-market">
-      <p class="muted" id="market-status" style="font-size:var(--text-body-sm)">시세를 불러오는 중…</p>
-      <div class="dd-market-chart-wrap"><canvas id="market-chart" height="180"></canvas></div>
-      <ul class="dd-market-list" id="market-list"></ul>
-    </div>
-    <h2 class="dd-section">원문 ${posts.length ? `<span style="font-weight:600;color:var(--ink-faint);font-size:var(--text-label)">${posts.length}건</span>` : ""}</h2>
+    <h2 class="dd-section">원문 ${posts.length ? `<span class="dd-section-sub">${posts.length}건</span>` : ""}</h2>
     <ul class="dd-posts">${postHtml}</ul>
     <div class="dd-tags">
       ${deal.seller ? `<span class="dd-tag">#${esc(deal.seller)}</span>` : ""}
@@ -829,101 +840,67 @@ async function openModal(id, opts) {
     if (res.ok) form.hidden = true;
     else window.alert("신고를 보내지 못했습니다.");
   });
-  if (showChart && window.renderPriceChart) {
-    chart = window.renderPriceChart("modal-chart", priceHistory, deal.baseline_price || null);
-  } else if (showChart && window.Chart) {
-    // deal-chart.js 로드 전 폴백
-    const canvas = document.getElementById("modal-chart");
-    if (canvas) {
-      chart = new Chart(canvas, {
-        type: "line",
-        data: {
-          labels: priceHistory.map((h) => h.observed_at),
-          datasets: [{ label: "딜 게시 가격", data: priceHistory.map((h) => h.price), showLine: true, pointRadius: 4, borderWidth: 2 }],
-        },
-        options: {
-          plugins: { legend: { display: false } },
-          scales: { y: { ticks: { callback: (v) => Number(v).toLocaleString("ko-KR") + "원" } } },
-        },
-      });
+  if (showChart) {
+    const root = document.getElementById("dd-chart-root");
+    const baseline = hasBaseline ? deal.baseline_price : null;
+    if (window.bindPriceChartRange) {
+      chart = window.bindPriceChartRange(root, "modal-chart", priceHistory, baseline, 90);
+    } else if (window.renderPriceChart) {
+      chart = window.renderPriceChart("modal-chart", priceHistory, baseline);
     }
   }
   loadMarketCompare(id);
   if (window.DealChat) window.DealChat.open(id);
 }
 
+function renderMarketBars(items) {
+  const host = document.getElementById("market-bars");
+  if (!host) return;
+  const prices = items.map((x) => Number(x.price) || 0).filter(Boolean);
+  const max = prices.length ? Math.max.apply(null, prices) : 1;
+  host.innerHTML = items
+    .map((item) => {
+      const price = Number(item.price) || 0;
+      const w = Math.max(8, Math.round((price / max) * 100));
+      const priceInner = item.url
+        ? `<a href="${esc(item.url)}" target="_blank" rel="noopener">${won(price)}</a>`
+        : won(price);
+      return (
+        `<div class="mkt-row${item.is_deal ? " is-deal" : ""}">` +
+        `<span class="mkt-mall">${esc(item.mall || "")}</span>` +
+        `<span class="mkt-track"><span class="mkt-bar" style="width:${w}%"></span></span>` +
+        `<span class="mkt-price">${priceInner}</span></div>`
+      );
+    })
+    .join("");
+  host.hidden = !items.length;
+}
+
 window.loadMarketCompare = loadMarketCompare;
 async function loadMarketCompare(dealId) {
   if (marketLoadedFor === Number(dealId)) return;
   const status = document.getElementById("market-status");
-  const list = document.getElementById("market-list");
-  const canvas = document.getElementById("market-chart");
+  const note = document.getElementById("market-note");
+  const bars = document.getElementById("market-bars");
   if (status) status.textContent = "시세를 불러오는 중…";
-  if (list) list.innerHTML = "";
+  if (bars) {
+    bars.innerHTML = "";
+    bars.hidden = true;
+  }
   try {
     const res = await fetch("/api/deals/" + dealId + "/market");
     const data = await res.json();
     marketLoadedFor = Number(dealId);
-    if (!data.enabled) {
-      if (status) status.textContent = data.note || "시세 비교를 사용할 수 없습니다.";
-      if (canvas) canvas.hidden = true;
-      return;
-    }
     const items = data.items || [];
     if (!items.length) {
-      if (status) status.textContent = data.note || "비슷한 상품 시세를 찾지 못했습니다.";
-      if (canvas) canvas.hidden = true;
+      if (status) status.textContent = data.note || "비교할 가격 이력이 아직 없습니다.";
       return;
     }
-    if (status) {
-      status.textContent = data.fetched_at
-        ? `네이버 쇼핑 시세 · ${kst(data.fetched_at)} 기준`
-        : "네이버 쇼핑 시세";
-    }
-    if (list) {
-      list.innerHTML = items
-        .map((item) => {
-          const label = item.is_deal ? `${esc(item.mall)} · 현재 딜` : esc(item.mall);
-          const link = item.url
-            ? `<a href="${esc(item.url)}" target="_blank" rel="noopener">${won(item.price)}</a>`
-            : won(item.price);
-          return `<li class="${item.is_deal ? "is-deal" : ""}"><span class="dd-market-mall">${label}</span><span class="dd-market-price">${link}</span></li>`;
-        })
-        .join("");
-    }
-    if (canvas && window.Chart) {
-      canvas.hidden = false;
-      if (marketChart) {
-        marketChart.destroy();
-        marketChart = null;
-      }
-      const labels = items.map((x) => x.mall);
-      const prices = items.map((x) => x.price);
-      const colors = items.map((x) => (x.is_deal ? "#e11d48" : "#2f80ed"));
-      marketChart = new Chart(canvas, {
-        type: "bar",
-        data: {
-          labels,
-          datasets: [
-            {
-              label: "가격",
-              data: prices,
-              backgroundColor: colors,
-              borderRadius: 6,
-              maxBarThickness: 28,
-            },
-          ],
-        },
-        options: {
-          indexAxis: "y",
-          plugins: { legend: { display: false } },
-          scales: {
-            x: {
-              ticks: { callback: (v) => Number(v).toLocaleString("ko-KR") + "원" },
-            },
-          },
-        },
-      });
+    if (status) status.textContent = "커뮤니티 딜 가격 · 판매처별 최저";
+    renderMarketBars(items);
+    if (note) {
+      note.textContent = data.note || "";
+      note.hidden = !data.note;
     }
   } catch (err) {
     console.error(err);

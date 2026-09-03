@@ -10,6 +10,10 @@
 <script type="application/ld+json">{{ jsonld | tojson }}</script>
 {% endblock %}
 {% block body %}
+{% set sample_count = deal.sample_count or 0 %}
+{% set has_baseline = sample_count >= 3 and deal.baseline_price %}
+{% set cheaper = has_baseline and deal.price and deal.baseline_price > deal.price %}
+{% set is_lowest = has_baseline and deal.min_price and deal.price and deal.price <= deal.min_price %}
 <a class="back-link" href="/">
   <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M9.5 3.5 5 8l4.5 4.5"></path></svg>
   핫딜 목록
@@ -42,38 +46,53 @@
         {% endif %}
         <div style="min-width:0">
           <h1 id="modal-title">{{ deal.product_name }}</h1>
-          <p class="modal-price">{% if deal.price %}{{ "{:,}".format(deal.price) }}<span class="won">원</span>{% else %}-{% endif %}{% if deal.discount_rate is not none %}<span class="deal-off">{{ "%.0f"|format(-deal.discount_rate * 100) }}%</span>{% endif %}
-            {% if deal.baseline_price and deal.price and deal.baseline_price > deal.price %}
-            <span style="margin-left:8px;font-size:var(--text-body-sm);font-weight:600;color:var(--ink-faint);text-decoration:line-through;font-variant-numeric:tabular-nums;letter-spacing:0">{{ "{:,}".format(deal.baseline_price) }}원</span>
-            {% endif %}
+          <p class="modal-price">
+            {% if deal.price %}{{ "{:,}".format(deal.price) }}<span class="won">원</span>{% else %}-{% endif %}
+            {% if deal.discount_rate is not none %}<span class="deal-off">{{ "%.0f"|format(-deal.discount_rate * 100) }}%</span>{% endif %}
+            {% if cheaper %}<span class="mkt-strike">{{ "{:,}".format(deal.baseline_price) }}원</span>{% endif %}
           </p>
-          {% if deal.baseline_price and deal.price and deal.baseline_price > deal.price %}
+          {% if cheaper %}
           <p class="dd-verdict">
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--success)" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 8.5l3 3 7-7"></path></svg>
-            {% if deal.min_price and deal.price <= deal.min_price %}<strong>역대 최저가</strong>{% else %}<strong>평소보다 저렴</strong>{% endif %}
+            {% if is_lowest %}<strong>90일 최저가</strong>{% else %}<strong>평소보다 저렴</strong>{% endif %}
             <span class="status-sep">·</span>
-            평소가 {{ "{:,}".format(deal.baseline_price) }}원보다 {{ "{:,}".format(deal.baseline_price - deal.price) }}원 낮음{% if deal.sample_count %} (표본 {{ deal.sample_count }}건){% endif %}
+            평소가(중앙값) {{ "{:,}".format(deal.baseline_price) }}원보다 {{ "{:,}".format(deal.baseline_price - deal.price) }}원 저렴
           </p>
           {% endif %}
         </div>
       </div>
 
       {% if history|length >= 2 %}
-      <div class="dd-chart">
+      <div class="dd-chart" id="dd-chart-root">
         <div class="dd-chart-head">
-          <div style="display:flex;align-items:baseline;gap:8px">
+          <div>
             <span class="dd-chart-title">가격 흐름</span>
-            <span class="dd-chart-sub">딜 게시 가격{% if history|length %} · 표본 {{ history|length }}건{% endif %}</span>
+            <span class="dd-chart-sub">딜 게시 가격 · 표본 {{ history|length }}건</span>
+          </div>
+          <div class="seg-group dd-chart-range" role="tablist" aria-label="기간">
+            <button type="button" class="seg-chip" data-range="30" role="tab" aria-selected="false">30일</button>
+            <button type="button" class="seg-chip on" data-range="90" role="tab" aria-selected="true">90일</button>
+            <button type="button" class="seg-chip" data-range="0" role="tab" aria-selected="false">전체</button>
           </div>
         </div>
         <div class="dd-chart-box"><canvas id="chart"></canvas></div>
         <div class="dd-chart-legend">
           <span><span class="dd-legend-line"></span>딜 가격</span>
-          {% if deal.baseline_price %}<span><span class="dd-legend-dash"></span>평소가 중앙값</span>{% endif %}
+          {% if has_baseline %}<span><span class="dd-legend-dash"></span>평소가 중앙값</span>{% endif %}
           <span><span class="dd-legend-dot"></span>현재 딜</span>
         </div>
       </div>
+      {% else %}
+      <div class="dd-empty">같은 상품의 딜 가격 이력이 아직 부족해 가격 흐름을 그릴 수 없습니다.</div>
       {% endif %}
+
+      <h2 class="dd-section">쇼핑몰 시세 <span class="dd-section-sub">커뮤니티 기준</span></h2>
+      <div class="dd-market">
+        <p class="muted" id="market-status" style="font-size:var(--text-body-sm)">시세를 불러오는 중…</p>
+        <div id="market-bars" class="mkt" hidden></div>
+        <ul class="dd-market-list" id="market-list" hidden></ul>
+        <p class="mkt-note" id="market-note" hidden></p>
+      </div>
 
       <h2 class="dd-section">상품 정보</h2>
       <div class="dd-spec">
@@ -81,21 +100,16 @@
         {% if deal.price %}<div class="dd-spec-row"><span>가격</span><strong>{{ "{:,}".format(deal.price) }}원</strong></div>{% endif %}
         {% if deal.shipping_fee is not none %}<div class="dd-spec-row"><span>배송비</span><strong>{{ "{:,}".format(deal.shipping_fee) }}원</strong></div>{% endif %}
         {% if deal.unit_price %}<div class="dd-spec-row"><span>단가</span><strong>{{ "{:,}".format(deal.unit_price) }}원</strong></div>{% endif %}
-        {% if deal.baseline_price %}<div class="dd-spec-row"><span>중앙값</span><strong>{{ "{:,}".format(deal.baseline_price) }}원</strong></div>{% endif %}
+        {% if has_baseline %}
+        <div class="dd-spec-row"><span>중앙값</span><strong>{{ "{:,}".format(deal.baseline_price) }}원</strong></div>
         {% if deal.min_price %}<div class="dd-spec-row"><span>최저가</span><strong>{{ "{:,}".format(deal.min_price) }}원</strong></div>{% endif %}
-        {% if deal.sample_count %}<div class="dd-spec-row"><span>표본</span><strong>{{ deal.sample_count }}건</strong></div>{% endif %}
+        {% endif %}
+        {% if sample_count %}<div class="dd-spec-row"><span>표본</span><strong>{{ sample_count }}건</strong></div>{% endif %}
         {% if deal.category %}<div class="dd-spec-row"><span>카테고리</span><strong>{{ deal.category }}</strong></div>{% endif %}
         {% if deal.first_seen_at %}<div class="dd-spec-row"><span>최초 확인</span><strong>{{ deal.first_seen_at | kst }}</strong></div>{% endif %}
       </div>
 
-      <h2 class="dd-section">쇼핑몰 시세</h2>
-      <div class="dd-market">
-        <p class="muted" id="market-status" style="font-size:var(--text-body-sm)">시세를 불러오는 중…</p>
-        <div class="dd-market-chart-wrap"><canvas id="market-chart" height="180"></canvas></div>
-        <ul class="dd-market-list" id="market-list"></ul>
-      </div>
-
-      <h2 class="dd-section">원문 {% if posts %}<span style="font-weight:600;color:var(--ink-faint);font-size:var(--text-label)">{{ posts|length }}건</span>{% endif %}</h2>
+      <h2 class="dd-section">원문 {% if posts %}<span class="dd-section-sub">{{ posts|length }}건</span>{% endif %}</h2>
       <ul class="dd-posts">
         {% for p in posts %}
         <li>
@@ -145,7 +159,7 @@
 
       <div class="dd-cta">
         {% if deal.mall_url %}
-        <a class="btn" href="{{ deal.mall_url }}" target="_blank" rel="noopener">{% if deal.seller %}{{ deal.seller }} {% endif %}{% if deal.price %}{{ "{:,}".format(deal.price) }}원 {% endif %}구매하기</a>
+        <a class="btn" href="{{ deal.mall_url }}" target="_blank" rel="noopener">{% if deal.seller %}{{ deal.seller }}에서 {% endif %}{% if deal.price %}{{ "{:,}".format(deal.price) }}원 {% endif %}구매</a>
         {% if deal.deal_url %}<a class="btn-secondary" href="{{ deal.deal_url }}" target="_blank" rel="noopener">원문</a>{% endif %}
         {% elif deal.deal_url %}
         <a class="btn" href="{{ deal.deal_url }}" target="_blank" rel="noopener">원문에서 확인</a>
@@ -161,19 +175,21 @@
 <script src="/static/live.js"></script>
 <script>
 (function () {
-  // 가격 흐름 — 전역 window.history를 가리던 `const history` 제거
   function drawChart() {
-    if (!window.renderPriceChart || !window.Chart) return setTimeout(drawChart, 100);
+    if (!window.bindPriceChartRange && !window.renderPriceChart) return setTimeout(drawChart, 100);
+    if (!window.Chart) return setTimeout(drawChart, 100);
     var node = document.getElementById("price-history");
     if (!node) return;
     var points = [];
     try { points = JSON.parse(node.textContent) || []; } catch (e) { return; }
-    var baseline = {{ deal.baseline_price or 'null' }};
-    window.renderPriceChart("chart", points, baseline);
+    if (points.length < 2) return;
+    var baseline = {{ deal.baseline_price if has_baseline else 'null' }};
+    var root = document.getElementById("dd-chart-root");
+    if (window.bindPriceChartRange) window.bindPriceChartRange(root, "chart", points, baseline, 90);
+    else window.renderPriceChart("chart", points, baseline);
   }
   drawChart();
 
-  // 내부 탭을 없앴으므로 시세는 진입 시 1회 로드
   function loadMarket() {
     if (window.loadMarketCompare) window.loadMarketCompare({{ deal.id }});
     else setTimeout(loadMarket, 150);
