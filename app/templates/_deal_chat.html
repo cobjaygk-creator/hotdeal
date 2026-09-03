@@ -1,0 +1,25 @@
+<aside class="dd-chat" id="dd-chat">
+  <div class="chat-head">댓글 <span data-chat-count>0</span></div>
+  <div class="chat-log" id="chat-log"></div>
+  <div class="chat-composer">
+    <div class="chat-reactions" id="chat-reactions" role="group" aria-label="반응">
+      <button type="button" class="chat-react" data-kind="like">🔥 좋아요 <span data-count>0</span></button>
+      <button type="button" class="chat-react" data-kind="meh">🤔 글쎄 <span data-count>0</span></button>
+      <button type="button" class="chat-react" data-kind="bought">💸 샀어요 <span data-count>0</span></button>
+      <button type="button" class="chat-react" data-kind="soldout">⛔ 품절 <span data-count>0</span></button>
+    </div>
+    <div class="chat-reply-bar" id="chat-reply-bar" hidden>
+      <span id="chat-reply-label"></span>
+      <button type="button" class="chat-reply-cancel" id="chat-reply-cancel">취소</button>
+    </div>
+    <div class="chat-id-row">
+      <label>닉네임 <input type="text" id="chat-nick" maxlength="12" placeholder="익명" autocomplete="nickname"></label>
+      <label>PIN <input type="password" id="chat-pin" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="4자리" autocomplete="off"></label>
+    </div>
+    <div class="chat-input-row">
+      <textarea id="chat-input" rows="1" maxlength="300" placeholder="댓글을 남겨 보세요"></textarea>
+      <button type="button" class="chat-send" id="chat-send" aria-label="보내기">↑</button>
+    </div>
+    <div class="chat-count" id="chat-len">0/300</div>
+  </div>
+</aside>

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}신고 내역 · 핫딜모음{% endblock %}
+{% block extra_head %}
+<meta name="robots" content="noindex">
+{% endblock %}
+{% block body %}
+<div class="page-head">
+  <h1>신고 내역</h1>
+  <div class="page-meta">최근 {{ reports|length }}건</div>
+</div>
+{% if reports %}
+<table class="admin-table">
+  <thead>
+    <tr><th>시각</th><th>딜</th><th>사유</th><th>내용</th></tr>
+  </thead>
+  <tbody>
+    {% for r in reports %}
+    <tr>
+      <td>{{ r.created_at }}</td>
+      <td><a href="/deal/{{ r.deal_id }}">{{ r.product_name or r.deal_id }}</a></td>
+      <td>{{ r.reason }}</td>
+      <td>{{ r.detail or "" }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="muted">아직 신고가 없습니다.</p>
+{% endif %}
+{% endblock %}

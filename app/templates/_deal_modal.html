@@ -1,0 +1,14 @@
+<div id="deal-modal" class="modal" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-panel is-detail" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <button type="button" class="modal-close" data-close aria-label="닫기">×</button>
+    <div class="dd-mobile-tabs seg-group" role="tablist" aria-label="상세와 댓글">
+      <button type="button" class="seg-chip on" data-dd-pane="info" role="tab" aria-selected="true">상세</button>
+      <button type="button" class="seg-chip" data-dd-pane="chat" role="tab" aria-selected="false">댓글 <span data-chat-count></span></button>
+    </div>
+    <div class="dd-split">
+      <div class="dd-main" id="modal-body"></div>
+      {% include "_deal_chat.html" %}
+    </div>
+  </div>
+</div>

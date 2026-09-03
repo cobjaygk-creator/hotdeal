@@ -157,7 +157,40 @@ CREATE TABLE IF NOT EXISTS user_keywords (
     UNIQUE(user_id, keyword)
 );
 
+CREATE TABLE IF NOT EXISTS deal_comments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    deal_id INTEGER NOT NULL,
+    parent_id INTEGER,
+    user_id INTEGER,
+    nickname TEXT NOT NULL,
+    pin_hash TEXT,
+    client_key TEXT,
+    body TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    deleted_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS deal_reactions (
+    deal_id INTEGER NOT NULL,
+    client_key TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    PRIMARY KEY (deal_id, client_key, kind)
+);
+
+CREATE TABLE IF NOT EXISTS deal_reports (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    deal_id INTEGER NOT NULL,
+    reason TEXT NOT NULL,
+    detail TEXT,
+    client_key TEXT,
+    created_at TEXT NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_posts_posted ON posts(posted_at);
+CREATE INDEX IF NOT EXISTS idx_deal_comments_deal ON deal_comments(deal_id, id);
+CREATE INDEX IF NOT EXISTS idx_deal_reactions_deal ON deal_reactions(deal_id, kind);
+CREATE INDEX IF NOT EXISTS idx_deal_reports_created ON deal_reports(created_at);
 CREATE INDEX IF NOT EXISTS idx_posts_source ON posts(source, source_post_id);
 CREATE INDEX IF NOT EXISTS idx_deals_seen ON deals(last_seen_at);
 CREATE INDEX IF NOT EXISTS idx_deals_grade ON deals(grade);
@@ -312,6 +345,10 @@ async def _ensure_columns(conn: aiosqlite.Connection) -> None:
         await _ensure_amazon_jp_table(conn)
     except Exception:
         logging.getLogger("hotdeal").exception("amazon jp table failed")
+    try:
+        await _ensure_comment_tables(conn)
+    except Exception:
+        logging.getLogger("hotdeal").exception("comment tables failed")
 
 
 async def _ensure_auth_tables(conn: aiosqlite.Connection) -> None:
@@ -381,6 +418,43 @@ async def _ensure_auth_tables(conn: aiosqlite.Connection) -> None:
         await ensure_local_admin(conn)
     except Exception:
         logging.getLogger("hotdeal").exception("local admin seed failed")
+
+
+async def _ensure_comment_tables(conn: aiosqlite.Connection) -> None:
+    await conn.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS deal_comments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            deal_id INTEGER NOT NULL,
+            parent_id INTEGER,
+            user_id INTEGER,
+            nickname TEXT NOT NULL,
+            pin_hash TEXT,
+            client_key TEXT,
+            body TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            deleted_at TEXT
+        );
+        CREATE TABLE IF NOT EXISTS deal_reactions (
+            deal_id INTEGER NOT NULL,
+            client_key TEXT NOT NULL,
+            kind TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            PRIMARY KEY (deal_id, client_key, kind)
+        );
+        CREATE TABLE IF NOT EXISTS deal_reports (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            deal_id INTEGER NOT NULL,
+            reason TEXT NOT NULL,
+            detail TEXT,
+            client_key TEXT,
+            created_at TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_deal_comments_deal ON deal_comments(deal_id, id);
+        CREATE INDEX IF NOT EXISTS idx_deal_reactions_deal ON deal_reactions(deal_id, kind);
+        CREATE INDEX IF NOT EXISTS idx_deal_reports_created ON deal_reports(created_at);
+        """
+    )
 
 
 async def _ensure_amazon_jp_table(conn: aiosqlite.Connection) -> None:

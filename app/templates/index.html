@@ -59,13 +59,8 @@
   "sourceLabels": source_labels,
   "sources": sources
 } | tojson | safe }}</script>
-<div id="deal-modal" class="modal" hidden>
-  <div class="modal-backdrop" data-close></div>
-  <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-    <button type="button" class="modal-close" data-close aria-label="닫기">×</button>
-    <div id="modal-body"></div>
-  </div>
-</div>
+{% include "_deal_modal.html" %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="/static/comments.js"></script>
 <script src="/static/live.js"></script>
 {% endblock %}

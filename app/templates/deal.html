@@ -11,83 +11,168 @@
 {% endblock %}
 {% block body %}
 <a class="back-link" href="/">← 핫딜 목록</a>
-<div class="deal-detail-card">
-{% if deal.thumbnail_url %}
-<div class="modal-thumb-wrap"><img class="modal-thumb" src="{{ deal.thumbnail_url }}" alt="" referrerpolicy="no-referrer"></div>
-{% endif %}
-<p class="modal-price">{% if deal.price %}{{ "{:,}".format(deal.price) }}원{% else %}-{% endif %}
-  <span class="muted">
-    {% if deal.discount_rate is not none %}{{ "%.1f"|format(-deal.discount_rate * 100) }}% · {% endif %}
-    {% if deal.grade and ("초특가" in deal.grade) %}
-    <span class="grade-chip grade-super">{{ deal.grade }}</span>
-    {% elif deal.grade and ("특가" in deal.grade) %}
-    <span class="grade-chip grade-special">{{ deal.grade }}</span>
-    {% elif deal.grade and ("핫딜" in deal.grade) %}
-    <span class="grade-chip grade-hot">{{ deal.grade }}</span>
-    {% elif deal.grade == "관심" %}
-    <span class="grade-chip grade-watch">{{ deal.grade }}</span>
-    {% else %}
-    <span class="grade-quiet">{{ deal.grade or "-" }}</span>
-    {% endif %}
-  </span>
-</p>
-<h1>{{ deal.product_name }}</h1>
-<p class="muted">{{ deal.seller or "판매처 미상" }} · 표본 {{ deal.sample_count }}건 · {{ deal.last_seen_at | kst }}</p>
-<p class="modal-meta">중앙값 {% if deal.baseline_price %}{{ "{:,}".format(deal.baseline_price) }}원{% else %}-{% endif %}
- · 최저 {% if deal.min_price %}{{ "{:,}".format(deal.min_price) }}원{% else %}-{% endif %}</p>
-
-<p class="modal-actions deal-page-actions">
-<button type="button" class="bookmark-btn" data-deal-id="{{ deal.id }}" aria-label="북마크" title="북마크">☆</button>
-{% if deal.mall_url %}<a class="btn" href="{{ deal.mall_url }}" target="_blank" rel="noopener">구매하기</a>{% endif %}
-{% if deal.deal_url %}<a class="btn ghost" href="{{ deal.deal_url }}" target="_blank" rel="noopener">원문 보기</a>{% endif %}
-</p>
+<div class="dd-page modal-panel is-detail">
+  <div class="dd-mobile-tabs seg-group" role="tablist" aria-label="상세와 댓글">
+    <button type="button" class="seg-chip on" data-dd-pane="info" role="tab" aria-selected="true">상세</button>
+    <button type="button" class="seg-chip" data-dd-pane="chat" role="tab" aria-selected="false">댓글 <span data-chat-count>{{ comment_count }}</span></button>
+  </div>
+  <div class="dd-split">
+    <div class="dd-main" id="modal-body">
+      <p class="dd-meta">
+        {% if deal.category %}<span>{{ deal.category }}</span>{% endif %}
+        <time datetime="{{ deal.last_seen_at or '' }}">{{ deal.last_seen_at | reltime }}</time>
+        {% if deal.sources %}
+        {% for s in deal.sources.split(",") if s.strip() %}
+        <span class="deal-tag deal-tag-source" data-source="{{ s.strip() }}"><span class="deal-tag-ico">{{ source_labels.get(s.strip(), s.strip())[:1] }}</span>{{ source_labels.get(s.strip(), s.strip()) }}</span>
+        {% endfor %}
+        {% endif %}
+        {% if deal.deal_url %}<a href="{{ deal.deal_url }}" target="_blank" rel="noopener">원본글</a>{% endif %}
+        <button type="button" class="dd-report-btn" data-open-report>🚨 신고</button>
+        {% if deal.status == 'expired' %}<span class="deal-soldout">품절</span>{% endif %}
+      </p>
+      <div class="dd-hero">
+        {% if deal.thumbnail_url %}
+        <div class="modal-thumb-wrap"><img class="modal-thumb" src="{{ deal.thumbnail_url }}" alt="" referrerpolicy="no-referrer"></div>
+        {% endif %}
+        <div>
+          <h1 id="modal-title">{{ deal.product_name }}</h1>
+          <p class="modal-price">{% if deal.price %}{{ "{:,}".format(deal.price) }}원{% else %}-{% endif %}
+            <span class="muted">{% if deal.discount_rate is not none %}{{ "%.1f"|format(-deal.discount_rate * 100) }}%{% endif %}</span>
+          </p>
+        </div>
+      </div>
+      <div class="seg-group dd-inner-tabs" role="tablist">
+        <button type="button" class="seg-chip on" data-inner-tab="spec">상품 정보</button>
+        {% if history|length >= 2 %}<button type="button" class="seg-chip" data-inner-tab="chart">가격 흐름</button>{% endif %}
+        <button type="button" class="seg-chip" data-inner-tab="posts">원문</button>
+      </div>
+      <div class="dd-spec" data-inner-pane="spec">
+        {% if deal.seller %}<div class="dd-spec-row"><span>쇼핑몰</span><strong>{{ deal.seller }}</strong></div>{% endif %}
+        {% if deal.price %}<div class="dd-spec-row"><span>가격</span><strong>{{ "{:,}".format(deal.price) }}원</strong></div>{% endif %}
+        {% if deal.shipping_fee is not none %}<div class="dd-spec-row"><span>배송비</span><strong>{{ "{:,}".format(deal.shipping_fee) }}원</strong></div>{% endif %}
+        {% if deal.unit_price %}<div class="dd-spec-row"><span>단가</span><strong>{{ "{:,}".format(deal.unit_price) }}원</strong></div>{% endif %}
+        {% if deal.baseline_price %}<div class="dd-spec-row"><span>중앙값</span><strong>{{ "{:,}".format(deal.baseline_price) }}원</strong></div>{% endif %}
+        {% if deal.min_price %}<div class="dd-spec-row"><span>최저가</span><strong>{{ "{:,}".format(deal.min_price) }}원</strong></div>{% endif %}
+        {% if deal.sample_count %}<div class="dd-spec-row"><span>표본</span><strong>{{ deal.sample_count }}건</strong></div>{% endif %}
+        {% if deal.category %}<div class="dd-spec-row"><span>카테고리</span><strong>{{ deal.category }}</strong></div>{% endif %}
+        {% if deal.first_seen_at %}<div class="dd-spec-row"><span>최초 확인</span><strong>{{ deal.first_seen_at | kst }}</strong></div>{% endif %}
+      </div>
+      {% if history|length >= 2 %}
+      <div class="dd-chart" data-inner-pane="chart" hidden>
+        <canvas id="chart" height="120"></canvas>
+      </div>
+      {% endif %}
+      <ul class="dd-posts" data-inner-pane="posts" hidden>
+        {% for p in posts %}
+        <li>
+          <a href="{{ p.url }}" target="_blank" rel="noopener">[{{ p.source }}] {{ p.title }}</a>
+          <span class="muted">{{ (p.posted_at or p.collected_at) | kst }} · 추천 {{ p.votes or 0 }} · 조회 {{ p.views or 0 }}</span>
+        </li>
+        {% else %}
+        <li class="muted">원문 없음</li>
+        {% endfor %}
+      </ul>
+      <div class="dd-tags">
+        {% if deal.seller %}<span class="dd-tag">#{{ deal.seller }}</span>{% endif %}
+        {% if deal.category %}<span class="dd-tag">#{{ deal.category }}</span>{% endif %}
+      </div>
+      {% if similar %}
+      <h2 class="dd-section">비슷한 핫딜</h2>
+      <ul class="dd-similar">
+        {% for s in similar %}
+        <li><a href="/deal/{{ s.id }}">{{ s.product_name }}{% if s.price %} · {{ "{:,}".format(s.price) }}원{% endif %}</a></li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+      <p class="dd-share">
+        <button type="button" class="btn-secondary" data-copy-link>링크 복사</button>
+        <button type="button" class="btn-secondary" data-share-link>공유</button>
+      </p>
+      <form class="dd-report" id="dd-report" hidden>
+        <p>신고하기</p>
+        <select name="reason">
+          <option value="price">가격 정보가 이상해요</option>
+          <option value="link">구매 링크가 이상해요</option>
+          <option value="spam">스팸 같아요</option>
+          <option value="soldout">품절·종료된 게시물</option>
+          <option value="illegal">불법/유해 내용</option>
+          <option value="other">기타</option>
+        </select>
+        <textarea name="detail" maxlength="2000" placeholder="내용 (기타는 필수)"></textarea>
+        <div class="dd-report-actions">
+          <button type="submit" class="btn">보내기</button>
+          <button type="button" class="btn-secondary" data-close-report>닫기</button>
+        </div>
+      </form>
+      <div class="dd-cta">
+        {% if deal.mall_url %}
+        <a class="btn" href="{{ deal.mall_url }}" target="_blank" rel="noopener">{% if deal.seller %}{{ deal.seller }} {% endif %}{% if deal.price %}{{ "{:,}".format(deal.price) }}원 {% endif %}구매하기</a>
+        {% elif deal.deal_url %}
+        <a class="btn ghost" href="{{ deal.deal_url }}" target="_blank" rel="noopener">원문에서 확인</a>
+        {% endif %}
+      </div>
+    </div>
+    {% include "_deal_chat.html" %}
+  </div>
 </div>
-
-<section class="stats">
-  <div class="stat"><div class="label">현재 가격</div><div class="value">{% if deal.price %}{{ "{:,}".format(deal.price) }}원{% else %}-{% endif %}</div></div>
-  <div class="stat"><div class="label">90일 중앙값</div><div class="value">{% if deal.baseline_price %}{{ "{:,}".format(deal.baseline_price) }}원{% else %}-{% endif %}</div></div>
-  <div class="stat"><div class="label">90일 최저가</div><div class="value">{% if deal.min_price %}{{ "{:,}".format(deal.min_price) }}원{% else %}-{% endif %}</div></div>
-  <div class="stat"><div class="label">하락률</div><div class="value">{% if deal.discount_rate is not none %}{{ "%.1f"|format(-deal.discount_rate * 100) }}%{% else %}-{% endif %}</div></div>
-</section>
-
-<h2>가격 이력</h2>
-<canvas id="chart" height="120"></canvas>
-
-<h2>원문</h2>
-<ul class="modal-posts">
-  {% for p in posts %}
-  <li>
-    <a href="{{ p.url }}" target="_blank" rel="noopener">[{{ p.source }}] {{ p.title }}</a>
-    <span class="muted">{{ (p.posted_at or p.collected_at) | kst }} · 추천 {{ p.votes }} · 조회 {{ p.views }}</span>
-  </li>
-  {% endfor %}
-</ul>
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 const history = {{ history | tojson }};
-const labels = history.map(h => h.observed_at);
-const data = history.map(h => h.price);
-if (labels.length) {
+if (history.length >= 2 && window.Chart) {
   new Chart(document.getElementById("chart"), {
     type: "line",
     data: {
-      labels,
-      datasets: [{
-        label: "딜 게시 가격",
-        data,
-        showLine: true,
-        pointRadius: 4,
-        borderWidth: 2,
-      }]
+      labels: history.map(h => h.observed_at),
+      datasets: [{ label: "딜 게시 가격", data: history.map(h => h.price), showLine: true, pointRadius: 4, borderWidth: 2 }]
     },
     options: {
       plugins: { legend: { display: false } },
-      scales: { y: { ticks: { callback: v => Number(v).toLocaleString() + "원" } } }
+      scales: { y: { ticks: { callback: v => Number(v).toLocaleString("ko-KR") + "원" } } }
     }
   });
 }
 </script>
-<script id="live-config" type="application/json">{"live": false}</script>
+<script id="live-config" type="application/json">{"live": false, "sourceLabels": {{ source_labels | tojson }}}</script>
+<script src="/static/comments.js"></script>
 <script src="/static/live.js"></script>
+<script>
+if (window.DealChat) window.DealChat.open({{ deal.id }});
+document.querySelectorAll("[data-inner-tab]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const tab = btn.dataset.innerTab;
+    document.querySelectorAll("[data-inner-tab]").forEach((b) => b.classList.toggle("on", b === btn));
+    document.querySelectorAll("[data-inner-pane]").forEach((p) => { p.hidden = p.dataset.innerPane !== tab; });
+  });
+});
+document.querySelector("[data-copy-link]")?.addEventListener("click", async () => {
+  try { await navigator.clipboard.writeText(location.href); } catch (e) {}
+});
+document.querySelector("[data-share-link]")?.addEventListener("click", async () => {
+  if (navigator.share) {
+    try { await navigator.share({ title: document.title, url: location.href }); } catch (e) {}
+  } else {
+    try { await navigator.clipboard.writeText(location.href); } catch (e) {}
+  }
+});
+document.querySelector("[data-open-report]")?.addEventListener("click", () => {
+  const form = document.getElementById("dd-report");
+  if (form) form.hidden = !form.hidden;
+});
+document.querySelector("[data-close-report]")?.addEventListener("click", () => {
+  const form = document.getElementById("dd-report");
+  if (form) form.hidden = true;
+});
+document.getElementById("dd-report")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const form = e.target;
+  const res = await fetch("/api/deals/{{ deal.id }}/report", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ reason: form.reason.value, detail: form.detail.value }),
+  });
+  if (res.ok) form.hidden = true;
+  else window.alert("신고를 보내지 못했습니다.");
+});
+</script>
 {% endblock %}

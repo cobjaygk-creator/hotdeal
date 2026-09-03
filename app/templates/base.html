@@ -48,6 +48,7 @@
         <div class="account-dropdown" role="menu">
           {% if user %}
           <a href="/alerts" role="menuitem">알림 설정</a>
+          {% if is_admin %}<a href="/admin/reports" role="menuitem">신고 내역</a>{% endif %}
           <a href="/logout" role="menuitem">로그아웃</a>
           {% else %}
           <a href="/login" role="menuitem">로그인</a>

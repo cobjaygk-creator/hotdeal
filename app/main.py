@@ -6,6 +6,7 @@ import json
 import logging
 import math
 import re
+import secrets
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from hashlib import sha256
@@ -34,6 +35,7 @@ from app.config import (
 )
 from app.db import connect, get_meta, upsert_family_sale, utcnow_iso
 from app.engine import auth as user_auth
+from app.engine import comments as deal_comments
 from app.engine.alerts import add_sub, channels_ready, default_target, delete_sub, list_subs
 from app.engine.category import CATEGORIES as DEAL_CATEGORIES
 from app.engine.ppomppu_enrich import enrich_missing_ppomppu_malls
@@ -738,6 +740,54 @@ class BookmarkIn(BaseModel):
     ids: list[int] = Field(default_factory=list)
 
 
+class CommentIn(BaseModel):
+    nickname: str = ""
+    pin: str = ""
+    body: str = ""
+    parent_id: int | None = None
+
+
+class CommentDeleteIn(BaseModel):
+    pin: str = ""
+
+
+class ReactionIn(BaseModel):
+    kind: str = ""
+
+
+class ReportIn(BaseModel):
+    reason: str = ""
+    detail: str = ""
+
+
+CLIENT_COOKIE = "hd_cid"
+CLIENT_COOKIE_AGE = 60 * 60 * 24 * 365
+
+
+def _client_ip(request: Request) -> str:
+    forwarded = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
+    return forwarded or (request.client.host if request.client else "")
+
+
+def _client_key(request: Request) -> str:
+    existing = (request.cookies.get(CLIENT_COOKIE) or "").strip()
+    if existing and len(existing) >= 8:
+        return existing
+    return secrets.token_urlsafe(16)
+
+
+def _set_client_cookie(resp, key: str) -> None:
+    resp.set_cookie(
+        CLIENT_COOKIE,
+        key,
+        max_age=CLIENT_COOKIE_AGE,
+        httponly=False,
+        samesite="lax",
+        secure=user_auth.cookie_secure(),
+        path="/",
+    )
+
+
 @app.get("/api/me")
 async def api_me(request: Request):
     return {"user": user_auth.public_user(getattr(request.state, "user", None))}
@@ -764,7 +814,20 @@ async def deal_detail(request: Request, deal_id: int):
         raise HTTPException(404, "deal not found")
     posts = await _deal_posts(deal_id)
     history = await _price_history(deal["product_key"])
-    return TEMPLATES.TemplateResponse(
+    similar = await _similar_deals(deal)
+    key = _client_key(request)
+    comments = [
+        deal_comments.public_comment(
+            row,
+            mine=row.get("client_key") == key,
+            admin=user_auth.is_admin_user(getattr(request.state, "user", None)),
+        )
+        for row in await deal_comments.list_comments(_db(), deal_id)
+    ]
+    reactions = await deal_comments.reaction_snapshot(_db(), deal_id, key)
+    counts = await deal_comments.comment_counts(_db(), [deal_id])
+    deal["user_comments"] = counts.get(deal_id, 0)
+    resp = TEMPLATES.TemplateResponse(
         "deal.html",
         {
             "request": request,
@@ -772,9 +835,16 @@ async def deal_detail(request: Request, deal_id: int):
             "deal": deal,
             "posts": posts,
             "history": history,
+            "similar": similar,
+            "comments": comments,
+            "reactions": reactions,
+            "comment_count": deal["user_comments"],
+            "source_labels": SOURCE_LABELS,
             "jsonld": _deal_jsonld(deal),
         },
     )
+    _set_client_cookie(resp, key)
+    return resp
 
 
 @app.get("/api/deals")
@@ -834,6 +904,7 @@ async def robots():
         "Disallow: /alerts\n"
         "Disallow: /login\n"
         "Disallow: /auth/\n"
+        "Disallow: /admin/\n"
         f"Sitemap: {SITE_URL}/sitemap.xml\n"
     )
     return PlainTextResponse(body)
@@ -870,7 +941,123 @@ async def api_deal(deal_id: int):
         raise HTTPException(404, "deal not found")
     deal["posts"] = await _deal_posts(deal_id)
     deal["history"] = await _price_history(deal["product_key"])
+    deal["similar"] = await _similar_deals(deal)
+    counts = await deal_comments.comment_counts(_db(), [deal_id])
+    deal["user_comments"] = counts.get(deal_id, 0)
+    deal["comment_count"] = deal["user_comments"]
     return deal
+
+
+@app.get("/api/deals/{deal_id}/comments")
+async def api_deal_comments(request: Request, deal_id: int, after: int = 0):
+    if not await _get_deal(deal_id):
+        raise HTTPException(404, "deal not found")
+    key = _client_key(request)
+    admin = user_auth.is_admin_user(getattr(request.state, "user", None))
+    rows = await deal_comments.list_comments(_db(), deal_id, after_id=after)
+    items = [
+        deal_comments.public_comment(row, mine=row.get("client_key") == key, admin=admin)
+        for row in rows
+    ]
+    counts = await deal_comments.comment_counts(_db(), [deal_id])
+    reactions = await deal_comments.reaction_snapshot(_db(), deal_id, key)
+    resp = JSONResponse(
+        {
+            "items": items,
+            "count": counts.get(deal_id, 0),
+            "me": key,
+            "is_admin": admin,
+            "reactions": reactions,
+        }
+    )
+    _set_client_cookie(resp, key)
+    return resp
+
+
+@app.post("/api/deals/{deal_id}/comments")
+async def api_deal_comments_post(request: Request, deal_id: int, payload: CommentIn):
+    if not await _get_deal(deal_id):
+        raise HTTPException(404, "deal not found")
+    key = _client_key(request)
+    try:
+        item = await deal_comments.add_comment(
+            _db(),
+            deal_id=deal_id,
+            nickname=payload.nickname,
+            pin=payload.pin,
+            body=payload.body,
+            parent_id=payload.parent_id,
+            client_key=key,
+            user=getattr(request.state, "user", None),
+            ip=_client_ip(request),
+        )
+    except deal_comments.CommentError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    resp = JSONResponse(item)
+    _set_client_cookie(resp, key)
+    return resp
+
+
+@app.delete("/api/comments/{comment_id}")
+async def api_comment_delete(request: Request, comment_id: int, payload: CommentDeleteIn):
+    key = _client_key(request)
+    try:
+        await deal_comments.delete_comment(
+            _db(),
+            comment_id,
+            pin=payload.pin,
+            client_key=key,
+            is_admin=user_auth.is_admin_user(getattr(request.state, "user", None)),
+        )
+    except deal_comments.CommentError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    return {"ok": True}
+
+
+@app.post("/api/deals/{deal_id}/reactions")
+async def api_deal_reactions(request: Request, deal_id: int, payload: ReactionIn):
+    if not await _get_deal(deal_id):
+        raise HTTPException(404, "deal not found")
+    key = _client_key(request)
+    try:
+        snap = await deal_comments.toggle_reaction(
+            _db(), deal_id=deal_id, client_key=key, kind=payload.kind
+        )
+    except deal_comments.CommentError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    resp = JSONResponse(snap)
+    _set_client_cookie(resp, key)
+    return resp
+
+
+@app.post("/api/deals/{deal_id}/report")
+async def api_deal_report(request: Request, deal_id: int, payload: ReportIn):
+    if not await _get_deal(deal_id):
+        raise HTTPException(404, "deal not found")
+    key = _client_key(request)
+    try:
+        await deal_comments.add_report(
+            _db(),
+            deal_id=deal_id,
+            reason=payload.reason,
+            detail=payload.detail,
+            client_key=key,
+        )
+    except deal_comments.CommentError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    resp = JSONResponse({"ok": True})
+    _set_client_cookie(resp, key)
+    return resp
+
+
+@app.get("/admin/reports", response_class=HTMLResponse)
+async def admin_reports(request: Request):
+    _require_admin(request)
+    rows = await deal_comments.list_reports(_db())
+    return TEMPLATES.TemplateResponse(
+        "admin_reports.html",
+        {"request": request, "nav": "admin", "reports": rows},
+    )
 
 
 @app.get("/api/stats")
@@ -1267,6 +1454,7 @@ def _clean_deal(deal: dict) -> dict:
     out["baseline_price"] = _as_int(out.get("baseline_price"))
     out["unit_price"] = _as_int(out.get("unit_price"))
     out["comments"] = _as_int(out.get("comments")) or 0
+    out["user_comments"] = _as_int(out.get("user_comments")) or 0
     out["discount_rate"] = _as_float(out.get("discount_rate"))
     if out.get("grade") is not None:
         out["grade"] = str(out["grade"])
@@ -1311,9 +1499,11 @@ async def _attach_sources(db, deals: list[dict]) -> list[dict]:
             c = 0
         if c > comments.get(deal_id, 0):
             comments[deal_id] = c
+    user_counts = await deal_comments.comment_counts(db, ids)
     for deal in deals:
         deal["sources"] = ",".join(buckets.get(deal["id"], []))
         deal["comments"] = comments.get(deal["id"], 0)
+        deal["user_comments"] = user_counts.get(deal["id"], 0)
     return deals
 
 
@@ -1357,7 +1547,7 @@ async def _search_deals(q: str, limit: int = 50) -> list[dict]:
             )
             rows = [_clean_deal(dict(r)) for r in await cur.fetchall()]
             if rows:
-                return rows
+                return await _attach_user_comments(rows)
         except Exception:
             log.exception("fts search failed")
     like = f"%{q}%"
@@ -1375,7 +1565,16 @@ async def _search_deals(q: str, limit: int = 50) -> list[dict]:
         """,
         (like, like, limit),
     )
-    return [_clean_deal(dict(r)) for r in await cur.fetchall()]
+    return await _attach_user_comments([_clean_deal(dict(r)) for r in await cur.fetchall()])
+
+
+async def _attach_user_comments(deals: list[dict]) -> list[dict]:
+    if not deals:
+        return deals
+    counts = await deal_comments.comment_counts(_db(), [d["id"] for d in deals])
+    for deal in deals:
+        deal["user_comments"] = counts.get(deal["id"], 0)
+    return deals
 
 
 def _deal_jsonld(deal: dict) -> dict:
@@ -1417,7 +1616,36 @@ def _deal_jsonld(deal: dict) -> dict:
 async def _get_deal(deal_id: int) -> dict | None:
     cur = await _db().execute("SELECT * FROM deals WHERE id=?", (deal_id,))
     row = await cur.fetchone()
-    return dict(row) if row else None
+    if not row:
+        return None
+    deal = _clean_deal(dict(row))
+    try:
+        await _attach_sources(_db(), [deal])
+    except Exception:
+        deal.setdefault("sources", "")
+        deal.setdefault("comments", 0)
+        deal.setdefault("user_comments", 0)
+    return deal
+
+
+async def _similar_deals(deal: dict, limit: int = 6) -> list[dict]:
+    category = (deal.get("category") or "").strip()
+    if not category:
+        return []
+    cur = await _db().execute(
+        """
+        SELECT * FROM deals
+        WHERE category=? AND id!=? AND IFNULL(status,'') != 'expired'
+        ORDER BY IFNULL(score, 0) DESC, last_seen_at DESC, id DESC
+        LIMIT ?
+        """,
+        (category, deal["id"], limit),
+    )
+    rows = [_clean_deal(dict(r)) for r in await cur.fetchall()]
+    try:
+        return await _attach_sources(_db(), rows)
+    except Exception:
+        return rows
 
 
 async def _deal_posts(deal_id: int) -> list[dict]:

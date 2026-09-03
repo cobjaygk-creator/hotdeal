@@ -115,6 +115,7 @@ function kst(s) {
     .replace("T", " ");
 }
 
+window.relativeTime = relativeTime;
 function relativeTime(s) {
   if (!s) return "-";
   const iso = String(s).includes("T") ? String(s) : String(s).replace(" ", "T");
@@ -250,8 +251,14 @@ function renderRow(deal) {
   const ts = deal.last_seen_at || "";
   const comments =
     deal.comments && Number(deal.comments) > 0
-      ? `<span class="deal-comments" aria-label="댓글 ${Number(deal.comments)}">💬 ${Number(deal.comments)}</span>`
+      ? `<span class="deal-comments" aria-label="원문 댓글 ${Number(deal.comments)}">💬 ${Number(deal.comments)}</span>`
       : "";
+  const userComments =
+    deal.user_comments && Number(deal.user_comments) > 0
+      ? `<span class="deal-user-comments" aria-label="댓글 ${Number(deal.user_comments)}">💬 ${Number(deal.user_comments)}</span>`
+      : "";
+  const soldout = deal.status === "expired" ? `<span class="deal-soldout">품절</span>` : "";
+  if (deal.status === "expired") li.classList.add("is-expired");
   li.innerHTML =
     `<a class="deal-row-main" href="/deal/${deal.id}" data-deal-id="${deal.id}">` +
     `<div class="deal-thumb-wrap">${thumb}</div>` +
@@ -259,7 +266,7 @@ function renderRow(deal) {
     tagsHtml(deal) +
     `<span class="deal-title">${esc(title)}</span>` +
     `<div class="deal-price-row"><div class="deal-price">${won(deal.price)}</div>` +
-    `<time class="time-rel" datetime="${esc(ts)}" data-ts="${esc(ts)}">${esc(relativeTime(ts))}</time>${comments}</div>` +
+    `<time class="time-rel" datetime="${esc(ts)}" data-ts="${esc(ts)}">${esc(relativeTime(ts))}</time>${comments}${userComments}${soldout}</div>` +
     `</div></a>` +
     `<div class="deal-row-side">` +
     `<time class="time-abs" datetime="${esc(ts)}" data-ts="${esc(ts)}">${esc(clockTime(ts))}</time>` +
@@ -576,8 +583,16 @@ syncBookmarksFromServer();
 const modal = document.getElementById("deal-modal");
 const modalBody = document.getElementById("modal-body");
 let chart;
+let modalPushed = false;
+let modalOpenId = null;
 
-function closeModal() {
+function specRow(label, value) {
+  if (value == null || value === "" || value === "-") return "";
+  return `<div class="dd-spec-row"><span>${esc(label)}</span><strong>${value}</strong></div>`;
+}
+
+function closeModal(opts) {
+  const fromPop = opts && opts.fromPop;
   if (!modal) return;
   modal.hidden = true;
   document.body.classList.remove("modal-open");
@@ -585,13 +600,28 @@ function closeModal() {
     chart.destroy();
     chart = null;
   }
+  if (window.DealChat) window.DealChat.stop();
+  const wasOpen = modalOpenId;
+  modalOpenId = null;
+  if (!fromPop && wasOpen && modalPushed) {
+    modalPushed = false;
+    history.back();
+  } else if (!fromPop && wasOpen && location.pathname.startsWith("/deal/")) {
+    history.replaceState({}, "", "/");
+  }
 }
 
-async function openModal(id) {
+async function openModal(id, opts) {
+  const fromHistory = opts && opts.fromHistory;
   if (!modal || !modalBody) return;
   modal.hidden = false;
   document.body.classList.add("modal-open");
   modalBody.innerHTML = "<p class='muted'>불러오는 중…</p>";
+  if (!fromHistory && location.pathname !== "/deal/" + id) {
+    history.pushState({ dealModal: Number(id) }, "", "/deal/" + id);
+    modalPushed = true;
+  }
+  modalOpenId = Number(id);
   const res = await fetch("/api/deals/" + id);
   if (!res.ok) {
     modalBody.innerHTML = "<p>상세를 불러오지 못했습니다.</p>";
@@ -600,6 +630,7 @@ async function openModal(id) {
   const deal = await res.json();
   const posts = deal.posts || [];
   const history = deal.history || [];
+  const similar = deal.similar || [];
   const postHtml = posts.length
     ? posts
         .map(
@@ -609,56 +640,148 @@ async function openModal(id) {
         )
         .join("")
     : "<li class='muted'>원문 없음</li>";
-  const linkBtns = [
-    deal.mall_url
-      ? `<a class="btn" href="${esc(deal.mall_url)}" target="_blank" rel="noopener">구매하기</a>`
-      : "",
-    isPostUrl(deal.deal_url)
-      ? `<a class="btn ghost" href="${esc(deal.deal_url)}" target="_blank" rel="noopener">원문 보기</a>`
-      : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
+  const sourceBits = sourceTokens(deal.sources)
+    .map((key) => {
+      const label = sourceLabels[key] || key;
+      return `<span class="deal-tag deal-tag-source" data-source="${esc(key)}"><span class="deal-tag-ico">${esc(label.slice(0, 1))}</span>${esc(label)}</span>`;
+    })
+    .join("");
   const thumb = deal.thumbnail_url
     ? `<div class="modal-thumb-wrap"><img class="modal-thumb" src="${esc(deal.thumbnail_url)}" alt="" referrerpolicy="no-referrer"></div>`
     : "";
+  const cta = deal.mall_url
+    ? `<a class="btn" href="${esc(deal.mall_url)}" target="_blank" rel="noopener">${esc(deal.seller || "")} ${won(deal.price)} 구매하기</a>`
+    : isPostUrl(deal.deal_url)
+      ? `<a class="btn ghost" href="${esc(deal.deal_url)}" target="_blank" rel="noopener">원문에서 확인</a>`
+      : "";
+  const similarHtml = similar.length
+    ? `<h2 class="dd-section">비슷한 핫딜</h2><ul class="dd-similar">${similar
+        .map((s) => `<li><a href="/deal/${s.id}" data-deal-id="${s.id}">${esc(s.product_name)}${s.price ? " · " + won(s.price) : ""}</a></li>`)
+        .join("")}</ul>`
+    : "";
+  const showChart = history.length >= 2;
   modalBody.innerHTML = `
-    ${thumb}
-    <p class="modal-price">${won(deal.price)} <span class="muted">${pct(deal.discount_rate)} · ${gradeHtml(deal.grade)}</span></p>
-    <h1 id="modal-title">${esc(deal.product_name)}</h1>
-    <p class="muted">${esc(deal.seller || "판매처 미상")} · 표본 ${deal.sample_count || 0}건 · ${kst(deal.last_seen_at)}</p>
-    <p class="modal-meta">중앙값 ${won(deal.baseline_price)} · 최저 ${won(deal.min_price)}</p>
-    ${linkBtns ? `<p class="modal-actions">${linkBtns}</p>` : ""}
-    <h2>가격 이력</h2>
-    <canvas id="modal-chart" height="120"></canvas>
-    <h2>원문</h2>
-    <ul class="modal-posts">${postHtml}</ul>
+    <p class="dd-meta">
+      ${deal.category ? `<span>${esc(deal.category)}</span>` : ""}
+      <time>${esc(relativeTime(deal.last_seen_at))}</time>
+      ${sourceBits}
+      ${isPostUrl(deal.deal_url) ? `<a href="${esc(deal.deal_url)}" target="_blank" rel="noopener">원본글</a>` : ""}
+      <button type="button" class="dd-report-btn" data-open-report>🚨 신고</button>
+      ${deal.status === "expired" ? `<span class="deal-soldout">품절</span>` : ""}
+    </p>
+    <div class="dd-hero">
+      ${thumb}
+      <div>
+        <h1 id="modal-title">${esc(deal.product_name)}</h1>
+        <p class="modal-price">${won(deal.price)} <span class="muted">${pct(deal.discount_rate)} · ${gradeHtml(deal.grade)}</span></p>
+      </div>
+    </div>
+    <div class="seg-group dd-inner-tabs" role="tablist">
+      <button type="button" class="seg-chip on" data-inner-tab="spec">상품 정보</button>
+      ${showChart ? `<button type="button" class="seg-chip" data-inner-tab="chart">가격 흐름</button>` : ""}
+      <button type="button" class="seg-chip" data-inner-tab="posts">원문</button>
+    </div>
+    <div class="dd-spec" data-inner-pane="spec">
+      ${specRow("쇼핑몰", esc(deal.seller || ""))}
+      ${specRow("가격", won(deal.price))}
+      ${deal.shipping_fee != null ? specRow("배송비", won(deal.shipping_fee)) : ""}
+      ${deal.unit_price ? specRow("단가", won(deal.unit_price)) : ""}
+      ${specRow("중앙값", won(deal.baseline_price))}
+      ${specRow("최저가", won(deal.min_price))}
+      ${deal.sample_count ? specRow("표본", esc(deal.sample_count) + "건") : ""}
+      ${specRow("카테고리", esc(deal.category || ""))}
+      ${deal.first_seen_at ? specRow("최초 확인", esc(kst(deal.first_seen_at))) : ""}
+    </div>
+    ${showChart ? `<div class="dd-chart" data-inner-pane="chart" hidden><canvas id="modal-chart" height="120"></canvas></div>` : ""}
+    <ul class="dd-posts" data-inner-pane="posts" hidden>${postHtml}</ul>
+    <div class="dd-tags">
+      ${deal.seller ? `<span class="dd-tag">#${esc(deal.seller)}</span>` : ""}
+      ${deal.category ? `<span class="dd-tag">#${esc(deal.category)}</span>` : ""}
+    </div>
+    ${similarHtml}
+    <p class="dd-share">
+      <button type="button" class="btn-secondary" data-copy-link>링크 복사</button>
+      <button type="button" class="btn-secondary" data-share-link>공유</button>
+    </p>
+    <div class="dd-cta">${cta}</div>
+    <form class="dd-report" id="dd-report" hidden>
+      <p>신고하기</p>
+      <select name="reason">
+        <option value="price">가격 정보가 이상해요</option>
+        <option value="link">구매 링크가 이상해요</option>
+        <option value="spam">스팸 같아요</option>
+        <option value="soldout">품절·종료된 게시물</option>
+        <option value="illegal">불법/유해 내용</option>
+        <option value="other">기타</option>
+      </select>
+      <textarea name="detail" maxlength="2000" placeholder="내용 (기타는 필수)"></textarea>
+      <div class="dd-report-actions">
+        <button type="submit" class="btn">보내기</button>
+        <button type="button" class="btn-secondary" data-close-report>닫기</button>
+      </div>
+    </form>
   `;
+  modalBody.querySelectorAll("[data-inner-tab]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const tab = btn.dataset.innerTab;
+      modalBody.querySelectorAll("[data-inner-tab]").forEach((b) => b.classList.toggle("on", b === btn));
+      modalBody.querySelectorAll("[data-inner-pane]").forEach((p) => {
+        p.hidden = p.dataset.innerPane !== tab;
+      });
+    });
+  });
+  modalBody.querySelector("[data-copy-link]")?.addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(location.href); } catch (e) {}
+  });
+  modalBody.querySelector("[data-share-link]")?.addEventListener("click", async () => {
+    if (navigator.share) {
+      try { await navigator.share({ title: deal.product_name, url: location.href }); } catch (e) {}
+    } else {
+      try { await navigator.clipboard.writeText(location.href); } catch (e) {}
+    }
+  });
+  modalBody.querySelector("[data-open-report]")?.addEventListener("click", () => {
+    const form = document.getElementById("dd-report");
+    if (form) form.hidden = !form.hidden;
+  });
+  modalBody.querySelector("[data-close-report]")?.addEventListener("click", () => {
+    const form = document.getElementById("dd-report");
+    if (form) form.hidden = true;
+  });
+  document.getElementById("dd-report")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const res = await fetch("/api/deals/" + id + "/report", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason: form.reason.value, detail: form.detail.value }),
+    });
+    if (res.ok) form.hidden = true;
+    else window.alert("신고를 보내지 못했습니다.");
+  });
   const canvas = document.getElementById("modal-chart");
   if (canvas && history.length && window.Chart) {
     chart = new Chart(canvas, {
       type: "line",
       data: {
         labels: history.map((h) => h.observed_at),
-        datasets: [
-          {
-            label: "딜 게시 가격",
-            data: history.map((h) => h.price),
-            showLine: true,
-            pointRadius: 4,
-            borderWidth: 2,
-          },
-        ],
+        datasets: [{ label: "딜 게시 가격", data: history.map((h) => h.price), showLine: true, pointRadius: 4, borderWidth: 2 }],
       },
       options: {
         plugins: { legend: { display: false } },
-        scales: {
-          y: { ticks: { callback: (v) => Number(v).toLocaleString("ko-KR") + "원" } },
-        },
+        scales: { y: { ticks: { callback: (v) => Number(v).toLocaleString("ko-KR") + "원" } } },
       },
     });
   }
+  if (window.DealChat) window.DealChat.open(id);
 }
+
+window.addEventListener("popstate", (e) => {
+  const id = e.state && e.state.dealModal;
+  if (id) openModal(id, { fromHistory: true });
+  else if (modalOpenId) closeModal({ fromPop: true });
+});
 
 document.addEventListener("click", (e) => {
   const mark = e.target.closest(".bookmark-btn");
@@ -678,7 +801,7 @@ document.addEventListener("click", (e) => {
     openModal(detail.dataset.dealId);
     return;
   }
-  const row = e.target.closest("a.deal-row-main[data-deal-id]");
+  const row = e.target.closest("a.deal-row-main[data-deal-id], .dd-similar a[data-deal-id]");
   if (row) {
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     e.preventDefault();

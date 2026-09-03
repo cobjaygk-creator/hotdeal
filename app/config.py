@@ -29,6 +29,7 @@ AMAZON_JP_INTERVAL_MINUTES = 30
 AMAZON_JP_ASSOCIATE_TAG = os.environ.get("AMAZON_JP_ASSOCIATE_TAG", "").strip()
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "").strip()
 ADMIN_USERNAME = (os.environ.get("ADMIN_USERNAME") or "admin").strip() or "admin"
+SOLDOUT_REPORT_THRESHOLD = int(os.environ.get("SOLDOUT_REPORT_THRESHOLD") or "3")
 
 
 def _env_flag(name: str, default: bool = False) -> bool:
