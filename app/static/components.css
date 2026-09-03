@@ -343,7 +343,7 @@ button:disabled,
 .seg-group {
   display: inline-flex;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 2px;
   margin: 0 0 16px;
   padding: 3px;
@@ -353,14 +353,20 @@ button:disabled,
   vertical-align: middle;
   max-width: 100%;
   box-sizing: border-box;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
+.seg-group::-webkit-scrollbar { display: none; }
 .seg-chip {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
+  flex: 0 0 auto;
   height: 32px;
   min-height: 32px;
+  min-width: max-content;
   margin: 0;
   padding: 0 14px;
   border: 0;
@@ -375,7 +381,10 @@ button:disabled,
   cursor: pointer;
   user-select: none;
   white-space: nowrap;
+  overflow: visible;
   box-sizing: border-box;
+  -webkit-appearance: none;
+  appearance: none;
   transition: background 0.15s ease, color 0.15s ease;
 }
 .seg-chip:hover { opacity: 1; color: var(--ink); background: transparent; }
@@ -854,7 +863,17 @@ body.modal-open { overflow: hidden; }
   min-height: 560px;
   padding-top: 8px;
 }
-.dd-mobile-tabs { display: flex; margin: 0 16px 8px; }
+.dd-mobile-tabs {
+  display: flex;
+  width: auto;
+  max-width: calc(100% - 32px);
+  margin: 0 16px 8px;
+  flex-wrap: nowrap;
+}
+.dd-mobile-tabs .seg-chip {
+  flex: 1 1 0;
+  min-width: 72px;
+}
 @media (min-width: 960px) { .dd-mobile-tabs { display: none; } }
 .dd-split { display: grid; grid-template-columns: 1fr; min-height: 0; flex: 1; overflow: hidden; }
 @media (min-width: 960px) { .dd-split { grid-template-columns: minmax(0, 1fr) 380px; } }

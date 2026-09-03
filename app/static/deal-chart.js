@@ -172,7 +172,8 @@
     }
     root.querySelectorAll("[data-range]").forEach(function (btn) {
       btn.addEventListener("click", function () {
-        days = Number(btn.getAttribute("data-range") || 0);
+        var raw = btn.getAttribute("data-range") || "all";
+        days = raw === "all" ? 0 : Number(raw) || 0;
         root.querySelectorAll("[data-range]").forEach(function (b) {
           var on = b === btn;
           b.classList.toggle("on", on);

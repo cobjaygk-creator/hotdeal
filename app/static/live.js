@@ -787,7 +787,7 @@ async function openModal(id, opts) {
       `<div class="seg-group dd-chart-range" role="tablist" aria-label="기간">` +
       `<button type="button" class="seg-chip" data-range="30" role="tab" aria-selected="false">30일</button>` +
       `<button type="button" class="seg-chip on" data-range="90" role="tab" aria-selected="true">90일</button>` +
-      `<button type="button" class="seg-chip" data-range="0" role="tab" aria-selected="false">전체</button>` +
+      `<button type="button" class="seg-chip" data-range="all" role="tab" aria-selected="false">전체</button>` +
       `</div></div>` +
       `<div class="dd-chart-box"><canvas id="modal-chart"></canvas></div>` +
       `<div class="dd-chart-legend">` +

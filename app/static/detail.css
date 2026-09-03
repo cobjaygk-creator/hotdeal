@@ -113,11 +113,20 @@
   gap: 12px;
   flex-wrap: wrap;
 }
-.dd-chart-range { margin: 0; flex: none; }
+.dd-chart-range {
+  margin: 0;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  max-width: 100%;
+}
 .dd-chart-range .seg-chip {
+  flex: 0 0 auto;
+  min-width: 52px;
   min-height: 30px;
-  padding: 0 10px;
+  height: 30px;
+  padding: 0 12px;
   font-size: var(--text-label);
+  overflow: visible;
 }
 .dd-demo-badge {
   display: inline-flex;
