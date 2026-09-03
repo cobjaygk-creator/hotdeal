@@ -7,6 +7,8 @@
 
   var mode = "recent";
   try { mode = localStorage.getItem("deal-sort") || "recent"; } catch (e) {}
+  var hideSoldout = false;
+  try { hideSoldout = localStorage.getItem("deal-hide-soldout") === "1"; } catch (e) {}
   var busy = false;
 
   function num(li, attr) {
@@ -14,7 +16,7 @@
     return isNaN(v) ? null : v;
   }
 
-  function apply() {
+  function applySort() {
     var items = Array.prototype.slice.call(list.querySelectorAll("li.deal-card"));
     if (!items.length) return;
     items.sort(function (a, b) {
@@ -24,6 +26,14 @@
         if (pa === null) return 1;
         if (pb === null) return -1;
         return pa - pb;
+      }
+      if (mode === "discount") {
+        var da = num(a, "data-discount"), db = num(b, "data-discount");
+        if (da === null && db === null) return 0;
+        if (da === null) return 1;
+        if (db === null) return -1;
+        // discount_rate는 음수(더 할인일수록 작음) → 오름차순
+        return da - db;
       }
       if (mode === "comments") {
         return (num(b, "data-comments") || 0) - (num(a, "data-comments") || 0);
@@ -35,7 +45,13 @@
     busy = false;
   }
 
-  function syncChips() {
+  function applyHide() {
+    list.querySelectorAll('li.deal-card[data-status="expired"]').forEach(function (li) {
+      li.style.display = hideSoldout ? "none" : "";
+    });
+  }
+
+  function syncSortChips() {
     if (!group) return;
     group.querySelectorAll("[data-sort]").forEach(function (b) {
       var on = b.dataset.sort === mode;
@@ -44,42 +60,44 @@
     });
   }
 
+  function syncHideChip() {
+    if (!hide) return;
+    hide.classList.toggle("on", hideSoldout);
+    hide.setAttribute("aria-pressed", hideSoldout ? "true" : "false");
+  }
+
   if (group) {
     group.addEventListener("click", function (e) {
+      var hideBtn = e.target.closest("#hide-soldout");
+      if (hideBtn) {
+        hideSoldout = !hideSoldout;
+        try { localStorage.setItem("deal-hide-soldout", hideSoldout ? "1" : "0"); } catch (err) {}
+        syncHideChip();
+        applyHide();
+        return;
+      }
       var btn = e.target.closest("[data-sort]");
       if (!btn) return;
       mode = btn.dataset.sort;
       try { localStorage.setItem("deal-sort", mode); } catch (err) {}
-      syncChips();
-      apply();
+      syncSortChips();
+      applySort();
+      applyHide();
     });
   }
 
-  if (hide) {
-    try { hide.checked = localStorage.getItem("deal-hide-soldout") === "1"; } catch (e) {}
-    var toggle = function () {
-      list.querySelectorAll('li.deal-card[data-status="expired"]').forEach(function (li) {
-        li.style.display = hide.checked ? "none" : "";
-      });
-      try { localStorage.setItem("deal-hide-soldout", hide.checked ? "1" : "0"); } catch (e) {}
-    };
-    hide.addEventListener("change", toggle);
-    toggle();
-  }
-
-  // live.js가 새 딜을 붙이면 다시 정렬
   var timer = null;
   new MutationObserver(function () {
     if (busy) return;
     clearTimeout(timer);
     timer = setTimeout(function () {
-      apply();
-      if (hide && hide.checked) {
-        list.querySelectorAll('li.deal-card[data-status="expired"]').forEach(function (li) { li.style.display = "none"; });
-      }
+      applySort();
+      applyHide();
     }, 120);
   }).observe(list, { childList: true });
 
-  syncChips();
-  if (mode !== "recent") apply();
+  syncSortChips();
+  syncHideChip();
+  if (mode !== "recent") applySort();
+  applyHide();
 })();

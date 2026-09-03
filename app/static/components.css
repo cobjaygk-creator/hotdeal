@@ -412,6 +412,78 @@ button:disabled,
 }
 .chip-row.seg-row { margin-bottom: 12px; gap: 10px; }
 
+/* 목록 정렬 필 (목업: 검정 활성 + 개별 알약) */
+.sort-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 16px;
+}
+.sort-label {
+  flex: 0 0 auto;
+  font-size: var(--text-caption);
+  font-weight: 700;
+  color: var(--ink-faint);
+}
+.sort-pills {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  max-width: 100%;
+}
+.sort-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  min-width: max-content;
+  height: 34px;
+  min-height: 34px;
+  margin: 0;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink-muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  -webkit-appearance: none;
+  appearance: none;
+  box-sizing: border-box;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.sort-pill:hover {
+  color: var(--ink);
+  border-color: var(--border-strong);
+  background: var(--surface);
+}
+.sort-pill.on,
+.sort-pill.on:hover,
+.sort-pill[aria-pressed="true"],
+.sort-pill[aria-pressed="true"]:hover {
+  color: #fff;
+  background: var(--ink);
+  border-color: var(--ink);
+  font-weight: 700;
+}
+[data-theme="dark"] .sort-pill.on,
+[data-theme="dark"] .sort-pill[aria-pressed="true"] {
+  color: #12151b;
+  background: #edeff3;
+  border-color: #edeff3;
+}
+
 .time-rel {
   font-variant-numeric: tabular-nums;
   color: var(--ink-faint);

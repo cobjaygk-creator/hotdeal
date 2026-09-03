@@ -291,6 +291,7 @@ function renderRow(deal) {
   li.dataset.ts = deal.last_seen_at || "";
   li.dataset.category = deal.category || "";
   li.dataset.price = deal.price != null ? String(deal.price) : "";
+  li.dataset.discount = deal.discount_rate != null ? String(deal.discount_rate) : "";
   li.dataset.comments = String((Number(deal.user_comments) || 0) + (Number(deal.comments) || 0));
   li.dataset.status = deal.status || "";
   const starred = isBookmarked(deal.id);

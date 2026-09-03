@@ -38,22 +38,25 @@
 {% endif %}
 
 <div class="chip-row" id="cat-chips" role="tablist" aria-label="카테고리">
-  <a class="filter-chip {% if not category %}on{% endif %}" href="/" role="tab" aria-selected="{{ 'true' if not category else 'false' }}">전체</a>
+  <a class="filter-chip {% if not category %}on{% endif %}" href="/" role="tab" aria-selected="{{ 'true' if not category else 'false' }}">
+    전체 <span class="count">{{ "{:,}".format(deals_total|default(0)) }}</span>
+  </a>
   {% for c in categories %}
-  <a class="filter-chip {% if category == c %}on{% endif %}" href="/?cat={{ c }}" role="tab" aria-selected="{{ 'true' if category == c else 'false' }}">{{ c }}</a>
+  <a class="filter-chip {% if category == c %}on{% endif %}" href="/?cat={{ c }}" role="tab" aria-selected="{{ 'true' if category == c else 'false' }}">
+    {{ c }} <span class="count">{{ "{:,}".format(category_counts.get(c, 0)) }}</span>
+  </a>
   {% endfor %}
 </div>
 
-<div class="chip-row seg-row" style="margin-bottom:16px">
-  <span style="font-size:var(--text-caption);font-weight:700;color:var(--ink-faint)">정렬</span>
-  <div class="seg-group" id="sort-group" style="margin:0" role="tablist" aria-label="정렬">
-    <button type="button" class="seg-chip on" data-sort="recent" role="tab" aria-selected="true">최신</button>
-    <button type="button" class="seg-chip" data-sort="price-asc" role="tab" aria-selected="false">가격 낮은순</button>
-    <button type="button" class="seg-chip" data-sort="comments" role="tab" aria-selected="false">댓글 많은순</button>
+<div class="chip-row sort-row">
+  <span class="sort-label">정렬</span>
+  <div class="sort-pills" id="sort-group" role="tablist" aria-label="정렬">
+    <button type="button" class="sort-pill on" data-sort="recent" role="tab" aria-selected="true">최신</button>
+    <button type="button" class="sort-pill" data-sort="price-asc" role="tab" aria-selected="false">가격 낮은순</button>
+    <button type="button" class="sort-pill" data-sort="discount" role="tab" aria-selected="false">할인율</button>
+    <button type="button" class="sort-pill" data-sort="comments" role="tab" aria-selected="false">댓글 많은순</button>
+    <button type="button" class="sort-pill" id="hide-soldout" aria-pressed="false">품절 숨기기</button>
   </div>
-  <label class="chip" for="hide-soldout">
-    <input type="checkbox" id="hide-soldout"> 품절 숨기기
-  </label>
 </div>
 
 <ul class="deal-cards" id="deal-body">

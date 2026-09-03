@@ -273,9 +273,11 @@ async def index(
     try:
         sellers = await _distinct("seller")
         sources = await _distinct_sources()
+        category_counts, deals_total = await _category_counts()
     except Exception:
         log.exception("index filters failed")
         sellers, sources = [], []
+        category_counts, deals_total = {}, 0
     ordered_sources = [s.name for s in get_sources() if s.name in set(sources)]
     for name in sources:
         if name not in ordered_sources:
@@ -289,6 +291,8 @@ async def index(
         "source": source or "",
         "category": category,
         "categories": DEAL_CATEGORIES,
+        "category_counts": category_counts,
+        "deals_total": deals_total,
         "sellers": sellers,
         "sources": ordered_sources,
         "source_labels": SOURCE_LABELS,
@@ -1779,6 +1783,20 @@ async def _distinct(column: str) -> list[str]:
         f"SELECT DISTINCT {column} AS v FROM deals WHERE {column} IS NOT NULL AND {column}!='' ORDER BY v"
     )
     return [r["v"] for r in await cur.fetchall()]
+
+
+async def _category_counts() -> tuple[dict[str, int], int]:
+    cur = await _db().execute("SELECT COUNT(*) AS c FROM deals")
+    total = int((await cur.fetchone())["c"] or 0)
+    cur = await _db().execute(
+        """
+        SELECT COALESCE(NULLIF(TRIM(category), ''), '기타') AS cat, COUNT(*) AS c
+        FROM deals
+        GROUP BY cat
+        """
+    )
+    counts = {str(r["cat"]): int(r["c"] or 0) for r in await cur.fetchall()}
+    return counts, total
 
 
 async def _distinct_sources() -> list[str]:
