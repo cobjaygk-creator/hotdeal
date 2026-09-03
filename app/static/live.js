@@ -168,7 +168,36 @@ function priceHtml(n) {
 
 function offHtml(rate) {
   if (rate == null) return "";
-  return `<span class="deal-off">${(-Number(rate) * 100).toFixed(0)}%</span>`;
+  const pct = Math.round(-Number(rate) * 100);
+  if (!(pct > 0)) return "";
+  return `<span class="deal-off">-${pct}%</span>`;
+}
+
+function detailOffHtml(deal) {
+  if (deal.discount_rate == null) return "";
+  const pct = Math.round(-Number(deal.discount_rate) * 100);
+  if (!(pct > 0)) return "";
+  const g = deal.grade || "";
+  const prefix = g.includes("초특가")
+    ? "초특가 "
+    : g.includes("특가")
+      ? "특가 "
+      : g.includes("핫딜")
+        ? "핫딜 "
+        : "";
+  return `<span class="deal-off">${prefix}-${pct}%</span>`;
+}
+
+function strikeHtml(deal, hasBaseline, cheaper) {
+  if (deal.discount_rate != null && deal.price) {
+    const r = Number(deal.discount_rate);
+    if (r < 0 && r > -0.95) {
+      const orig = Math.round(Number(deal.price) / (1 + r));
+      if (orig > Number(deal.price)) return `<span class="mkt-strike">${won(orig)}</span>`;
+    }
+  }
+  if (hasBaseline && cheaper) return `<span class="mkt-strike">${won(deal.baseline_price)}</span>`;
+  return "";
 }
 
 function lowestHtml(deal) {
@@ -690,9 +719,11 @@ async function openModal(id, opts) {
       return `<span class="deal-tag deal-tag-source" data-source="${esc(key)}"><span class="deal-tag-ico">${esc(label.slice(0, 1))}</span>${esc(label)}</span>`;
     })
     .join("");
-  const thumb = deal.thumbnail_url
-    ? `<div class="modal-thumb-wrap"><img class="modal-thumb" src="${esc(deal.thumbnail_url)}" alt="" referrerpolicy="no-referrer"></div>`
-    : "";
+  const thumb = `<div class="modal-thumb-wrap">${
+    deal.thumbnail_url
+      ? `<img class="modal-thumb" src="${esc(deal.thumbnail_url)}" alt="" referrerpolicy="no-referrer">`
+      : ""
+  }</div>`;
   const buyLabel = deal.seller
     ? `${esc(deal.seller)}에서 ${won(deal.price)} 구매`
     : `${won(deal.price)} 구매하기`;
@@ -743,23 +774,21 @@ async function openModal(id, opts) {
     ? `${specRow("중앙값", won(deal.baseline_price))}${specRow("최저가", won(deal.min_price))}${specRow("표본", esc(sampleCount) + "건")}`
     : (sampleCount ? specRow("표본", esc(sampleCount) + "건") : "");
   modalBody.innerHTML = `
-    <p class="dd-meta">
-      ${sourceBits}
-      ${deal.category ? `<span>${esc(deal.category)}</span>` : ""}
-      <time>${esc(relativeTime(deal.last_seen_at))}</time>
-      ${deal.status === "expired" ? `<span class="deal-soldout">품절</span>` : ""}
-      <span style="margin-left:auto;display:inline-flex;gap:12px">
-        ${isPostUrl(deal.deal_url) ? `<a href="${esc(deal.deal_url)}" target="_blank" rel="noopener">원본글</a>` : ""}
-        <button type="button" class="dd-report-btn" data-open-report>신고</button>
-      </span>
-    </p>
+    <div class="dd-head-actions">
+      ${isPostUrl(deal.deal_url) ? `<a href="${esc(deal.deal_url)}" target="_blank" rel="noopener">원본글</a>` : ""}
+      <button type="button" class="dd-report-btn" data-open-report>신고</button>
+    </div>
     <div class="dd-hero">
       ${thumb}
-      <div style="min-width:0">
-        <h1 id="modal-title">${esc(deal.product_name)}</h1>
-        <p class="modal-price">${priceHtml(deal.price)}${offHtml(deal.discount_rate)}
-          ${cheaper ? `<span class="mkt-strike">${won(deal.baseline_price)}</span>` : ""}
+      <div class="dd-hero-body">
+        <p class="dd-meta">
+          ${sourceBits}
+          ${deal.category ? `<span class="dd-meta-cat">${esc(deal.category)}</span>` : ""}
+          <time>${esc(relativeTime(deal.last_seen_at))}</time>
+          ${deal.status === "expired" ? `<span class="deal-soldout">품절</span>` : ""}
         </p>
+        <h1 id="modal-title">${esc(deal.product_name)}</h1>
+        <p class="modal-price">${priceHtml(deal.price)}${detailOffHtml(deal)}${strikeHtml(deal, hasBaseline, cheaper)}</p>
         ${verdictHtml}
       </div>
     </div>

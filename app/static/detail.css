@@ -149,16 +149,124 @@
   background: transparent;
 }
 
-/* ---- 5) 상세 히어로 ---- */
-.dd-hero { align-items: flex-start; }
-.dd-hero h1 { margin: 0 0 10px; }
-.modal-price { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; }
-.modal-price .deal-off { margin-left: 0; }
+/* ---- 5) 상세 히어로 (목업: 썸네일 좌 + 메타/제목/가격 우) ---- */
+.dd-head-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin: 0 0 6px;
+}
+.dd-head-actions a,
+.dd-head-actions .dd-report-btn {
+  height: auto;
+  min-height: auto;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--ink-muted) !important;
+  font: inherit;
+  font-size: var(--text-label);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+}
+.dd-head-actions a:hover,
+.dd-head-actions .dd-report-btn:hover {
+  background: none;
+  text-decoration: underline;
+  color: var(--ink) !important;
+}
 
-/* 이미지가 상품 사진이 아니라 원문 스크린샷인 경우가 많아 contain으로 */
+.dd-hero {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin: 0 0 20px;
+}
+.dd-hero-body { min-width: 0; flex: 1; }
+.dd-hero .dd-meta {
+  margin: 0 0 8px;
+  gap: 6px;
+  color: var(--ink-faint);
+}
+.dd-hero .modal-thumb-wrap {
+  flex: 0 0 96px;
+  width: 96px;
+  height: 96px;
+  margin: 0;
+  border-radius: 16px;
+  background: var(--surface-sunken, #eef1f5);
+  border: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 .dd-hero .modal-thumb {
+  width: 100%;
+  height: 100%;
+  max-height: none;
   object-fit: contain;
-  background: var(--surface-sunken);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+.dd-hero h1 {
+  margin: 0 0 10px;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: -0.02em;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.dd-hero .modal-price {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+}
+.dd-hero .modal-price .won {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.dd-hero .modal-price .deal-off {
+  margin-left: 0;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 6px;
+  background: var(--super-bg, #e8f8ef);
+  color: var(--super, #0f8a4b);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+.dd-hero .mkt-strike {
+  margin-left: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-faint);
+  text-decoration: line-through;
+  font-variant-numeric: tabular-nums;
+}
+.dd-hero .dd-verdict {
+  margin-top: 8px;
+  gap: 6px;
+  font-size: 12.5px;
+}
+@media (max-width: 639px) {
+  .dd-hero { gap: 12px; }
+  .dd-hero .modal-thumb-wrap { flex-basis: 80px; width: 80px; height: 80px; border-radius: 14px; }
+  .dd-hero h1 { font-size: 16.5px; }
+  .dd-hero .modal-price { font-size: 24px; }
 }
 
 /* ---- 6) 스펙 표 ---- */

@@ -25,31 +25,38 @@
   </div>
   <div class="dd-split">
     <div class="dd-main" id="modal-body">
-      <p class="dd-meta">
-        {% if deal.sources %}
-        {% for s in deal.sources.split(",") if s.strip() %}
-        <span class="deal-tag deal-tag-source" data-source="{{ s.strip() }}"><span class="deal-tag-ico">{{ source_labels.get(s.strip(), s.strip())[:1] }}</span>{{ source_labels.get(s.strip(), s.strip()) }}</span>
-        {% endfor %}
-        {% endif %}
-        {% if deal.category %}<span>{{ deal.category }}</span>{% endif %}
-        <time datetime="{{ deal.last_seen_at or '' }}">{{ deal.last_seen_at | reltime }}</time>
-        {% if deal.status == 'expired' %}<span class="deal-soldout">품절</span>{% endif %}
-        <span style="margin-left:auto;display:inline-flex;gap:12px">
-          {% if deal.deal_url %}<a href="{{ deal.deal_url }}" target="_blank" rel="noopener">원본글</a>{% endif %}
-          <button type="button" class="dd-report-btn" data-open-report>신고</button>
-        </span>
-      </p>
-
+      <div class="dd-head-actions">
+        {% if deal.deal_url %}<a href="{{ deal.deal_url }}" target="_blank" rel="noopener">원본글</a>{% endif %}
+        <button type="button" class="dd-report-btn" data-open-report>신고</button>
+      </div>
       <div class="dd-hero">
-        {% if deal.thumbnail_url %}
-        <div class="modal-thumb-wrap"><img class="modal-thumb" src="{{ deal.thumbnail_url }}" alt="" referrerpolicy="no-referrer"></div>
-        {% endif %}
-        <div style="min-width:0">
+        <div class="modal-thumb-wrap">
+          {% if deal.thumbnail_url %}
+          <img class="modal-thumb" src="{{ deal.thumbnail_url }}" alt="" referrerpolicy="no-referrer">
+          {% endif %}
+        </div>
+        <div class="dd-hero-body">
+          <p class="dd-meta">
+            {% if deal.sources %}
+            {% for s in deal.sources.split(",") if s.strip() %}
+            <span class="deal-tag deal-tag-source" data-source="{{ s.strip() }}"><span class="deal-tag-ico">{{ source_labels.get(s.strip(), s.strip())[:1] }}</span>{{ source_labels.get(s.strip(), s.strip()) }}</span>
+            {% endfor %}
+            {% endif %}
+            {% if deal.category %}<span class="dd-meta-cat">{{ deal.category }}</span>{% endif %}
+            <time datetime="{{ deal.last_seen_at or '' }}">{{ deal.last_seen_at | reltime }}</time>
+            {% if deal.status == 'expired' %}<span class="deal-soldout">품절</span>{% endif %}
+          </p>
           <h1 id="modal-title">{{ deal.product_name }}</h1>
           <p class="modal-price">
             {% if deal.price %}{{ "{:,}".format(deal.price) }}<span class="won">원</span>{% else %}-{% endif %}
-            {% if deal.discount_rate is not none %}<span class="deal-off">{{ "%.0f"|format(-deal.discount_rate * 100) }}%</span>{% endif %}
-            {% if cheaper %}<span class="mkt-strike">{{ "{:,}".format(deal.baseline_price) }}원</span>{% endif %}
+            {% if deal.discount_rate is not none and (-deal.discount_rate * 100) > 0 %}
+            <span class="deal-off">{% if deal.grade and '초특가' in deal.grade %}초특가 {% elif deal.grade and '특가' in deal.grade %}특가 {% elif deal.grade and '핫딜' in deal.grade %}핫딜 {% endif %}-{{ "%.0f"|format(-deal.discount_rate * 100) }}%</span>
+            {% endif %}
+            {% if deal.discount_rate is not none and deal.price and deal.discount_rate < 0 %}
+            <span class="mkt-strike">{{ "{:,}".format((deal.price / (1 + deal.discount_rate))|round|int) }}원</span>
+            {% elif cheaper %}
+            <span class="mkt-strike">{{ "{:,}".format(deal.baseline_price) }}원</span>
+            {% endif %}
           </p>
           {% if cheaper %}
           <p class="dd-verdict">
