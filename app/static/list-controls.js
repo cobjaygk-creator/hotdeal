@@ -53,8 +53,56 @@
   }
 
   function applyHide() {
+    collapseSourceDupes();
     list.querySelectorAll('li.deal-card[data-status="expired"]').forEach(function (li) {
+      if (li.hidden) return;
       li.style.display = hideSoldout ? "none" : "";
+    });
+  }
+
+  function normTitle(text) {
+    return String(text || "")
+      .toLowerCase()
+      .replace(/\s+\d[\d,]*\s*원/g, " ")
+      .replace(/기타정보|인기정보/g, " ")
+      .replace(/[^0-9a-z가-힣]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function sourceRank(src) {
+    var keys = String(src || "").split(",").map(function (s) { return s.trim(); }).filter(Boolean);
+    if (keys.some(function (k) { return k && k !== "ppomppu"; })) return 0;
+    return 1;
+  }
+
+  function collapseSourceDupes() {
+    var cards = Array.prototype.slice.call(list.querySelectorAll("li.deal-card"));
+    var kept = [];
+    cards.forEach(function (li) {
+      var price = li.getAttribute("data-price") || "";
+      var title = normTitle((li.querySelector(".deal-title") || {}).textContent || "");
+      var src = li.getAttribute("data-sources") || "";
+      var dup = null;
+      for (var i = 0; i < kept.length; i++) {
+        if (kept[i].price === price && kept[i].title === title) {
+          dup = kept[i];
+          break;
+        }
+      }
+      if (!dup) {
+        li.hidden = false;
+        kept.push({ li: li, price: price, title: title, src: src });
+        return;
+      }
+      if (sourceRank(src) < sourceRank(dup.src)) {
+        dup.li.hidden = true;
+        li.hidden = false;
+        dup.li = li;
+        dup.src = src;
+      } else {
+        li.hidden = true;
+      }
     });
   }
 
@@ -106,4 +154,5 @@
   syncHideChip();
   if (mode !== "recent") applySort();
   applyHide();
+  collapseSourceDupes();
 })();

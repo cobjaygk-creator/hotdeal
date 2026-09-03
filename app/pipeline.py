@@ -15,7 +15,7 @@ from app.config import (
 )
 from app.db import get_meta, set_meta, utcnow_iso
 from app.engine.category import classify
-from app.engine.dedupe import jaccard, should_merge
+from app.engine.dedupe import jaccard, prefers_non_ppomppu, should_merge
 from app.engine.naver_seed import seed_baseline_if_needed
 from app.engine.pricing import compute_baseline
 from app.engine.scoring import score_offer
@@ -170,6 +170,20 @@ async def upsert_deal_from_post(conn, post_row: dict) -> int | None:
         if not result.suppress:
             scored_at = now
             scored_price = offer.price
+        src_cur = await conn.execute(
+            "SELECT GROUP_CONCAT(DISTINCT p.source) AS sources FROM deal_posts dp "
+            "JOIN posts p ON p.id=dp.post_id WHERE dp.deal_id=?",
+            (deal_id,),
+        )
+        existing_sources = ((await src_cur.fetchone()) or {}).get("sources") or ""
+        take_display = prefers_non_ppomppu(post_row.get("source"), existing_sources)
+        display_name = offer.product_name or match["product_name"]
+        display_url = post_row["url"]
+        display_seller = offer.seller
+        if not take_display:
+            display_name = match.get("product_name") or display_name
+            display_url = match.get("deal_url") or display_url
+            display_seller = match.get("seller") or display_seller
         await conn.execute(
             """
             UPDATE deals SET
@@ -195,12 +209,12 @@ async def upsert_deal_from_post(conn, post_row: dict) -> int | None:
             WHERE id=?
             """,
             (
-                offer.product_name or match["product_name"],
-                offer.seller,
+                display_name,
+                display_seller,
                 new_price,
                 offer.shipping_fee,
                 offer.unit_price,
-                post_row["url"],
+                display_url,
                 mall_url,
                 thumbnail_url,
                 now,

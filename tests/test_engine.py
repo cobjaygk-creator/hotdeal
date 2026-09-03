@@ -58,6 +58,26 @@ def test_ruliweb_trailing_won():
     assert offer.price == 151829
 
 
+def test_same_price_prefers_non_ppomppu_and_strips_noise():
+    from app.engine.dedupe import collapse_duplicate_deals, prefers_non_ppomppu
+
+    a = parse_title("삼다수 2L 24개 18,252원 - 기타정보")
+    b = parse_title("삼다수 2L 24개")
+    b.price = 18252
+    assert "기타정보" not in a.product_name
+    assert is_same_deal(a, b) is True
+    assert prefers_non_ppomppu("eomisae", "ppomppu") is True
+    assert prefers_non_ppomppu("ppomppu", "eomisae") is False
+    collapsed = collapse_duplicate_deals(
+        [
+            {"id": 1, "product_name": a.product_name, "product_key": a.product_key, "price": 18252, "sources": "ppomppu"},
+            {"id": 2, "product_name": b.product_name, "product_key": b.product_key, "price": 18252, "sources": "eomisae"},
+        ]
+    )
+    assert len(collapsed) == 1
+    assert collapsed[0]["sources"] == "eomisae"
+
+
 def test_jaccard_and_dedupe():
     a = parse_title("[네이버] 카누 미니 마일드 120개입 (36070원/무료)")
     b = parse_title("[쿠팡] 카누 미니 마일드 120개입 (35500원/무배)")

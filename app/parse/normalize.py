@@ -23,6 +23,11 @@ STOPWORDS = {
     "와우",
     "멤버십",
     "네이버페이",
+    "기타정보",
+    "인기정보",
+    "국내핫딜",
+    "해외핫딜",
+    "끌올",
 }
 
 # seller aliases for later display only

@@ -38,6 +38,7 @@ from app.engine import auth as user_auth
 from app.engine import comments as deal_comments
 from app.engine.alerts import add_sub, channels_ready, default_target, delete_sub, list_subs
 from app.engine.category import CATEGORIES as DEAL_CATEGORIES
+from app.engine.dedupe import collapse_duplicate_deals
 from app.engine.ppomppu_enrich import enrich_missing_ppomppu_malls
 from app.family.parse import parse_discount
 from app.family.pipeline import collect_family_sales
@@ -1403,12 +1404,12 @@ async def _list_deals(
         except Exception:
             log.exception("skip deal %s", deal_id)
     try:
-        return await _attach_sources(db, deals)
+        deals = await _attach_sources(db, deals)
     except Exception:
         log.exception("attach sources failed")
         for deal in deals:
             deal.setdefault("sources", "")
-        return deals
+    return collapse_duplicate_deals(deals)
 
 
 def _json_safe(value):

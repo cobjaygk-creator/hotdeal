@@ -63,6 +63,8 @@ def parse_title(title: str) -> ParsedOffer:
         conf = min(conf, 0.35)
     if not name:
         name = title
+    name = re.sub(r"\s+\d[\d,]*\s*원\s*$", "", name)
+    name = re.sub(r"\s*[-–]\s*(기타정보|인기정보)\s*$", "", name)
     qty = extract_quantity(name)
     tokens = tokenize(name)
     return ParsedOffer(
