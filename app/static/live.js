@@ -605,9 +605,9 @@ function closeModal(opts) {
   modalOpenId = null;
   if (!fromPop && wasOpen && modalPushed) {
     modalPushed = false;
-    history.back();
+    window.history.back();
   } else if (!fromPop && wasOpen && location.pathname.startsWith("/deal/")) {
-    history.replaceState({}, "", "/");
+    window.history.replaceState({}, "", "/");
   }
 }
 
@@ -618,18 +618,25 @@ async function openModal(id, opts) {
   document.body.classList.add("modal-open");
   modalBody.innerHTML = "<p class='muted'>불러오는 중…</p>";
   if (!fromHistory && location.pathname !== "/deal/" + id) {
-    history.pushState({ dealModal: Number(id) }, "", "/deal/" + id);
+    window.history.pushState({ dealModal: Number(id) }, "", "/deal/" + id);
     modalPushed = true;
   }
   modalOpenId = Number(id);
-  const res = await fetch("/api/deals/" + id);
-  if (!res.ok) {
+  let deal;
+  try {
+    const res = await fetch("/api/deals/" + id);
+    if (!res.ok) {
+      modalBody.innerHTML = "<p>상세를 불러오지 못했습니다.</p>";
+      return;
+    }
+    deal = await res.json();
+  } catch (err) {
+    console.error(err);
     modalBody.innerHTML = "<p>상세를 불러오지 못했습니다.</p>";
     return;
   }
-  const deal = await res.json();
   const posts = deal.posts || [];
-  const history = deal.history || [];
+  const priceHistory = deal.history || [];
   const similar = deal.similar || [];
   const postHtml = posts.length
     ? posts
@@ -659,7 +666,7 @@ async function openModal(id, opts) {
         .map((s) => `<li><a href="/deal/${s.id}" data-deal-id="${s.id}">${esc(s.product_name)}${s.price ? " · " + won(s.price) : ""}</a></li>`)
         .join("")}</ul>`
     : "";
-  const showChart = history.length >= 2;
+  const showChart = priceHistory.length >= 2;
   modalBody.innerHTML = `
     <p class="dd-meta">
       ${deal.category ? `<span>${esc(deal.category)}</span>` : ""}
@@ -761,12 +768,12 @@ async function openModal(id, opts) {
     else window.alert("신고를 보내지 못했습니다.");
   });
   const canvas = document.getElementById("modal-chart");
-  if (canvas && history.length && window.Chart) {
+  if (canvas && priceHistory.length && window.Chart) {
     chart = new Chart(canvas, {
       type: "line",
       data: {
-        labels: history.map((h) => h.observed_at),
-        datasets: [{ label: "딜 게시 가격", data: history.map((h) => h.price), showLine: true, pointRadius: 4, borderWidth: 2 }],
+        labels: priceHistory.map((h) => h.observed_at),
+        datasets: [{ label: "딜 게시 가격", data: priceHistory.map((h) => h.price), showLine: true, pointRadius: 4, borderWidth: 2 }],
       },
       options: {
         plugins: { legend: { display: false } },
