@@ -147,4 +147,15 @@
 
 /* ---- 7) 채팅 빈 상태에서 리액션 숨김 ---- */
 .dd-chat.is-empty .chat-reactions { display: none; }
-.chat-reply-bar:not([hidden]):has(.chat-reply-target:empty) { display: none; }
+/* 취소바는 답글 대상이 있을 때만 (실제 id: #chat-reply-label) */
+.chat-reply-bar:not([hidden]):has(#chat-reply-label:empty) { display: none; }
+
+/* ---- 8) 시세에서 파생한 취소선 정가 ---- */
+.mkt-strike {
+  font-size: var(--text-body-sm);
+  font-weight: 600;
+  color: var(--ink-faint);
+  text-decoration: line-through;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
