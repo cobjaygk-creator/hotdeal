@@ -351,7 +351,7 @@ a.btn.ghost, .ghost {
 .deal-card.fresh {
   animation:
     deal-slide-in 1.1s cubic-bezier(0.22, 1, 0.36, 1) both,
-    deal-highlight 2.2s ease both;
+    deal-highlight 5s ease both;
 }
 .deal-card.hot-fresh { background: #fff; }
 @keyframes deal-slide-in {
@@ -366,7 +366,7 @@ a.btn.ghost, .ghost {
 }
 @keyframes deal-highlight {
   0%,
-  35% {
+  80% {
     box-shadow: 0 0 0 3px #2f80ed55, 0 8px 24px #2f80ed22;
     border-color: #8bb8f5;
   }

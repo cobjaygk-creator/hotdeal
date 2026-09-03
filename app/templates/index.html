@@ -13,15 +13,22 @@
     <div class="page-meta">
       <span class="dot" id="live-dot"></span>
       <span id="live-status">연결 중…</span>
+      {% if is_admin %}
       · 수집 <strong id="stat-last">{{ stats.last_collect_at | kst }}</strong>
+      {% endif %}
     </div>
+    {% if is_admin %}
     <button type="button" id="collect-btn" class="btn-secondary">지금 수집</button>
+    {% endif %}
   </div>
 </div>
 
 <span id="stat-hot" hidden>{{ stats.today_hot }}</span>
 <span id="stat-strong" hidden>{{ stats.strong }}</span>
 <span id="stat-posts" hidden>{{ stats.posts }}</span>
+{% if not is_admin %}
+<span id="stat-last" hidden>{{ stats.last_collect_at | kst }}</span>
+{% endif %}
 
 <div class="chip-row" id="cat-chips" role="tablist" aria-label="카테고리">
   <a class="filter-chip {% if not category %}on{% endif %}" href="/" role="tab" aria-selected="{{ 'true' if not category else 'false' }}">전체</a>

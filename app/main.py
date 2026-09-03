@@ -78,7 +78,9 @@ def _template_response(name, context, *args, **kwargs):
     ctx = dict(context)
     req = ctx.get("request")
     if req is not None:
-        ctx.setdefault("user", getattr(req.state, "user", None))
+        user = getattr(req.state, "user", None)
+        ctx.setdefault("user", user)
+        ctx.setdefault("is_admin", user_auth.is_admin_user(user))
         ctx.setdefault("oauth_ready", user_auth.providers_ready())
     return _orig_template_response(name, ctx, *args, **kwargs)
 
@@ -580,6 +582,13 @@ def _require_collect() -> None:
         raise HTTPException(403, "collect disabled on this instance")
 
 
+def _require_admin(request: Request) -> dict:
+    user = getattr(request.state, "user", None)
+    if not user_auth.is_admin_user(user):
+        raise HTTPException(403, "admin only")
+    return user
+
+
 @app.get("/amazon-jp", response_class=HTMLResponse)
 async def amazon_jp_index(request: Request):
     if not AMAZON_JP_ENABLED:
@@ -654,11 +663,27 @@ async def login_page(request: Request, error: str | None = None):
         "oauth": "로그인에 실패했습니다. 잠시 후 다시 시도하세요.",
         "state": "로그인 요청이 만료되었습니다. 다시 눌러 주세요.",
         "denied": "로그인이 취소되었습니다.",
+        "credentials": "아이디 또는 비밀번호가 올바르지 않습니다.",
     }
     return TEMPLATES.TemplateResponse(
         "login.html",
         {"request": request, "nav": "hotdeal", "error": messages.get(error or "", "")},
     )
+
+
+@app.post("/login")
+async def login_submit(
+    request: Request,
+    username: str = Form(""),
+    password: str = Form(""),
+):
+    if getattr(request.state, "user", None):
+        return RedirectResponse("/", status_code=303)
+    user = await user_auth.authenticate_local(_db(), username, password)
+    if not user:
+        return RedirectResponse("/login?error=credentials", status_code=303)
+    dest = "/" if user_auth.is_admin_user(user) else "/alerts"
+    return _login_redirect(int(user["id"]), dest)
 
 
 @app.get("/logout")
@@ -886,17 +911,19 @@ async def api_stream(request: Request):
 
 
 @app.post("/api/collect")
-async def api_collect(source: str | None = None):
+async def api_collect(request: Request, source: str | None = None):
     _require_collect()
+    _require_admin(request)
     names = [source] if source else None
     summary = await _run_collect(names)
     return JSONResponse(summary)
 
 
 @app.post("/api/ppomppu/enrich-malls")
-async def api_ppomppu_enrich_malls(limit: int = 12):
+async def api_ppomppu_enrich_malls(request: Request, limit: int = 12):
     """Manually run ppomppu buy-link enrich (requires PPOMPPU_PROXY_URL)."""
     _require_collect()
+    _require_admin(request)
     if not PPOMPPU_PROXY_URL:
         raise HTTPException(400, "PPOMPPU_PROXY_URL is not configured")
     lock = state.get("ppomppu_enrich_lock")

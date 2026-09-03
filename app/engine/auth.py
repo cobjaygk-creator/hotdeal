@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import hmac
 import logging
 import secrets
@@ -9,6 +10,8 @@ from urllib.parse import urlencode
 import httpx
 
 from app.config import (
+    ADMIN_PASSWORD,
+    ADMIN_USERNAME,
     GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET,
     KAKAO_CLIENT_ID,
@@ -27,6 +30,107 @@ SESSION_MAX_AGE = 60 * 60 * 24 * 30
 PROVIDERS = ("google", "kakao")
 MAX_BOOKMARKS = 200
 MAX_KEYWORDS = 30
+# Used only when ADMIN_PASSWORD env is empty at first admin seed.
+_LOCAL_ADMIN_BOOTSTRAP_PASSWORD = "V_NmpnP7T9Unjbhx"
+_PBKDF2_ROUNDS = 200_000
+
+
+def hash_password(password: str, salt: bytes | None = None) -> str:
+    raw = (password or "").encode("utf-8")
+    used_salt = salt or secrets.token_bytes(16)
+    digest = hashlib.pbkdf2_hmac("sha256", raw, used_salt, _PBKDF2_ROUNDS)
+    return f"pbkdf2_sha256${used_salt.hex()}${digest.hex()}"
+
+
+def verify_password(password: str, encoded: str | None) -> bool:
+    if not encoded or not password:
+        return False
+    try:
+        algo, salt_hex, digest_hex = encoded.split("$", 2)
+    except ValueError:
+        return False
+    if algo != "pbkdf2_sha256":
+        return False
+    try:
+        salt = bytes.fromhex(salt_hex)
+        expected = bytes.fromhex(digest_hex)
+    except ValueError:
+        return False
+    digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, _PBKDF2_ROUNDS)
+    return hmac.compare_digest(digest, expected)
+
+
+def is_admin_user(user: dict | None) -> bool:
+    if not user:
+        return False
+    try:
+        return int(user.get("is_admin") or 0) == 1
+    except (TypeError, ValueError):
+        return False
+
+
+async def ensure_local_admin(conn) -> None:
+    """Create or refresh the local admin account (username ADMIN_USERNAME)."""
+    username = (ADMIN_USERNAME or "admin").strip() or "admin"
+    password = (ADMIN_PASSWORD or "").strip() or _LOCAL_ADMIN_BOOTSTRAP_PASSWORD
+    now = utcnow_iso()
+    cur = await conn.execute(
+        "SELECT id, password_hash FROM users WHERE username=? COLLATE NOCASE",
+        (username,),
+    )
+    row = await cur.fetchone()
+    pwd_hash = hash_password(password)
+    if row:
+        # Refresh hash when ADMIN_PASSWORD env is explicitly set.
+        if (ADMIN_PASSWORD or "").strip():
+            await conn.execute(
+                """
+                UPDATE users
+                SET password_hash=?, is_admin=1, display_name=COALESCE(NULLIF(display_name,''), '관리자'),
+                    last_login_at=last_login_at
+                WHERE id=?
+                """,
+                (pwd_hash, int(row["id"])),
+            )
+            await conn.commit()
+        else:
+            await conn.execute(
+                "UPDATE users SET is_admin=1 WHERE id=? AND IFNULL(is_admin,0)=0",
+                (int(row["id"]),),
+            )
+            await conn.commit()
+        return
+    await conn.execute(
+        """
+        INSERT INTO users(display_name, email, username, password_hash, is_admin, created_at, last_login_at)
+        VALUES(?, NULL, ?, ?, 1, ?, ?)
+        """,
+        ("관리자", username, pwd_hash, now, now),
+    )
+    await conn.commit()
+    log.info("local admin user ensured username=%s", username)
+
+
+async def authenticate_local(conn, username: str, password: str) -> dict | None:
+    name = (username or "").strip()
+    if not name or not password:
+        return None
+    cur = await conn.execute(
+        "SELECT * FROM users WHERE username=? COLLATE NOCASE",
+        (name,),
+    )
+    row = await cur.fetchone()
+    if not row:
+        return None
+    user = dict(row)
+    if not verify_password(password, user.get("password_hash")):
+        return None
+    await conn.execute(
+        "UPDATE users SET last_login_at=? WHERE id=?",
+        (utcnow_iso(), int(user["id"])),
+    )
+    await conn.commit()
+    return await get_user(conn, int(user["id"]))
 
 
 def cookie_secure() -> bool:
@@ -226,6 +330,8 @@ def public_user(user: dict | None) -> dict | None:
     return {
         "id": user["id"],
         "display_name": user.get("display_name") or "사용자",
+        "username": user.get("username") or "",
+        "is_admin": is_admin_user(user),
         "notify_channel": user.get("notify_channel") or "",
         "has_notify_target": bool(user.get("notify_target")),
     }

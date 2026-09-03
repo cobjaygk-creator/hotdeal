@@ -124,6 +124,9 @@ CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     display_name TEXT NOT NULL,
     email TEXT,
+    username TEXT,
+    password_hash TEXT,
+    is_admin INTEGER NOT NULL DEFAULT 0,
     notify_channel TEXT,
     notify_target TEXT,
     created_at TEXT NOT NULL,
@@ -318,6 +321,9 @@ async def _ensure_auth_tables(conn: aiosqlite.Connection) -> None:
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             display_name TEXT NOT NULL,
             email TEXT,
+            username TEXT,
+            password_hash TEXT,
+            is_admin INTEGER NOT NULL DEFAULT 0,
             notify_channel TEXT,
             notify_target TEXT,
             created_at TEXT NOT NULL,
@@ -359,9 +365,22 @@ async def _ensure_auth_tables(conn: aiosqlite.Connection) -> None:
         ("display_name", "TEXT"),
         ("created_at", "TEXT"),
         ("last_login_at", "TEXT"),
+        ("username", "TEXT"),
+        ("password_hash", "TEXT"),
+        ("is_admin", "INTEGER NOT NULL DEFAULT 0"),
     ):
         if name not in user_cols:
             await conn.execute(f"ALTER TABLE users ADD COLUMN {name} {decl}")
+    await conn.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username "
+        "ON users(username) WHERE username IS NOT NULL AND TRIM(username) != ''"
+    )
+    try:
+        from app.engine.auth import ensure_local_admin
+
+        await ensure_local_admin(conn)
+    except Exception:
+        logging.getLogger("hotdeal").exception("local admin seed failed")
 
 
 async def _ensure_amazon_jp_table(conn: aiosqlite.Connection) -> None:
