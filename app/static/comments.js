@@ -38,15 +38,30 @@
     const nick = $("#chat-nick");
     const pin = $("#chat-pin");
     try {
-      if (nick) nick.value = localStorage.getItem(NICK_KEY) || "";
-      if (pin) pin.value = localStorage.getItem(PIN_KEY) || "";
+      // chat-id.js(hotdeal.anon*)가 있으면 우선 — 빈 값으로 덮어쓰지 않음
+      const anonId = localStorage.getItem("hotdeal.anonId") || "";
+      const anonPin = localStorage.getItem("hotdeal.anonPin") || "";
+      if (nick) nick.value = anonId || localStorage.getItem(NICK_KEY) || nick.value || "";
+      if (pin) pin.value = anonPin || localStorage.getItem(PIN_KEY) || pin.value || "";
     } catch (e) {}
   }
   function saveId() {
     try {
-      localStorage.setItem(NICK_KEY, ($("#chat-nick") || {}).value || "");
-      localStorage.setItem(PIN_KEY, ($("#chat-pin") || {}).value || "");
+      const nick = ($("#chat-nick") || {}).value || "";
+      const pin = ($("#chat-pin") || {}).value || "";
+      localStorage.setItem(NICK_KEY, nick);
+      localStorage.setItem(PIN_KEY, pin);
+      if (nick) localStorage.setItem("hotdeal.anonId", nick);
+      if (pin) localStorage.setItem("hotdeal.anonPin", pin);
     } catch (e) {}
+  }
+
+  function syncEmptyState() {
+    const chat = $("#dd-chat");
+    const log = $("#chat-log");
+    if (!chat || !log) return;
+    const has = !!log.querySelector(".chat-row");
+    chat.classList.toggle("is-empty", !has);
   }
 
   function setCounts(n) {
@@ -99,6 +114,7 @@
     items.forEach((item) => {
       if (item.id > lastId) lastId = item.id;
     });
+    syncEmptyState();
   }
 
   function paintReactions(snap) {
@@ -280,7 +296,10 @@
     dealId = Number(id);
     lastId = 0;
     const chat = $("#dd-chat");
-    if (chat) chat.dataset.dealId = String(id);
+    if (chat) {
+      chat.dataset.dealId = String(id);
+      chat.classList.add("is-empty");
+    }
     setPane("info");
     await load(0);
     if (pollTimer) clearInterval(pollTimer);

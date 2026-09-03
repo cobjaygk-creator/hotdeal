@@ -10,7 +10,10 @@
       </button>
     </div>
   </div>
-  <div class="chat-head">댓글 <span data-chat-count>0</span></div>
+  <div class="chat-head">
+    <span class="chat-head-title">댓글 <span data-chat-count>0</span></span>
+    <span class="chat-me" id="chat-me" aria-label="내 표시 이름"></span>
+  </div>
   <div class="chat-log" id="chat-log"></div>
   <div class="chat-composer">
     <div class="chat-reactions" id="chat-reactions" role="group" aria-label="반응">
@@ -23,14 +26,18 @@
       <span id="chat-reply-label"></span>
       <button type="button" class="chat-reply-cancel" id="chat-reply-cancel">취소</button>
     </div>
-    <div class="chat-id-row">
-      <label>닉네임 <input type="text" id="chat-nick" maxlength="12" placeholder="익명" autocomplete="nickname"></label>
-      <label>PIN <input type="password" id="chat-pin" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="4자리" autocomplete="off"></label>
-    </div>
     <div class="chat-input-row">
       <textarea id="chat-input" rows="1" maxlength="300" placeholder="댓글을 남겨 보세요"></textarea>
-      <button type="button" class="chat-send" id="chat-send" aria-label="보내기">↑</button>
+      <button type="button" class="chat-send" id="chat-send" aria-label="보내기">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13V3.5M3.8 7.7 8 3.5l4.2 4.2"></path></svg>
+      </button>
     </div>
-    <div class="chat-count" id="chat-len">0/300</div>
+    <div class="chat-foot">
+      <span class="chat-foot-id" id="chat-foot-id"></span>
+      <span class="chat-count" id="chat-len">0/300</span>
+    </div>
+    {# 닉네임·PIN은 화면에서 제거하고 chat-id.js가 자동 발급합니다 #}
+    <input type="hidden" id="chat-nick" value="">
+    <input type="hidden" id="chat-pin" value="">
   </div>
 </aside>

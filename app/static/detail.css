@@ -470,12 +470,7 @@
   }
 }
 
-/* ---- 8) 채팅 빈 상태에서 리액션 숨김 ---- */
-.dd-chat.is-empty .chat-reactions { display: none; }
-/* 취소바는 답글 대상이 있을 때만 (실제 id: #chat-reply-label) */
-.chat-reply-bar:not([hidden]):has(#chat-reply-label:empty) { display: none; }
-
-/* ---- 9) 시세에서 파생한 취소선 정가 ---- */
+/* ---- 8) 시세에서 파생한 취소선 정가 ---- */
 .mkt-strike {
   font-size: var(--text-body-sm);
   font-weight: 600;
@@ -483,4 +478,241 @@
   text-decoration: line-through;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0;
+}
+
+/* ============================================================
+   댓글 패널 재설계
+   · 닉네임/PIN 입력 제거 → 난수 식별자 자동 발급
+   · 빈 상태에서 컨트롤 8개 → 퀵칩만
+   ============================================================ */
+
+/* ---- 헤더: 카운트 + 내 식별자 ---- */
+.dd-chat .chat-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 48px;
+  padding: 0 52px 0 16px;      /* 우측은 모달 닫기 버튼 자리 */
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  font-size: var(--text-body-sm);
+  font-weight: 700;
+  color: var(--ink);
+}
+.dd-chat .chat-head-title { display: inline-flex; align-items: center; gap: 6px; }
+.dd-chat .chat-head-title [data-chat-count] {
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+.chat-me {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  color: var(--ink-muted);
+  font-size: var(--text-caption);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.chat-me:empty { display: none; }
+
+/* ---- 로그 / 빈 상태 ---- */
+.dd-chat .chat-log {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 14px 14px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--surface-sunken);
+}
+.chat-empty {
+  margin: auto 0;                 /* 상단에 붙지 않고 세로 중앙 */
+  padding: 8px 4px 16px;
+  text-align: center;
+  color: var(--ink-muted);
+  font-size: var(--text-body-sm);
+  line-height: 1.6;
+}
+.chat-quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  margin-top: 12px;
+}
+.chat-quick-btn {
+  height: 30px;
+  min-height: 30px;
+  padding: 0 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--ink-muted) !important;
+  font-size: var(--text-label);
+  font-weight: 600;
+  cursor: pointer;
+}
+.chat-quick-btn:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-strong);
+  color: var(--ink) !important;
+}
+
+/* ---- 컴포저 ---- */
+.dd-chat .chat-composer {
+  padding: 10px 14px 12px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+
+/* 리액션은 댓글이 있을 때만 (빈 상태에서는 퀵칩과 중복) */
+.dd-chat.is-empty .chat-reactions { display: none; }
+.chat-reactions { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.chat-react {
+  height: 30px;
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--ink-muted) !important;
+  font-size: var(--text-label);
+  font-weight: 600;
+  cursor: pointer;
+}
+.chat-react [data-count] {
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+.chat-react:hover { background: var(--surface-hover); color: var(--ink) !important; }
+.chat-react.on,
+.chat-react.on:hover {
+  background: var(--accent-soft);
+  border-color: transparent;
+  color: var(--accent) !important;
+}
+.chat-react.on [data-count] { color: var(--accent); }
+
+/* 답글 대상 바 — 대상이 있을 때만 */
+.chat-reply-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: var(--text-label);
+  font-weight: 600;
+}
+.chat-reply-bar[hidden] { display: none !important; }
+.chat-reply-bar:has(#chat-reply-label:empty) { display: none; }
+.chat-reply-cancel {
+  height: auto;
+  min-height: auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit !important;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.chat-reply-cancel:hover { background: none; text-decoration: underline; }
+
+/* 입력 한 줄 */
+.chat-input-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+.chat-input-row textarea {
+  flex: 1;
+  min-width: 0;
+  min-height: 40px;
+  max-height: 120px;
+  height: 40px;
+  padding: 9px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-body-sm);
+  line-height: 1.45;
+  resize: none;
+}
+.chat-input-row textarea::placeholder { color: var(--ink-faint); }
+.chat-input-row textarea:focus-visible {
+  border-color: var(--accent);
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.chat-send {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0;
+  flex: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--accent-ink) !important;
+  cursor: pointer;
+}
+.chat-send:hover { background: var(--accent-hover); }
+
+/* 하단: 내 식별자 + 글자수 */
+.chat-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 6px;
+  font-size: var(--text-caption);
+  color: var(--ink-faint);
+}
+.chat-foot-id { font-variant-numeric: tabular-nums; letter-spacing: 0.03em; }
+.chat-foot .chat-count { margin: 0; font-variant-numeric: tabular-nums; }
+
+/* 말풍선 */
+.chat-row { max-width: 92%; }
+.chat-row .chat-nick {
+  font-size: var(--text-caption);
+  font-weight: 700;
+  color: var(--ink-muted);
+  letter-spacing: 0.03em;
+  margin-bottom: 3px;
+}
+.chat-bubble {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px 12px 12px 4px;
+  padding: 9px 11px;
+  font-size: var(--text-body-sm);
+  line-height: 1.5;
+}
+.chat-row.is-mine .chat-bubble {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  border-radius: 12px 12px 4px 12px;
+}
+
+@media (max-width: 959px) {
+  .dd-chat .chat-head { padding-right: 16px; }
 }
