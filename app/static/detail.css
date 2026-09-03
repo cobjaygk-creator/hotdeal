@@ -4,6 +4,70 @@
    기존 파일을 고치지 않고 이 파일만 추가/교체하면 됩니다.
    ============================================================ */
 
+/* ---- 0) 상품상세 / 댓글 각각 독립 프레임 ---- */
+@media (min-width: 960px) {
+  .modal .modal-panel.is-detail,
+  .modal-panel.is-detail {
+    background: var(--surface-sunken, #edf0f4);
+    padding: 12px;
+    gap: 0;
+    width: min(1120px, 100%);
+  }
+  .modal-panel.is-detail .modal-close {
+    top: 20px;
+    right: 20px;
+    z-index: 6;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 3px rgba(22, 24, 29, 0.08);
+  }
+  .modal-panel.is-detail .modal-close:hover {
+    background: var(--surface-hover, #f7f8fa);
+  }
+  .modal-panel.is-detail .dd-split,
+  .dd-page.is-detail .dd-split {
+    gap: 12px;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
+    align-items: stretch;
+    background: transparent;
+    padding: 0;
+    overflow: hidden;
+  }
+  .dd-page.is-detail {
+    background: var(--surface-sunken, #edf0f4);
+    border: 0;
+    padding: 12px;
+    box-shadow: none;
+  }
+  .modal-panel.is-detail .dd-main-col,
+  .modal-panel.is-detail .dd-chat,
+  .dd-page.is-detail .dd-main-col,
+  .dd-page.is-detail .dd-chat {
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--surface);
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(22, 24, 29, 0.04);
+  }
+  .modal-panel.is-detail .dd-chat,
+  .dd-page.is-detail .dd-chat {
+    border-left: 1px solid var(--border);
+  }
+  .dd-page.is-detail .dd-chat .chat-head {
+    padding-right: 16px; /* 상세 페이지에는 모달 닫기 없음 */
+  }
+}
+@media (max-width: 959px) {
+  .modal-panel.is-detail .dd-main-col,
+  .modal-panel.is-detail .dd-chat,
+  .dd-page.is-detail .dd-main-col,
+  .dd-page.is-detail .dd-chat {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}
+
 /* ---- 1) CTA: 스크롤 영역 밖 하단 고정 바 (목업) ---- */
 .dd-main-col {
   display: flex;
