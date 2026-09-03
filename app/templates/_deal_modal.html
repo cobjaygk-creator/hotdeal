@@ -7,7 +7,10 @@
       <button type="button" class="seg-chip" data-dd-pane="chat" role="tab" aria-selected="false">댓글 <span data-chat-count></span></button>
     </div>
     <div class="dd-split">
-      <div class="dd-main" id="modal-body"></div>
+      <div class="dd-main-col">
+        <div class="dd-main" id="modal-body"></div>
+        <div class="dd-cta" id="modal-cta" hidden></div>
+      </div>
       {% include "_deal_chat.html" %}
     </div>
   </div>

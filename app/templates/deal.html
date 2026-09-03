@@ -24,6 +24,7 @@
     <button type="button" class="seg-chip" data-dd-pane="chat" role="tab" aria-selected="false">댓글 <span data-chat-count>{{ comment_count }}</span></button>
   </div>
   <div class="dd-split">
+    <div class="dd-main-col">
     <div class="dd-main" id="modal-body">
       <div class="dd-head-actions">
         {% if deal.deal_url %}<a href="{{ deal.deal_url }}" target="_blank" rel="noopener">원본글</a>{% endif %}
@@ -164,14 +165,16 @@
         </div>
       </form>
 
-      <div class="dd-cta">
-        {% if deal.mall_url %}
-        <a class="btn" href="{{ deal.mall_url }}" target="_blank" rel="noopener">{% if deal.seller %}{{ deal.seller }}에서 {% endif %}{% if deal.price %}{{ "{:,}".format(deal.price) }}원 {% endif %}구매</a>
-        {% if deal.deal_url %}<a class="btn-secondary" href="{{ deal.deal_url }}" target="_blank" rel="noopener">원문</a>{% endif %}
-        {% elif deal.deal_url %}
-        <a class="btn" href="{{ deal.deal_url }}" target="_blank" rel="noopener">원문에서 확인</a>
-        {% endif %}
-      </div>
+    </div>
+    <div class="dd-cta" id="modal-cta">
+      {% if deal.mall_url %}
+      <a class="btn dd-cta-buy" href="{{ deal.mall_url }}" target="_blank" rel="noopener">{% if deal.seller %}{{ deal.seller }}에서 {% endif %}{% if deal.price %}{{ "{:,}".format(deal.price) }}원 {% endif %}구매</a>
+      {% if deal.deal_url %}<a class="btn-secondary dd-cta-source" href="{{ deal.deal_url }}" target="_blank" rel="noopener">원문</a>{% endif %}
+      {% elif deal.deal_url %}
+      <a class="btn dd-cta-buy" href="{{ deal.deal_url }}" target="_blank" rel="noopener">원문에서 확인</a>
+      {% endif %}
+      <button type="button" class="dd-cta-star bookmark-btn" data-deal-id="{{ deal.id }}" aria-label="북마크" title="북마크">☆</button>
+    </div>
     </div>
     {% include "_deal_chat.html" %}
   </div>

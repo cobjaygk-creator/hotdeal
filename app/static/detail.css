@@ -4,38 +4,98 @@
    기존 파일을 고치지 않고 이 파일만 추가/교체하면 됩니다.
    ============================================================ */
 
-/* ---- 1) CTA: 콘텐츠 위에 반투명하게 뜨던 것을 불투명 바로 ---- */
+/* ---- 1) CTA: 스크롤 영역 밖 하단 고정 바 (목업) ---- */
+.dd-main-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--surface);
+}
+@media (max-width: 959px) {
+  .dd-split[data-pane="chat"] .dd-main-col { display: none; }
+}
+.dd-main-col > .dd-main {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding-bottom: 20px;
+}
 .dd-cta {
-  position: sticky;
-  bottom: 0;
+  position: relative;
   z-index: 3;
   display: flex;
+  align-items: center;
   gap: 10px;
-  margin: 24px -20px 0;
-  padding: 14px 20px;
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 12px 16px 14px;
   background: var(--surface);
   border-top: 1px solid var(--border);
-  box-shadow: 0 -10px 18px -14px rgba(22, 24, 29, 0.22);
+  box-shadow: 0 -8px 20px -14px rgba(22, 24, 29, 0.28);
 }
-.dd-cta:empty { display: none; }
+.dd-cta[hidden],
+.dd-cta:empty { display: none !important; }
 .dd-cta .btn,
-.dd-cta a.btn {
+.dd-cta a.btn,
+.dd-cta .dd-cta-buy {
   flex: 1;
+  justify-content: center;
+  align-items: center;
+  display: inline-flex;
+  height: 48px;
+  min-height: 48px;
+  font-size: 15px;
+  font-weight: 700;
+  border-radius: 12px;
+  text-decoration: none;
+}
+.dd-cta .dd-cta-source,
+.dd-cta .btn-secondary {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
   height: 48px;
   min-height: 48px;
-  font-size: var(--text-card-title);
-  border-radius: 9px;
+  min-width: 64px;
+  padding: 0 16px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 700;
 }
-.dd-cta .btn-secondary,
-.dd-cta .ghost {
-  flex: 0 0 auto;
+.dd-cta .dd-cta-star,
+.dd-cta .bookmark-btn.dd-cta-star {
+  flex: 0 0 48px;
+  width: 48px;
   height: 48px;
   min-height: 48px;
-  border-radius: 9px;
+  margin: 0;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink-muted);
+  font-size: 20px;
+  line-height: 1;
+  opacity: 1;
+  box-shadow: none;
+}
+.dd-cta .dd-cta-star:hover,
+.dd-cta .bookmark-btn.dd-cta-star:hover {
+  background: var(--surface-sunken, #f3f5f8);
+  color: var(--ink);
+}
+.dd-cta .dd-cta-star.on,
+.dd-cta .bookmark-btn.dd-cta-star.on {
+  color: #f5a524;
+  border-color: #f5d28a;
+  background: #fff9ef;
 }
 @media (max-width: 639px) {
-  .dd-cta { margin: 20px -16px 0; padding: 12px 16px; }
+  .dd-cta { padding: 10px 12px 12px; gap: 8px; }
+  .dd-cta .dd-cta-source { min-width: 56px; padding: 0 12px; }
 }
 
 /* ---- 2) 쇼핑몰 시세: HTML 바 (커뮤니티) ---- */

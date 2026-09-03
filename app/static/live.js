@@ -639,6 +639,7 @@ syncBookmarksFromServer();
 
 const modal = document.getElementById("deal-modal");
 const modalBody = document.getElementById("modal-body");
+const modalCta = document.getElementById("modal-cta");
 let chart;
 let marketChart;
 let modalPushed = false;
@@ -662,6 +663,10 @@ function closeModal(opts) {
   if (marketChart) {
     marketChart.destroy();
     marketChart = null;
+  }
+  if (modalCta) {
+    modalCta.innerHTML = "";
+    modalCta.hidden = true;
   }
   marketLoadedFor = null;
   if (window.DealChat) window.DealChat.stop();
@@ -727,12 +732,24 @@ async function openModal(id, opts) {
   const buyLabel = deal.seller
     ? `${esc(deal.seller)}에서 ${won(deal.price)} 구매`
     : `${won(deal.price)} 구매하기`;
-  const cta = deal.mall_url
-    ? `<a class="btn" href="${esc(deal.mall_url)}" target="_blank" rel="noopener">${buyLabel}</a>` +
-      (isPostUrl(deal.deal_url) ? `<a class="btn-secondary" href="${esc(deal.deal_url)}" target="_blank" rel="noopener">원문</a>` : "")
-    : isPostUrl(deal.deal_url)
-      ? `<a class="btn" href="${esc(deal.deal_url)}" target="_blank" rel="noopener">원문에서 확인</a>`
-      : "";
+  const starred = isBookmarked(id);
+  const starBtn =
+    `<button type="button" class="dd-cta-star bookmark-btn${starred ? " on" : ""}" data-deal-id="${id}" aria-label="북마크" title="북마크">${starred ? "★" : "☆"}</button>`;
+  let ctaHtml = "";
+  if (deal.mall_url) {
+    ctaHtml =
+      `<a class="btn dd-cta-buy" href="${esc(deal.mall_url)}" target="_blank" rel="noopener">${buyLabel}</a>` +
+      (isPostUrl(deal.deal_url)
+        ? `<a class="btn-secondary dd-cta-source" href="${esc(deal.deal_url)}" target="_blank" rel="noopener">원문</a>`
+        : "") +
+      starBtn;
+  } else if (isPostUrl(deal.deal_url)) {
+    ctaHtml =
+      `<a class="btn dd-cta-buy" href="${esc(deal.deal_url)}" target="_blank" rel="noopener">원문에서 확인</a>` +
+      starBtn;
+  } else {
+    ctaHtml = starBtn;
+  }
   const similarHtml = similar.length
     ? `<h2 class="dd-section">비슷한 핫딜</h2><ul class="dd-similar">${similar
         .map((s) => `<li><a href="/deal/${s.id}" data-deal-id="${s.id}">${esc(s.product_name)}${s.price ? " · " + won(s.price) : ""}</a></li>`)
@@ -821,7 +838,6 @@ async function openModal(id, opts) {
       <button type="button" class="btn-secondary btn-sm" data-copy-link>링크 복사</button>
       <button type="button" class="btn-secondary btn-sm" data-share-link>공유</button>
     </p>
-    <div class="dd-cta">${cta}</div>
     <form class="dd-report" id="dd-report" hidden>
       <p style="margin:0;font-size:var(--text-body-sm);font-weight:700">신고하기</p>
       <select name="reason">
@@ -877,6 +893,11 @@ async function openModal(id, opts) {
     } else if (window.renderPriceChart) {
       chart = window.renderPriceChart("modal-chart", priceHistory, baseline);
     }
+  }
+  if (modalCta) {
+    modalCta.innerHTML = ctaHtml;
+    modalCta.hidden = !ctaHtml;
+    paintBookmarkButtons();
   }
   loadMarketCompare(id);
   if (window.DealChat) window.DealChat.open(id);
