@@ -8,24 +8,31 @@
 {% endblock %}
 {% block body %}
 <div class="page-head">
-  <h1>실시간 핫딜</h1>
-  <div class="page-head-actions">
-    <div class="page-meta">
+  <div>
+    <h1>실시간 핫딜</h1>
+    <div class="page-meta" id="live-meta" style="margin-top:8px">
       <span class="dot" id="live-dot"></span>
       <span id="live-status">연결 중…</span>
+      <span class="status-sep">·</span>
+      <span>오늘 특가 이상 <strong id="stat-strong">{{ stats.strong }}</strong>건</span>
+      <span class="status-sep">·</span>
+      <span>오늘 핫딜 <strong id="stat-hot">{{ stats.today_hot }}</strong>건</span>
       {% if is_admin %}
-      · 수집 <strong id="stat-last">{{ stats.last_collect_at | kst }}</strong>
+      <span class="status-sep">·</span>
+      <span>수집 <strong id="stat-last">{{ stats.last_collect_at | kst }}</strong></span>
       {% endif %}
+      <span id="stat-posts" hidden>{{ stats.posts }}</span>
     </div>
+  </div>
+  <div class="page-head-actions">
     {% if is_admin %}
-    <button type="button" id="collect-btn" class="btn-secondary">지금 수집</button>
+    <button type="button" id="collect-btn" class="btn-secondary">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3 4v3.5h3.5M13 12V8.5H9.5"></path><path d="M4 9a4.5 4.5 0 0 0 8 1.5M12 7a4.5 4.5 0 0 0-8-1.5"></path></svg>
+      지금 수집
+    </button>
     {% endif %}
   </div>
 </div>
-
-<span id="stat-hot" hidden>{{ stats.today_hot }}</span>
-<span id="stat-strong" hidden>{{ stats.strong }}</span>
-<span id="stat-posts" hidden>{{ stats.posts }}</span>
 {% if not is_admin %}
 <span id="stat-last" hidden>{{ stats.last_collect_at | kst }}</span>
 {% endif %}
@@ -35,6 +42,18 @@
   {% for c in categories %}
   <a class="filter-chip {% if category == c %}on{% endif %}" href="/?cat={{ c }}" role="tab" aria-selected="{{ 'true' if category == c else 'false' }}">{{ c }}</a>
   {% endfor %}
+</div>
+
+<div class="chip-row seg-row" style="margin-bottom:16px">
+  <span style="font-size:var(--text-caption);font-weight:700;color:var(--ink-faint)">정렬</span>
+  <div class="seg-group" id="sort-group" style="margin:0" role="tablist" aria-label="정렬">
+    <button type="button" class="seg-chip on" data-sort="recent" role="tab" aria-selected="true">최신</button>
+    <button type="button" class="seg-chip" data-sort="price-asc" role="tab" aria-selected="false">가격 낮은순</button>
+    <button type="button" class="seg-chip" data-sort="comments" role="tab" aria-selected="false">댓글 많은순</button>
+  </div>
+  <label class="chip" for="hide-soldout">
+    <input type="checkbox" id="hide-soldout"> 품절 숨기기
+  </label>
 </div>
 
 <ul class="deal-cards" id="deal-body">
@@ -60,7 +79,7 @@
   "sources": sources
 } | tojson | safe }}</script>
 {% include "_deal_modal.html" %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="/static/comments.js"></script>
 <script src="/static/live.js"></script>
+<script src="/static/list-controls.js" defer></script>
 {% endblock %}

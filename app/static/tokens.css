@@ -1,55 +1,94 @@
-/* UX Insight / event-bench style guide tokens */
+/* ============================================================
+   hotdeal design tokens — v2
+   변경 요지: 타이포 13종 → 7단계 / 브랜드 블루 4종 → 1종
+              라운드 8종 → 3종 / 다크 대응 값 1:1 정의
+   기존 변수명은 전부 유지(별칭으로 매핑)하므로 이 파일만
+   교체해도 나머지 CSS가 깨지지 않습니다.
+   ============================================================ */
 :root {
   color-scheme: light;
 
-  --bg: #f5f6f8;
+  /* ---- 타이포 스케일 (7단계) ---- */
+  --text-caption: 11px;      /* 시각·메타·카운트 */
+  --text-label: 12px;        /* 태그·칩·축 라벨 */
+  --text-body-sm: 13px;      /* 보조 설명·스펙 값 */
+  --text-body: 14px;         /* 기본 본문·버튼 */
+  --text-card-title: 15px;   /* 목록 제목 (유지) */
+  --text-title: 19px;        /* 상세 제목 */
+  --text-display: 26px;      /* 페이지 제목 */
+  --text-price: 17px;        /* 목록 가격 */
+  --text-price-lg: 30px;     /* 상세 가격 */
+
+  --lh-tight: 1.2;
+  --lh-title: 1.4;
+  --lh-body: 1.6;
+  --ls-display: -0.02em;     /* 한글 제목 자간 상한 */
+  --ls-title: -0.02em;
+  --ls-num: -0.03em;
+
+  /* 구 토큰 별칭 — 기존 선언이 그대로 동작 */
+  --text-xs: var(--text-caption);
+  --text-sm: var(--text-label);
+  --text-md: var(--text-body-sm);
+  --text-lg: var(--text-title);
+  --text-xl: var(--text-display);
+  --text-2xl: var(--text-display);
+
+  /* ---- 표면 / 잉크 ---- */
+  --bg: #f4f6f8;
   --surface: #ffffff;
-  --surface-sunken: #eef0f3;
-  --ink: #171b23;
+  --surface-sunken: #edf0f4;
+  --surface-hover: #f7f8fa;
+  --ink: #16181d;
   --ink-muted: #5b6472;
-  --ink-faint: #8891a0;
+  --ink-faint: #8b94a3;
+  --border: #e4e7ec;
+  --border-strong: #cdd2da;
+
+  /* ---- 프라이머리: 파랑은 실행·링크 전용 1개 ---- */
   --accent: #0052cc;
+  --accent-hover: #0747a6;
   --accent-ink: #ffffff;
-  --accent-soft: #deebff;
-  --border: #e2e5ea;
-  --border-strong: #ccd1d9;
-  --success: #2e8b57;
-  --warning: #c98a1b;
-  --danger: #c0473f;
-  --shadow: 0 1px 2px #171b230a, 0 6px 20px #171b230f;
-  --radius: 8px;
-  --font: "Pretendard", "Pretendard Variable", "Apple SD Gothic Neo",
-    "Noto Sans KR", sans-serif;
+  --accent-soft: #e6effd;
 
-  /* aliases used across hotdeal CSS */
-  --bg-elevated: var(--surface);
-  --card: var(--surface);
-  --muted: var(--ink-muted);
-  --line: var(--border);
-  --line-strong: var(--border-strong);
-  --chip-ink: #111111;
-  --down: #c0473f;
-  --up: var(--success);
-  --ok: var(--success);
+  /* ---- 의미색 ---- */
+  --success: #167c4a;        /* 최저가 갱신·라이브 정상 */
+  --warning: #b7791f;
+  --danger: #c81e1e;         /* 초특가·경고·에러 */
+  --price: #e11d48;          /* 가격 시그니처 */
 
-  --hot: #f47a20;
-  --hot-bg: #fff4eb;
-  --special: #c0473f;
-  --special-bg: #fdf2f2;
-  --super: #d8432c;
-  --super-bg: #fdf2f2;
-  --watch: #c98a1b;
-  --watch-bg: #fff8e8;
+  /* 선택 상태는 파랑이 아니라 잉크 */
+  --seg-active: var(--ink);
+  --seg-active-ink: #ffffff;
+
+  /* ---- 등급 ---- */
+  --super: #ffffff;          /* 초특가: 채운 배지 */
+  --super-bg: #c81e1e;
+  --super-line: #c81e1e;
+  --special: #c81e1e;        /* 특가: 테두리 배지 */
+  --special-bg: #fef0f0;
+  --special-line: #f0c4c0;
+  --hot: #c2410c;
+  --hot-bg: #fff3e8;
+  --hot-line: #fbd9be;
+  --watch: #96690e;
+  --watch-bg: #fff8e6;
+  --watch-line: #f3e1b4;
   --quiet: var(--ink-faint);
-  --quiet-bg: #f1f1f1;
+  --quiet-bg: #f1f3f6;
 
-  --radius-sm: 6px;
-  --radius-lg: 10px;
-  --radius-pill: 999px;
+  /* ---- 라운드 3종 ---- */
+  --radius-sm: 8px;          /* 칩·인풋·버튼 */
+  --radius: 8px;
+  --radius-lg: 12px;         /* 카드·패널 */
+  --radius-pill: 999px;      /* 배지·아바타 */
 
-  --shadow-sm: 0 1px 2px #171b230a;
-  --shadow-lg: 0 8px 24px #00000024;
+  /* ---- 그림자: 떠 있는 것에만 ---- */
+  --shadow-sm: none;
+  --shadow: 0 4px 16px #171b2314, 0 1px 3px #171b230f;
+  --shadow-lg: 0 12px 32px #171b2326;
 
+  /* ---- 간격 ---- */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -57,54 +96,65 @@
   --space-5: 20px;
   --space-6: 28px;
 
-  --text-xs: 11px;
-  --text-sm: 12px;
-  --text-md: 13.5px;
-  --text-lg: 17px;
-  --text-xl: 28px;
-  --text-2xl: 28px;
-
-  --header-h: 52px;
-  --sidebar-w: 220px;
+  /* ---- 레이아웃 ---- */
+  --header-h: 56px;
+  --sidebar-w: 216px;
   --maxw: 1320px;
-  --seg-active: #2f80ed;
+
+  --font: "Pretendard Variable", "Pretendard", "Apple SD Gothic Neo",
+    "Noto Sans KR", sans-serif;
+
+  /* 기존 별칭 유지 */
+  --bg-elevated: var(--surface);
+  --card: var(--surface);
+  --muted: var(--ink-muted);
+  --line: var(--border);
+  --line-strong: var(--border-strong);
+  --chip-ink: var(--ink);
+  --down: var(--price);
+  --up: var(--success);
+  --ok: var(--success);
 }
 
+/* ==================== DARK (OS 설정 + 수동 토글) ==================== */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
     --bg: #12151b;
     --surface: #1b1f27;
     --surface-sunken: #20242d;
+    --surface-hover: #232833;
     --ink: #edeff3;
     --ink-muted: #97a1b0;
     --ink-faint: #6b7382;
-    --accent: #579dff;
-    --accent-ink: #08182b;
-    --accent-soft: #1c2b41;
     --border: #2a2f3a;
     --border-strong: #3a4150;
+    --accent: #579dff;
+    --accent-hover: #7bb1ff;
+    --accent-ink: #08182b;
+    --accent-soft: #1c2b41;
     --success: #4caf7d;
     --warning: #e0a940;
     --danger: #e0685f;
-    --shadow: 0 1px 2px #0000004d, 0 8px 24px #00000059;
-    --chip-ink: #edeff3;
-    --down: #e0685f;
-    --up: #4caf7d;
-    --ok: #4caf7d;
-    --hot: #f47a20;
-    --hot-bg: #2a1a10;
-    --special: #e0685f;
+    --price: #fb7185;
+    --seg-active: #edeff3;
+    --seg-active-ink: #12151b;
+    --super: #12151b;
+    --super-bg: #f0918b;
+    --super-line: #f0918b;
+    --special: #f0918b;
     --special-bg: #2a1414;
-    --super: #e0685f;
-    --super-bg: #2a1414;
+    --special-line: #45201d;
+    --hot: #f6a970;
+    --hot-bg: #2a1a10;
+    --hot-line: #45291a;
     --watch: #e0a940;
     --watch-bg: #2a2410;
+    --watch-line: #453c1a;
     --quiet: #6b7382;
     --quiet-bg: #20242d;
-    --shadow-sm: 0 1px 2px #0000004d;
-    --shadow-lg: 0 8px 24px #00000059;
-    --seg-active: #2f80ed;
+    --shadow: 0 4px 16px #00000059, 0 1px 3px #0000004d;
+    --shadow-lg: 0 12px 32px #00000073;
   }
 }
 
@@ -113,33 +163,36 @@
   --bg: #12151b;
   --surface: #1b1f27;
   --surface-sunken: #20242d;
+  --surface-hover: #232833;
   --ink: #edeff3;
   --ink-muted: #97a1b0;
   --ink-faint: #6b7382;
-  --accent: #579dff;
-  --accent-ink: #08182b;
-  --accent-soft: #1c2b41;
   --border: #2a2f3a;
   --border-strong: #3a4150;
+  --accent: #579dff;
+  --accent-hover: #7bb1ff;
+  --accent-ink: #08182b;
+  --accent-soft: #1c2b41;
   --success: #4caf7d;
   --warning: #e0a940;
   --danger: #e0685f;
-  --shadow: 0 1px 2px #0000004d, 0 8px 24px #00000059;
-  --chip-ink: #edeff3;
-  --down: #e0685f;
-  --up: #4caf7d;
-  --ok: #4caf7d;
-  --hot: #f47a20;
-  --hot-bg: #2a1a10;
-  --special: #e0685f;
+  --price: #fb7185;
+  --seg-active: #edeff3;
+  --seg-active-ink: #12151b;
+  --super: #12151b;
+  --super-bg: #f0918b;
+  --super-line: #f0918b;
+  --special: #f0918b;
   --special-bg: #2a1414;
-  --super: #e0685f;
-  --super-bg: #2a1414;
+  --special-line: #45201d;
+  --hot: #f6a970;
+  --hot-bg: #2a1a10;
+  --hot-line: #45291a;
   --watch: #e0a940;
   --watch-bg: #2a2410;
+  --watch-line: #453c1a;
   --quiet: #6b7382;
   --quiet-bg: #20242d;
-  --shadow-sm: 0 1px 2px #0000004d;
-  --shadow-lg: 0 8px 24px #00000059;
-  --seg-active: #2f80ed;
+  --shadow: 0 4px 16px #00000059, 0 1px 3px #0000004d;
+  --shadow-lg: 0 12px 32px #00000073;
 }

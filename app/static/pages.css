@@ -1,216 +1,208 @@
-/* Family sale */
-.family-layout {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
-  align-items: start;
-}
+/* ============================================================
+   hotdeal pages — v2 (하드코딩 hex → 토큰 / 달력 셀 전체 클릭)
+   ============================================================ */
+
+/* ---------------- Family sale ---------------- */
+.family-layout { display: grid; grid-template-columns: 1fr; gap: 16px; align-items: start; }
 .family-cal-panel {
-  background: #fff;
-  border: 1px solid #dedede;
-  border-radius: 10px;
-  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px;
 }
 .cal-nav {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
-  font-size: var(--text-sm);
+  margin-bottom: 10px;
+  font-size: var(--text-body-sm);
 }
+.cal-nav strong { font-size: var(--text-body); font-weight: 800; letter-spacing: -0.01em; }
 .cal-nav a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
   text-decoration: none;
-  color: var(--ink);
-  padding: 6px 10px;
-  border-radius: 10px;
-  border: 1px solid var(--line);
-  background: var(--bg-elevated);
+  color: var(--ink-muted);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
   font-weight: 700;
 }
-table.calendar {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: fixed;
-}
+.cal-nav a:hover { background: var(--surface-hover); color: var(--ink); }
+
+table.calendar { width: 100%; border-collapse: collapse; table-layout: fixed; }
 table.calendar th,
 table.calendar td {
-  border: 1px solid var(--line);
+  border: 1px solid var(--border);
   vertical-align: top;
-  height: 52px;
-  padding: 4px;
-  font-size: var(--text-xs);
+  height: 54px;
+  padding: 0;
+  font-size: var(--text-caption);
 }
 table.calendar th {
-  color: var(--muted);
+  color: var(--ink-muted);
   font-weight: 700;
-  background: var(--bg-elevated);
+  background: var(--surface-sunken);
+  padding: 6px 4px;
+  height: auto;
 }
-table.calendar td.out {
-  background: var(--bg-elevated);
-  color: color-mix(in srgb, var(--muted) 70%, transparent);
-}
-table.calendar td.sel {
-  outline: 2px solid var(--accent);
-  outline-offset: -2px;
-  background: var(--accent-soft);
-}
+table.calendar td.out { background: var(--surface-sunken); color: var(--ink-faint); }
+table.calendar td.sel { outline: 2px solid var(--accent); outline-offset: -2px; background: var(--accent-soft); }
+/* 날짜 텍스트만 링크 → 셀 전체 클릭 */
 .cal-num {
+  display: block;
+  min-height: 54px;
+  padding: 5px 6px;
   color: inherit;
   text-decoration: none;
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
-.cal-count {
-  float: right;
-  font-size: 10px;
-  color: var(--muted);
-  font-weight: 700;
-}
+.cal-num:hover { background: var(--surface-hover); color: var(--ink); }
+td.sel .cal-num:hover { background: transparent; }
+.cal-count { float: right; font-size: 10px; color: var(--ink-muted); font-weight: 700; }
 .cal-count.code { color: var(--accent); }
-.cal-bars {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin-top: 4px;
-}
+.cal-bars { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; }
 .cal-bar {
   display: block;
   height: 4px;
   border-radius: 3px;
-  background: color-mix(in srgb, var(--accent) 45%, var(--line));
+  background: var(--border-strong);
 }
 .cal-bar.code { background: var(--accent); }
-.family-day-title { margin: 0 0 12px; font-size: var(--text-lg); color: var(--ink); font-weight: 800; }
+
+.family-day-title {
+  margin: 0 0 14px;
+  font-size: var(--text-title);
+  line-height: var(--lh-title);
+  letter-spacing: var(--ls-title);
+  color: var(--ink);
+  font-weight: 800;
+}
 .sale-list { list-style: none; padding: 0; margin: 0; }
 .sale-list li {
-  background: #fff;
-  border: 1px solid #dedede;
-  border-radius: 10px;
-  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
   margin-bottom: 8px;
 }
-.sale-list li.has-code {
-  border-color: color-mix(in srgb, var(--accent) 50%, var(--line));
-  box-shadow: inset 3px 0 0 var(--accent);
-}
-.sale-list a {
-  color: var(--ink);
-  text-decoration: none;
-  font-weight: 700;
-}
+.sale-list li.has-code { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+.sale-list a { color: var(--ink); text-decoration: none; font-weight: 700; }
 .sale-list a:hover { color: var(--accent); }
+.sale-list strong { font-size: var(--text-body); }
 
-.sale-cards {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
-}
-@media (min-width: 720px) {
-  .sale-cards { grid-template-columns: repeat(2, 1fr); }
-}
+.sale-cards { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: 1fr; gap: 10px; }
+@media (min-width: 720px) { .sale-cards { grid-template-columns: repeat(2, 1fr); } }
 .sale-card {
-  background: #fff;
-  border: 1px solid #dedede;
-  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
   overflow: hidden;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
-.sale-card.has-code {
-  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
-}
-.sale-card-body {
+.sale-card:hover { border-color: var(--border-strong); box-shadow: 0 2px 8px #171b230f; }
+.sale-card.has-code { border-color: color-mix(in srgb, var(--accent) 40%, var(--border)); }
+.sale-card-body { display: flex; flex-direction: column; gap: 8px; padding: 16px; min-height: 140px; }
+.sale-card .deal-topline {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 14px;
-  min-height: 140px;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-label);
+  color: var(--ink-faint);
+  font-weight: 600;
 }
+.sale-card .deal-title { white-space: normal; font-size: var(--text-card-title); }
+.sale-card .deal-foot {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: auto;
+}
+.sale-card .deal-cta { font-size: var(--text-label); font-weight: 700; color: var(--accent); }
 .sale-cards .empty { grid-column: 1 / -1; }
 .deal-cards .empty-row {
   grid-column: 1 / -1;
-  padding: 40px 16px;
-  border: 0;
+  padding: 48px 16px;
+  border: 1px solid var(--border);
   text-align: center;
-  background: #fff;
-  border-radius: 12px;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
 }
 .deal-detail-card {
-  background: #fff;
-  border: 1px solid #dedede;
-  border-radius: 10px;
-  padding: 18px 16px 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px 18px;
   margin-bottom: 18px;
 }
 
+/* ---------------- Forms ---------------- */
 .admin-form {
   display: grid;
-  gap: 10px;
+  gap: 12px;
   max-width: 520px;
-  background: #fff;
-  border: 1px solid #dedede;
-  border-radius: 10px;
-  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px;
 }
 .admin-form label {
   display: grid;
-  gap: 4px;
-  font-size: var(--text-sm);
-  color: var(--muted);
-  font-weight: 600;
+  gap: 5px;
+  font-size: var(--text-label);
+  color: var(--ink-muted);
+  font-weight: 700;
 }
 .admin-form input,
 .admin-form select {
-  padding: 10px 12px;
-  border-radius: 7px;
-  border: 1px solid var(--line);
+  height: 40px;
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
   font: inherit;
-  background: var(--bg-elevated);
+  font-size: var(--text-body);
+  background: var(--surface);
   color: var(--ink);
 }
-.oauth-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 12px 0;
-}
+.admin-form button { justify-self: start; }
+
+.oauth-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
 .oauth-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-height: 44px;
-  padding: 0 16px;
-  border-radius: 7px;
-  font-weight: 800;
+  padding: 0 18px;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-size: var(--text-body);
   text-decoration: none;
-  border: 1px solid var(--line);
-  color: var(--ink);
-  background: var(--card);
+  border: 1px solid var(--border-strong);
+  color: var(--ink) !important;
+  background: var(--surface);
 }
-.oauth-btn.kakao { background: #fee500; color: #191919; border-color: #fee500; }
-.oauth-btn.google { background: var(--card); }
+.oauth-btn:hover { background: var(--surface-hover); }
+.oauth-btn.kakao { background: #fee500; color: #191919 !important; border-color: #fee500; }
+.oauth-btn.kakao:hover { background: #f2da00; }
+.oauth-btn.google { background: var(--surface); }
 
-@media (min-width: 900px) {
-  .family-layout { grid-template-columns: 300px 1fr; }
-}
+@media (min-width: 900px) { .family-layout { grid-template-columns: 300px 1fr; } }
 
-/* Deal SSR page */
-.deal-page-actions { margin: 12px 0 8px; }
+/* ---------------- Deal SSR page ---------------- */
+.deal-page-actions { margin: 14px 0 8px; }
 .back-link {
   display: inline-flex;
-  margin-bottom: 8px;
-  color: var(--muted);
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+  color: var(--ink-muted);
   text-decoration: none;
-  font-size: var(--text-sm);
+  font-size: var(--text-body-sm);
   font-weight: 600;
 }
 .back-link:hover { color: var(--accent); }
-
-[data-theme="dark"] .family-cal-panel,
-[data-theme="dark"] .sale-list li,
-[data-theme="dark"] .sale-card,
-[data-theme="dark"] .deal-detail-card,
-[data-theme="dark"] .admin-form {
-  background: var(--surface);
-  border-color: var(--border);
-}

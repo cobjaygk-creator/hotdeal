@@ -6,11 +6,13 @@
 {% endblock %}
 {% block body %}
 <div class="page-head">
-  <h1>검색</h1>
-  <div class="page-meta">{% if q %}결과 {{ deals|length }}건{% else %}상품·판매처{% endif %}</div>
+  <div>
+    <h1>검색</h1>
+    <div class="page-meta" style="margin-top:8px">{% if q %}"{{ q }}" 결과 <strong>{{ deals|length }}</strong>건{% else %}상품명 또는 판매처로 찾습니다{% endif %}</div>
+  </div>
 </div>
 <form class="toolbar" method="get" action="/search">
-  <input type="search" name="q" value="{{ q }}" placeholder="상품·판매처" aria-label="검색어" required style="flex:1;min-width:180px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--card);font:inherit">
+  <input type="search" name="q" value="{{ q }}" placeholder="상품·판매처" aria-label="검색어" required style="flex:1;min-width:180px;max-width:420px">
   <button type="submit">검색</button>
 </form>
 <ul class="deal-cards" id="deal-body">
@@ -30,7 +32,6 @@
   "sourceLabels": source_labels
 } | tojson | safe }}</script>
 {% include "_deal_modal.html" %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="/static/comments.js"></script>
 <script src="/static/live.js"></script>
 {% endblock %}
