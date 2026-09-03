@@ -38,6 +38,7 @@ from app.engine import auth as user_auth
 from app.engine import comments as deal_comments
 from app.engine.alerts import add_sub, channels_ready, default_target, delete_sub, list_subs
 from app.engine.category import CATEGORIES as DEAL_CATEGORIES
+from app.engine.naver_seed import get_market_compare
 from app.engine.ppomppu_enrich import enrich_missing_ppomppu_malls
 from app.family.parse import parse_discount
 from app.family.pipeline import collect_family_sales
@@ -946,6 +947,22 @@ async def api_deal(deal_id: int):
     deal["user_comments"] = counts.get(deal_id, 0)
     deal["comment_count"] = deal["user_comments"]
     return deal
+
+
+@app.get("/api/deals/{deal_id}/market")
+async def api_deal_market(deal_id: int, refresh: int = 0):
+    deal = await _get_deal(deal_id)
+    if not deal:
+        raise HTTPException(404, "deal not found")
+    return await get_market_compare(
+        _db(),
+        product_key=deal.get("product_key") or "",
+        product_name=deal.get("product_name") or "",
+        deal_price=deal.get("price"),
+        deal_seller=deal.get("seller"),
+        deal_url=deal.get("mall_url") or deal.get("deal_url"),
+        force=bool(refresh),
+    )
 
 
 @app.get("/api/deals/{deal_id}/comments")

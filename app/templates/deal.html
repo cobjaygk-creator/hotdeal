@@ -43,6 +43,7 @@
       </div>
       <div class="seg-group dd-inner-tabs" role="tablist">
         <button type="button" class="seg-chip on" data-inner-tab="spec">상품 정보</button>
+        <button type="button" class="seg-chip" data-inner-tab="market">가격 비교</button>
         {% if history|length >= 2 %}<button type="button" class="seg-chip" data-inner-tab="chart">가격 흐름</button>{% endif %}
         <button type="button" class="seg-chip" data-inner-tab="posts">원문</button>
       </div>
@@ -56,6 +57,11 @@
         {% if deal.sample_count %}<div class="dd-spec-row"><span>표본</span><strong>{{ deal.sample_count }}건</strong></div>{% endif %}
         {% if deal.category %}<div class="dd-spec-row"><span>카테고리</span><strong>{{ deal.category }}</strong></div>{% endif %}
         {% if deal.first_seen_at %}<div class="dd-spec-row"><span>최초 확인</span><strong>{{ deal.first_seen_at | kst }}</strong></div>{% endif %}
+      </div>
+      <div class="dd-market" data-inner-pane="market" hidden>
+        <p class="muted" id="market-status">시세를 불러오는 중…</p>
+        <div class="dd-market-chart-wrap"><canvas id="market-chart" height="180"></canvas></div>
+        <ul class="dd-market-list" id="market-list"></ul>
       </div>
       {% if history|length >= 2 %}
       <div class="dd-chart" data-inner-pane="chart" hidden>
@@ -142,6 +148,7 @@ document.querySelectorAll("[data-inner-tab]").forEach((btn) => {
     const tab = btn.dataset.innerTab;
     document.querySelectorAll("[data-inner-tab]").forEach((b) => b.classList.toggle("on", b === btn));
     document.querySelectorAll("[data-inner-pane]").forEach((p) => { p.hidden = p.dataset.innerPane !== tab; });
+    if (tab === "market" && window.loadMarketCompare) window.loadMarketCompare({{ deal.id }});
   });
 });
 document.querySelector("[data-copy-link]")?.addEventListener("click", async () => {

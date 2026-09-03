@@ -583,8 +583,10 @@ syncBookmarksFromServer();
 const modal = document.getElementById("deal-modal");
 const modalBody = document.getElementById("modal-body");
 let chart;
+let marketChart;
 let modalPushed = false;
 let modalOpenId = null;
+let marketLoadedFor = null;
 
 function specRow(label, value) {
   if (value == null || value === "" || value === "-") return "";
@@ -600,6 +602,11 @@ function closeModal(opts) {
     chart.destroy();
     chart = null;
   }
+  if (marketChart) {
+    marketChart.destroy();
+    marketChart = null;
+  }
+  marketLoadedFor = null;
   if (window.DealChat) window.DealChat.stop();
   const wasOpen = modalOpenId;
   modalOpenId = null;
@@ -685,6 +692,7 @@ async function openModal(id, opts) {
     </div>
     <div class="seg-group dd-inner-tabs" role="tablist">
       <button type="button" class="seg-chip on" data-inner-tab="spec">상품 정보</button>
+      <button type="button" class="seg-chip" data-inner-tab="market">가격 비교</button>
       ${showChart ? `<button type="button" class="seg-chip" data-inner-tab="chart">가격 흐름</button>` : ""}
       <button type="button" class="seg-chip" data-inner-tab="posts">원문</button>
     </div>
@@ -698,6 +706,11 @@ async function openModal(id, opts) {
       ${deal.sample_count ? specRow("표본", esc(deal.sample_count) + "건") : ""}
       ${specRow("카테고리", esc(deal.category || ""))}
       ${deal.first_seen_at ? specRow("최초 확인", esc(kst(deal.first_seen_at))) : ""}
+    </div>
+    <div class="dd-market" data-inner-pane="market" hidden>
+      <p class="muted" id="market-status">시세를 불러오는 중…</p>
+      <div class="dd-market-chart-wrap"><canvas id="market-chart" height="180"></canvas></div>
+      <ul class="dd-market-list" id="market-list"></ul>
     </div>
     ${showChart ? `<div class="dd-chart" data-inner-pane="chart" hidden><canvas id="modal-chart" height="120"></canvas></div>` : ""}
     <ul class="dd-posts" data-inner-pane="posts" hidden>${postHtml}</ul>
@@ -735,6 +748,7 @@ async function openModal(id, opts) {
       modalBody.querySelectorAll("[data-inner-pane]").forEach((p) => {
         p.hidden = p.dataset.innerPane !== tab;
       });
+      if (tab === "market") loadMarketCompare(id);
     });
   });
   modalBody.querySelector("[data-copy-link]")?.addEventListener("click", async () => {
@@ -782,6 +796,85 @@ async function openModal(id, opts) {
     });
   }
   if (window.DealChat) window.DealChat.open(id);
+}
+
+window.loadMarketCompare = loadMarketCompare;
+async function loadMarketCompare(dealId) {
+  if (marketLoadedFor === Number(dealId)) return;
+  const status = document.getElementById("market-status");
+  const list = document.getElementById("market-list");
+  const canvas = document.getElementById("market-chart");
+  if (status) status.textContent = "시세를 불러오는 중…";
+  if (list) list.innerHTML = "";
+  try {
+    const res = await fetch("/api/deals/" + dealId + "/market");
+    const data = await res.json();
+    marketLoadedFor = Number(dealId);
+    if (!data.enabled) {
+      if (status) status.textContent = data.note || "시세 비교를 사용할 수 없습니다.";
+      if (canvas) canvas.hidden = true;
+      return;
+    }
+    const items = data.items || [];
+    if (!items.length) {
+      if (status) status.textContent = data.note || "비슷한 상품 시세를 찾지 못했습니다.";
+      if (canvas) canvas.hidden = true;
+      return;
+    }
+    if (status) {
+      status.textContent = data.fetched_at
+        ? `네이버 쇼핑 시세 · ${kst(data.fetched_at)} 기준`
+        : "네이버 쇼핑 시세";
+    }
+    if (list) {
+      list.innerHTML = items
+        .map((item) => {
+          const label = item.is_deal ? `${esc(item.mall)} · 현재 딜` : esc(item.mall);
+          const link = item.url
+            ? `<a href="${esc(item.url)}" target="_blank" rel="noopener">${won(item.price)}</a>`
+            : won(item.price);
+          return `<li class="${item.is_deal ? "is-deal" : ""}"><span class="dd-market-mall">${label}</span><span class="dd-market-price">${link}</span></li>`;
+        })
+        .join("");
+    }
+    if (canvas && window.Chart) {
+      canvas.hidden = false;
+      if (marketChart) {
+        marketChart.destroy();
+        marketChart = null;
+      }
+      const labels = items.map((x) => x.mall);
+      const prices = items.map((x) => x.price);
+      const colors = items.map((x) => (x.is_deal ? "#e11d48" : "#2f80ed"));
+      marketChart = new Chart(canvas, {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [
+            {
+              label: "가격",
+              data: prices,
+              backgroundColor: colors,
+              borderRadius: 6,
+              maxBarThickness: 28,
+            },
+          ],
+        },
+        options: {
+          indexAxis: "y",
+          plugins: { legend: { display: false } },
+          scales: {
+            x: {
+              ticks: { callback: (v) => Number(v).toLocaleString("ko-KR") + "원" },
+            },
+          },
+        },
+      });
+    }
+  } catch (err) {
+    console.error(err);
+    if (status) status.textContent = "시세를 불러오지 못했습니다.";
+  }
 }
 
 window.addEventListener("popstate", (e) => {

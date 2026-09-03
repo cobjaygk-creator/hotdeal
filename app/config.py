@@ -69,6 +69,8 @@ NAVER_CLIENT_SECRET = os.environ.get("NAVER_CLIENT_SECRET", "").strip()
 NAVER_SEED_ENABLED = bool(NAVER_CLIENT_ID and NAVER_CLIENT_SECRET)
 NAVER_SEED_CACHE_DAYS = 7
 NAVER_SEED_MIN_SIMILARITY = 0.35
+# Refresh Naver mall price comparison on deal detail after this many hours.
+MARKET_COMPARE_CACHE_HOURS = int(os.environ.get("MARKET_COMPARE_CACHE_HOURS") or "6")
 DETAIL_ENRICH_ENABLED = True
 # Re-enrich already-seen posts that still lack thumbnail or mall_url.
 DETAIL_BACKFILL_PER_SOURCE = 8

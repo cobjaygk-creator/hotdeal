@@ -840,6 +840,23 @@ body.modal-open { overflow: hidden; }
 .dd-spec-row strong { font-weight: 600; color: var(--ink); }
 .dd-posts { list-style: none; padding: 0; margin: 0; }
 .dd-posts li { padding: 8px 0; border-bottom: 1px solid var(--line); }
+.dd-market { margin: 0 0 8px; }
+.dd-market-chart-wrap { margin: 8px 0 12px; }
+.dd-market-list { list-style: none; padding: 0; margin: 0; }
+.dd-market-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--text-md);
+}
+.dd-market-list li.is-deal .dd-market-mall { color: #e11d48; font-weight: 700; }
+.dd-market-list li.is-deal .dd-market-price { color: #e11d48; font-weight: 800; }
+.dd-market-mall { color: var(--ink); font-weight: 600; }
+.dd-market-price a { color: inherit; text-decoration: none; font-weight: 700; }
+.dd-market-price a:hover { text-decoration: underline; }
 .dd-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 14px 0; }
 .dd-tag {
   padding: 4px 8px;

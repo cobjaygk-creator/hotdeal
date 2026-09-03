@@ -188,9 +188,23 @@ CREATE TABLE IF NOT EXISTS deal_reports (
 );
 
 CREATE INDEX IF NOT EXISTS idx_posts_posted ON posts(posted_at);
+CREATE TABLE IF NOT EXISTS market_listings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    product_key TEXT NOT NULL,
+    mall TEXT NOT NULL,
+    title TEXT NOT NULL,
+    price INTEGER NOT NULL,
+    url TEXT,
+    product_id TEXT,
+    similarity REAL,
+    fetched_at TEXT NOT NULL,
+    UNIQUE(product_key, mall, product_id)
+);
+
 CREATE INDEX IF NOT EXISTS idx_deal_comments_deal ON deal_comments(deal_id, id);
 CREATE INDEX IF NOT EXISTS idx_deal_reactions_deal ON deal_reactions(deal_id, kind);
 CREATE INDEX IF NOT EXISTS idx_deal_reports_created ON deal_reports(created_at);
+CREATE INDEX IF NOT EXISTS idx_market_listings_key ON market_listings(product_key, fetched_at);
 CREATE INDEX IF NOT EXISTS idx_posts_source ON posts(source, source_post_id);
 CREATE INDEX IF NOT EXISTS idx_deals_seen ON deals(last_seen_at);
 CREATE INDEX IF NOT EXISTS idx_deals_grade ON deals(grade);
@@ -349,6 +363,10 @@ async def _ensure_columns(conn: aiosqlite.Connection) -> None:
         await _ensure_comment_tables(conn)
     except Exception:
         logging.getLogger("hotdeal").exception("comment tables failed")
+    try:
+        await _ensure_market_tables(conn)
+    except Exception:
+        logging.getLogger("hotdeal").exception("market tables failed")
 
 
 async def _ensure_auth_tables(conn: aiosqlite.Connection) -> None:
@@ -453,6 +471,27 @@ async def _ensure_comment_tables(conn: aiosqlite.Connection) -> None:
         CREATE INDEX IF NOT EXISTS idx_deal_comments_deal ON deal_comments(deal_id, id);
         CREATE INDEX IF NOT EXISTS idx_deal_reactions_deal ON deal_reactions(deal_id, kind);
         CREATE INDEX IF NOT EXISTS idx_deal_reports_created ON deal_reports(created_at);
+        """
+    )
+
+
+async def _ensure_market_tables(conn: aiosqlite.Connection) -> None:
+    await conn.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS market_listings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            product_key TEXT NOT NULL,
+            mall TEXT NOT NULL,
+            title TEXT NOT NULL,
+            price INTEGER NOT NULL,
+            url TEXT,
+            product_id TEXT,
+            similarity REAL,
+            fetched_at TEXT NOT NULL,
+            UNIQUE(product_key, mall, product_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_market_listings_key
+            ON market_listings(product_key, fetched_at);
         """
     )
 
