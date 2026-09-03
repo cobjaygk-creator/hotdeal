@@ -372,7 +372,8 @@ button:disabled,
   border: 0;
   border-radius: 7px;
   background: transparent;
-  color: var(--ink-muted);
+  /* 전역 button { color: … !important } 를 덮어씀 */
+  color: var(--ink-muted) !important;
   font: inherit;
   font-size: 13px;
   font-weight: 600;
@@ -387,10 +388,14 @@ button:disabled,
   appearance: none;
   transition: background 0.15s ease, color 0.15s ease;
 }
-.seg-chip:hover { opacity: 1; color: var(--ink); background: transparent; }
+.seg-chip:hover {
+  opacity: 1;
+  color: var(--ink) !important;
+  background: transparent;
+}
 .seg-chip.on,
 .seg-chip.on:hover {
-  color: var(--ink);
+  color: var(--ink) !important;
   background: var(--surface);
   font-weight: 700;
   box-shadow: 0 1px 2px #171b2314;
@@ -412,7 +417,9 @@ button:disabled,
 }
 .chip-row.seg-row { margin-bottom: 12px; gap: 10px; }
 
-/* 목록 정렬 필 (목업: 검정 활성 + 개별 알약) */
+/* 목록 정렬 필 (목업: 검정 활성 + 개별 알약)
+   전역 button { color: accent-ink !important } 때문에 비활성 필 글자가
+   흰 배경에 흰 글자로 사라지던 문제를 !important 로 덮어씀 */
 .sort-row {
   display: flex;
   flex-wrap: wrap;
@@ -442,6 +449,7 @@ button:disabled,
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
+  width: auto;
   min-width: max-content;
   height: 34px;
   min-height: 34px;
@@ -449,12 +457,13 @@ button:disabled,
   padding: 0 14px;
   border: 1px solid var(--border);
   border-radius: 999px;
-  background: var(--surface);
-  color: var(--ink-muted);
+  background: var(--surface) !important;
+  color: var(--ink-muted) !important;
   font: inherit;
   font-size: 13px;
   font-weight: 600;
   line-height: 1.2;
+  letter-spacing: -0.01em;
   cursor: pointer;
   user-select: none;
   white-space: nowrap;
@@ -464,23 +473,23 @@ button:disabled,
   transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 .sort-pill:hover {
-  color: var(--ink);
+  color: var(--ink) !important;
   border-color: var(--border-strong);
-  background: var(--surface);
+  background: var(--surface) !important;
 }
 .sort-pill.on,
 .sort-pill.on:hover,
 .sort-pill[aria-pressed="true"],
 .sort-pill[aria-pressed="true"]:hover {
-  color: #fff;
-  background: var(--ink);
+  color: #fff !important;
+  background: var(--ink) !important;
   border-color: var(--ink);
   font-weight: 700;
 }
 [data-theme="dark"] .sort-pill.on,
 [data-theme="dark"] .sort-pill[aria-pressed="true"] {
-  color: #12151b;
-  background: #edeff3;
+  color: #12151b !important;
+  background: #edeff3 !important;
   border-color: #edeff3;
 }
 
