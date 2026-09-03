@@ -10,39 +10,46 @@
   var hideSoldout = false;
   try { hideSoldout = localStorage.getItem("deal-hide-soldout") === "1"; } catch (e) {}
   var busy = false;
+  var timer = null;
 
   function num(li, attr) {
     var v = parseFloat(li.getAttribute(attr) || "");
     return isNaN(v) ? null : v;
   }
 
+  function compare(a, b) {
+    if (mode === "price-asc") {
+      var pa = num(a, "data-price"), pb = num(b, "data-price");
+      if (pa === null && pb === null) return 0;
+      if (pa === null) return 1;
+      if (pb === null) return -1;
+      return pa - pb;
+    }
+    if (mode === "discount") {
+      var da = num(a, "data-discount"), db = num(b, "data-discount");
+      if (da === null && db === null) return 0;
+      if (da === null) return 1;
+      if (db === null) return -1;
+      // discount_rate는 음수(더 할인일수록 작음) → 오름차순
+      return da - db;
+    }
+    if (mode === "comments") {
+      return (num(b, "data-comments") || 0) - (num(a, "data-comments") || 0);
+    }
+    return String(b.getAttribute("data-ts") || "").localeCompare(String(a.getAttribute("data-ts") || ""));
+  }
+
   function applySort() {
     var items = Array.prototype.slice.call(list.querySelectorAll("li.deal-card"));
     if (!items.length) return;
-    items.sort(function (a, b) {
-      if (mode === "price-asc") {
-        var pa = num(a, "data-price"), pb = num(b, "data-price");
-        if (pa === null && pb === null) return 0;
-        if (pa === null) return 1;
-        if (pb === null) return -1;
-        return pa - pb;
-      }
-      if (mode === "discount") {
-        var da = num(a, "data-discount"), db = num(b, "data-discount");
-        if (da === null && db === null) return 0;
-        if (da === null) return 1;
-        if (db === null) return -1;
-        // discount_rate는 음수(더 할인일수록 작음) → 오름차순
-        return da - db;
-      }
-      if (mode === "comments") {
-        return (num(b, "data-comments") || 0) - (num(a, "data-comments") || 0);
-      }
-      return String(b.getAttribute("data-ts") || "").localeCompare(String(a.getAttribute("data-ts") || ""));
-    });
+    var sorted = items.slice().sort(compare);
+    var unchanged = sorted.every(function (el, i) { return el === items[i]; });
+    if (unchanged) return;
+
     busy = true;
-    items.forEach(function (li) { list.appendChild(li); });
-    busy = false;
+    sorted.forEach(function (li) { list.appendChild(li); });
+    // MutationObserver는 동기 블록 이후에 돌아가므로 busy를 마이크로태스크에서 해제
+    Promise.resolve().then(function () { busy = false; });
   }
 
   function applyHide() {
@@ -86,7 +93,6 @@
     });
   }
 
-  var timer = null;
   new MutationObserver(function () {
     if (busy) return;
     clearTimeout(timer);
