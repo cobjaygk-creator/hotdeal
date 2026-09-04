@@ -811,7 +811,6 @@ async def api_mvno_collect():
 
     async with state["collect_lock"]:
         summary = await collect_mvno_plans(state["db"], state["http"])
-    await set_meta(state["db"], "last_mvno_collect_at", utcnow_iso())
     return JSONResponse(summary)
 
 
