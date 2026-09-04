@@ -7,7 +7,7 @@ from urllib.parse import urljoin, urlparse
 
 from selectolax.parser import HTMLParser
 
-from app.config import PPOMPPU_PROXY_URL
+from app.config import FMKOREA_BROWSER_DETAIL, PPOMPPU_PROXY_URL
 from app.http_client import PoliteClient
 from app.parse.links import (
     coupang_product_url,
@@ -180,7 +180,7 @@ async def enrich_post(client: PoliteClient, source: str, url: str) -> DetailEnri
             break
     if last_err:
         log.warning("detail enrich exhausted source=%s url=%s", source, url)
-    if blocked and source == "fmkorea":
+    if blocked and source == "fmkorea" and FMKOREA_BROWSER_DETAIL:
         enriched = await _enrich_fmkorea_via_browser(client, url)
         if enriched is not None:
             return enriched

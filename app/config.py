@@ -26,8 +26,8 @@ MIN_REQUEST_INTERVAL_SEC = 1.0
 COLLECT_INTERVAL_MINUTES = 3
 PPOMPPU_INTERVAL_SECONDS = int((os.environ.get("PPOMPPU_INTERVAL_SECONDS") or "30").strip() or "30")
 COLLECT_FAST_SECONDS = int((os.environ.get("COLLECT_FAST_SECONDS") or "30").strip() or "30")
-COLLECT_PROXY_SECONDS = int((os.environ.get("COLLECT_PROXY_SECONDS") or "60").strip() or "60")
-COLLECT_SLOW_MINUTES = int((os.environ.get("COLLECT_SLOW_MINUTES") or "5").strip() or "5")
+COLLECT_PROXY_SECONDS = int((os.environ.get("COLLECT_PROXY_SECONDS") or "150").strip() or "150")
+COLLECT_SLOW_MINUTES = int((os.environ.get("COLLECT_SLOW_MINUTES") or "15").strip() or "15")
 FAMILY_SALE_INTERVAL_MINUTES = 30
 AMAZON_JP_INTERVAL_MINUTES = 30
 AMAZON_JP_ASSOCIATE_TAG = os.environ.get("AMAZON_JP_ASSOCIATE_TAG", "").strip()
@@ -90,6 +90,16 @@ PPOMPPU_PROXY_URL = (os.environ.get("PPOMPPU_PROXY_URL") or "").strip()
 FMKOREA_BROWSER_ENABLED = (
     os.environ.get("FMKOREA_BROWSER_ENABLED") or "1"
 ).strip().lower() not in ("", "0", "false", "no")
+# Also route FMKorea *detail* pages through the headless browser when the plain
+# fetch is gate-blocked. Off by default: detail enrich runs many times per tick,
+# and full browser page loads burn residential-proxy GB fast. List-only is cheap.
+FMKOREA_BROWSER_DETAIL = (
+    os.environ.get("FMKOREA_BROWSER_DETAIL") or "0"
+).strip().lower() not in ("", "0", "false", "no")
+# Minimum seconds between any two headless FMKorea fetches (proxy-GB guard).
+FMKOREA_BROWSER_MIN_GAP_SEC = int(
+    (os.environ.get("FMKOREA_BROWSER_MIN_GAP_SEC") or "45").strip() or "45"
+)
 # Proxy for the FMKorea browser. Falls back to PPOMPPU_PROXY_URL. Prefer a
 # sticky-session endpoint: put "{session}" in the URL and it is replaced with a
 # token that rotates every few minutes so one page load stays on one exit IP.
@@ -105,9 +115,9 @@ PPOMPPU_ENRICH_INTERVAL_MINUTES = int(
 )
 MALL_ENRICH_INTERVAL_SECONDS = max(
     15,
-    int((os.environ.get("MALL_ENRICH_INTERVAL_SECONDS") or "30").strip() or "30"),
+    int((os.environ.get("MALL_ENRICH_INTERVAL_SECONDS") or "90").strip() or "90"),
 )
-PPOMPPU_ENRICH_BATCH = int((os.environ.get("PPOMPPU_ENRICH_BATCH") or "24").strip() or "24")
+PPOMPPU_ENRICH_BATCH = int((os.environ.get("PPOMPPU_ENRICH_BATCH") or "12").strip() or "12")
 
 SITE_URL = (os.environ.get("SITE_URL") or "").strip().rstrip("/")
 if not SITE_URL:

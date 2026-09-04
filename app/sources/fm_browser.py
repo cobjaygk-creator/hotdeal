@@ -24,6 +24,7 @@ import time
 
 from app.config import (
     FMKOREA_BROWSER_ENABLED,
+    FMKOREA_BROWSER_MIN_GAP_SEC,
     FMKOREA_PROXY_SESSION_TTL_SEC,
     FMKOREA_PROXY_URL,
     USER_AGENT,
@@ -45,9 +46,15 @@ _BLOCKED_URL_PARTS = (
     "google-analytics", "googletagmanager", "doubleclick", "adservice",
     "/pagead/", "facebook.net", "connect.facebook", "criteo", "taboola",
     "outbrain", "adsystem", "amazon-adsystem", "clarity.ms", "hotjar",
+    "google.com/ads", "googlesyndication", "adsbygoogle", "coupang",
+    "linkprice", "acecounter", "analytics", "gtag/js", "wcslog",
 )
+# Scripts only from these hosts get through; everything else (ads, widgets,
+# third-party JS) is aborted. The gate + board list only need fmkorea's own JS.
+_ALLOWED_SCRIPT_HOSTS = ("fmkorea.com", "fmkorea.org")
 
 _lock = asyncio.Lock()
+_last_fetch_ts = 0.0
 _pw = None
 _browser = None
 _context = None
@@ -152,15 +159,17 @@ async def _ensure_context():
 
 
 async def _route_filter(route) -> None:
-    """Abort heavy / tracking resources; keep documents, scripts and wasm."""
+    """Abort heavy / tracking resources; keep the document, fmkorea's own JS
+    and the gate's wasm. Third-party scripts are dropped — the board list is
+    server-rendered and the gate only needs fmkorea.com scripts."""
     try:
         req = route.request
-        if req.resource_type in _BLOCKED_RESOURCE_TYPES or any(
-            p in req.url for p in _BLOCKED_URL_PARTS
-        ):
-            await route.abort()
-        else:
-            await route.continue_()
+        rtype = req.resource_type
+        url = req.url
+        drop = rtype in _BLOCKED_RESOURCE_TYPES or any(p in url for p in _BLOCKED_URL_PARTS)
+        if not drop and rtype == "script":
+            drop = not any(h in url for h in _ALLOWED_SCRIPT_HOSTS)
+        await (route.abort() if drop else route.continue_())
     except Exception:  # noqa: BLE001
         try:
             await route.continue_()
@@ -193,12 +202,17 @@ async def fetch_html(
     timeout: float = 35.0,
 ) -> str | None:
     """Return page HTML after the gate clears, or None if unavailable."""
-    global _captcha_until
+    global _captcha_until, _last_fetch_ts
     if not FMKOREA_BROWSER_ENABLED:
         return None
     if time.time() < _captcha_until:
         return None  # still cooling off from a Turnstile hit
     async with _lock:
+        # Rate-limit: full browser page loads burn residential-proxy GB.
+        gap = time.time() - _last_fetch_ts
+        if gap < FMKOREA_BROWSER_MIN_GAP_SEC:
+            return None
+        _last_fetch_ts = time.time()
         ctx = await _ensure_context()
         if ctx is None:
             return None
