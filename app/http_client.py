@@ -131,22 +131,26 @@ class PoliteClient:
                 continue
 
             resp.raise_for_status()
-            if not proxy:
-                if etag := resp.headers.get("ETag"):
-                    self._etag[url] = etag
-                if lm := resp.headers.get("Last-Modified"):
-                    self._modified[url] = lm
             final_url = str(resp.url) if resp.url else url
             decoded = self._decode(final_url, resp.status_code, resp.content, encoding, resp.encoding)
             # Some boards return HTTP 200 with an HTML 403 body to datacenter IPs.
             head = decoded.text[:800].lower()
-            if "403 forbidden" in head or "just a moment" in head:
+            blocked = "403 forbidden" in head or "just a moment" in head
+            if blocked:
+                self._etag.pop(url, None)
+                self._modified.pop(url, None)
                 if curl_fallback:
                     log.warning("soft-block body on %s, falling back to curl (proxy=%s)", url, bool(proxy))
                     return await self._curl_get(
                         url, encoding, timeout=req_timeout, proxy=proxy
                     )
                 log.warning("soft-block body on %s (proxy=%s)", url, bool(proxy))
+                return decoded
+            if not proxy:
+                if etag := resp.headers.get("ETag"):
+                    self._etag[url] = etag
+                if lm := resp.headers.get("Last-Modified"):
+                    self._modified[url] = lm
             return decoded
 
         if last_error:

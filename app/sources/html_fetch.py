@@ -1,12 +1,19 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from urllib.parse import urlparse
 
 from app.config import PPOMPPU_PROXY_URL
 from app.http_client import FetchResult, PoliteClient
 from app.sources import RawPost
 
 ParseFn = Callable[[str], list[RawPost]]
+
+# Railway datacenter IPs hit Cloudflare on these hosts; use the KR proxy first.
+PROXY_FIRST_HOSTS = (
+    "arca.live",
+    "damoang.net",
+)
 
 _BLOCK_MARKERS = (
     "just a moment",
@@ -17,7 +24,6 @@ _BLOCK_MARKERS = (
     "checking your browser",
     "enable javascript and cookies to continue",
     "please checking if the site connection is secure",
-    "cdn-cgi/l/email-protection",
 )
 
 
@@ -39,17 +45,35 @@ async def fetch_parsed(
     encoding: str | None = None,
     timeout: float | None = None,
 ) -> list[RawPost]:
-    result = await client.get(url, encoding=encoding, timeout=timeout)
-    if result.not_modified:
-        return []
-    reason = block_reason(result)
-    if reason and PPOMPPU_PROXY_URL:
+    host = (urlparse(url).hostname or "").lower()
+    prefer_proxy = bool(PPOMPPU_PROXY_URL) and any(
+        host == item or host.endswith("." + item) for item in PROXY_FIRST_HOSTS
+    )
+    proxy_tries: list[str | None] = []
+    if prefer_proxy:
+        proxy_tries.append(PPOMPPU_PROXY_URL)
+        proxy_tries.append(None)
+    else:
+        proxy_tries.append(None)
+        if PPOMPPU_PROXY_URL:
+            proxy_tries.append(PPOMPPU_PROXY_URL)
+
+    result = None
+    reason = None
+    for proxy in proxy_tries:
         result = await client.get(
-            url, encoding=encoding, timeout=timeout or 20.0, proxy=PPOMPPU_PROXY_URL
+            url,
+            encoding=encoding,
+            timeout=timeout or (20.0 if proxy else None),
+            proxy=proxy,
         )
         if result.not_modified:
             return []
         reason = block_reason(result)
+        if not reason:
+            break
+    if result is None:
+        raise RuntimeError(f"empty fetch ({url})")
     if reason:
         raise RuntimeError(f"{reason} ({url})")
     posts = parse_fn(result.text)
