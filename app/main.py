@@ -1314,6 +1314,41 @@ async def api_debug_feed(limit: int = 40):
         return {"ok": False, "error": f"{type(exc).__name__}: {exc}"}
 
 
+@app.get("/api/debug/fmbrowser")
+async def api_debug_fmbrowser(url: str | None = None):
+    """TEMP: what the headless-browser fetcher gets for FMKorea."""
+    _require_collect()
+    from selectolax.parser import HTMLParser
+
+    from app.sources import fm_browser
+    from app.sources.fmkorea import LIST_URL, parse_list
+
+    target = url or LIST_URL
+    html = await fm_browser.fetch_html(target, want_selector="li.li h3.title a[href]")
+    if html is None:
+        return JSONResponse(
+            {"target": target, "html": None, "disabled_reason": fm_browser._disabled_reason}
+        )
+    tree = HTMLParser(html)
+    posts = []
+    try:
+        posts = parse_list(html)
+    except Exception as exc:  # noqa: BLE001
+        posts = f"parse error: {type(exc).__name__}: {exc}"
+    return JSONResponse(
+        {
+            "target": target,
+            "len": len(html),
+            "li_li": len(tree.css("li.li")),
+            "title_anchors": len(tree.css("li.li h3.title a[href]")),
+            "gate_markers": [m for m in fm_browser._GATE_MARKERS if m in html[:8000]],
+            "title_tag": (tree.css_first("title").text() if tree.css_first("title") else None),
+            "parsed": len(posts) if isinstance(posts, list) else posts,
+            "head": html[:2500],
+        }
+    )
+
+
 @app.get("/api/debug/probe/{source}")
 async def api_debug_probe(source: str):
     """Temporary HTML-structure probe; only when collect is enabled (Render)."""
