@@ -78,6 +78,13 @@ MALL_HOST_PARTS = (
     "soldout.co.kr",
 )
 
+# Outbound warning pages that prefix the real shop URL.
+WRAPPER_HOST_PARTS = (
+    "unsafelink.com",
+    "href.li",
+    "linkvertise.com",
+)
+
 JUNK_HOST_PARTS = (
     "youtube.com",
     "youtu.be",
@@ -127,7 +134,7 @@ def extract_mall_url(*texts: str | None) -> str | None:
                 if is_mall_url(candidate):
                     return candidate
             # Community redirectors may unwrap to a brand shop not on the allow-list.
-            if any(part in url.lower() for part in COMMUNITY_HOST_PARTS):
+            if any(part in url.lower() for part in COMMUNITY_HOST_PARTS + WRAPPER_HOST_PARTS):
                 for candidate in expanded[1:]:
                     if _is_loose_shop_url(candidate):
                         return candidate
@@ -157,7 +164,7 @@ def _is_loose_shop_url(url: str | None) -> bool:
         host = (parsed.hostname or "").lower()
     except ValueError:
         return False
-    if not host or any(part in host for part in COMMUNITY_HOST_PARTS):
+    if not host or any(part in host for part in COMMUNITY_HOST_PARTS + WRAPPER_HOST_PARTS):
         return False
     if any(part in host for part in JUNK_HOST_PARTS):
         return False
@@ -181,7 +188,7 @@ def is_mall_url(url: str | None) -> bool:
         return False
     if not host:
         return False
-    if any(part in host for part in COMMUNITY_HOST_PARTS):
+    if any(part in host for part in COMMUNITY_HOST_PARTS + WRAPPER_HOST_PARTS):
         return False
     if not any(part in host for part in MALL_HOST_PARTS):
         return False
@@ -204,6 +211,10 @@ def is_mall_url(url: str | None) -> bool:
 def _expand_candidates(url: str) -> list[str]:
     raw = _clean_url(url)
     out = [raw]
+    wrapper = _unwrap_link_wrapper(raw)
+    if wrapper:
+        out.append(wrapper)
+        out.extend(_expand_candidates(wrapper)[1:])
     unwrapped = _unwrap_ppomppu_target(raw)
     if unwrapped:
         out.append(unwrapped)
@@ -233,6 +244,29 @@ def _clean_url(url: str) -> str:
     raw = html.unescape((url or "").strip())
     raw = TRAILING_CJK_RE.sub("", raw)
     return raw.rstrip(").,;]'\"}»>")
+
+
+def _unwrap_link_wrapper(url: str) -> str | None:
+    """Peel unsafelink.com/https://shop... style warning prefixes."""
+    try:
+        parsed = urlparse(url)
+        host = (parsed.hostname or "").lower()
+    except ValueError:
+        return None
+    if not host or not any(part in host for part in WRAPPER_HOST_PARTS):
+        return None
+    # Query string belongs to the inner shop URL, not the wrapper host.
+    lower = url.lower()
+    host_at = lower.find(host)
+    rest = url[host_at + len(host) :].lstrip("/") if host_at >= 0 else ""
+    rest = unquote(rest)
+    if rest.startswith("http://") or rest.startswith("https://"):
+        return _clean_url(rest)
+    if rest.startswith("https:/"):
+        return _clean_url("https://" + rest[len("https:/") :])
+    if rest.startswith("http:/"):
+        return _clean_url("http://" + rest[len("http:/") :])
+    return None
 
 
 def _unwrap_ppomppu_target(url: str) -> str | None:

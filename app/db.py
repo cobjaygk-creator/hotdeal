@@ -338,6 +338,11 @@ async def _ensure_columns(conn: aiosqlite.Connection) -> None:
         await set_meta(conn, "cleaned_truncated_mall_urls", "1")
 
     try:
+        await _unwrap_wrapper_mall_urls(conn)
+    except Exception:
+        logging.getLogger("hotdeal").exception("mall wrapper unwrap skipped")
+
+    try:
         await _backfill_categories(conn)
     except Exception:
         logging.getLogger("hotdeal").exception("category backfill failed")
@@ -520,6 +525,32 @@ async def _ensure_amazon_jp_table(conn: aiosqlite.Connection) -> None:
     await conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_amazon_jp_active ON amazon_jp_deals(active, discount_rate)"
     )
+
+
+async def _unwrap_wrapper_mall_urls(conn: aiosqlite.Connection) -> None:
+    from app.parse.links import extract_shop_url
+
+    cur = await conn.execute(
+        """
+        SELECT id, mall_url FROM deals
+        WHERE mall_url LIKE '%unsafelink.com%'
+           OR mall_url LIKE '%href.li/%'
+        """
+    )
+    rows = [dict(r) for r in await cur.fetchall()]
+    changed = 0
+    for row in rows:
+        fixed = extract_shop_url(row["mall_url"])
+        if not fixed or fixed == row["mall_url"]:
+            continue
+        await conn.execute(
+            "UPDATE deals SET mall_url=? WHERE id=?",
+            (fixed, row["id"]),
+        )
+        changed += 1
+    if changed:
+        await conn.commit()
+        logging.getLogger("hotdeal").info("unwrapped %s mall wrapper urls", changed)
 
 
 async def _backfill_categories(conn: aiosqlite.Connection) -> None:

@@ -63,6 +63,19 @@ def test_unwrap_ppomppu_target_base64():
     )
 
 
+def test_unwrap_unsafelink_prefix():
+    from app.parse.links import extract_shop_url, is_mall_url
+
+    wrapped = (
+        "https://unsafelink.com/https://seorincomputer.co.kr/"
+        "shop/system_detail.html?sid=PC-1"
+    )
+    assert extract_shop_url(wrapped) == (
+        "https://seorincomputer.co.kr/shop/system_detail.html?sid=PC-1"
+    )
+    assert not is_mall_url(wrapped)
+
+
 def test_unwrap_community_to_brand_shop():
     from app.parse.links import extract_shop_url
 
