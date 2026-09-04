@@ -380,6 +380,17 @@ async def _ensure_columns(conn: aiosqlite.Connection) -> None:
         )
         await set_meta(conn, "cleaned_junk_mall_urls_v3", "1")
 
+    weak_malls = await get_meta(conn, "cleaned_weak_mall_urls_v1")
+    if weak_malls != "1":
+        await conn.execute(
+            """
+            UPDATE deals
+            SET mall_url=NULL
+            WHERE lower(mall_url) LIKE '%/today_deals%'
+            """
+        )
+        await set_meta(conn, "cleaned_weak_mall_urls_v1", "1")
+
     try:
         await _unwrap_wrapper_mall_urls(conn)
     except Exception:

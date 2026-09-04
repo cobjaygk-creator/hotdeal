@@ -18,6 +18,7 @@ from app.parse.links import (
     is_junk_mall_url,
     is_mall_url,
     is_oliveyoung_short,
+    is_weak_mall_url,
 )
 from app.parse.sanitize_html import sanitize_body_html
 from app.http_client import soft_block_reason
@@ -55,6 +56,16 @@ BODY_SELECTORS = (
     "#article",
     "td.han",
     "#article_1",
+)
+
+# Board meta rows: prefer these over free-form body links (coupon tips etc.).
+BOARD_LINK_LABELS = (
+    "구매링크",
+    "관련링크",
+    "쇼핑링크",
+    "상품링크",
+    "판매링크",
+    "링크",
 )
 
 IMG_SRC_RE = re.compile(r"""<img[^>]+src\s*=\s*["']([^"']+)["']""", re.I)
@@ -269,7 +280,21 @@ def parse_detail(html: str, page_url: str = "") -> DetailEnrichment:
     if thumb and page_url:
         thumb = urljoin(page_url, thumb)
     body_text = _body_blob(tree)
-    mall = extract_goto_shop(html) or extract_shop_url(html, body_text, title)
+    # 1) Board "구매/관련링크" field  2) goToLink / body  3) whole-page fallback
+    board_mall = _extract_board_field_mall(tree)
+    body_mall = _extract_body_mall(tree)
+    mall = (
+        board_mall
+        or extract_goto_shop(html)
+        or body_mall
+        or extract_shop_url(html, body_text, title)
+    )
+    # Prefer a strong board/body URL over a weak whole-page hit.
+    if mall and is_weak_mall_url(mall):
+        for candidate in (board_mall, body_mall, extract_goto_shop(html)):
+            if candidate and not is_weak_mall_url(candidate):
+                mall = candidate
+                break
     body_html = _extract_body_html(tree, page_url)
     return DetailEnrichment(
         title=title or None,
@@ -404,3 +429,65 @@ def _extract_body_html(tree: HTMLParser, page_url: str = "") -> str | None:
     if not raw:
         return None
     return sanitize_body_html(raw, base_url=page_url)
+
+
+def _label_text(node) -> str:
+    return " ".join((node.text() or "").split())
+
+
+def _is_board_link_label(text: str) -> bool:
+    label = (text or "").strip()
+    if not label or len(label) > 16:
+        return False
+    for item in BOARD_LINK_LABELS:
+        if item == "링크":
+            if label == "링크":
+                return True
+            continue
+        if label == item or label.startswith(item):
+            return True
+    return False
+
+
+def _extract_board_field_mall(tree: HTMLParser) -> str | None:
+    """Prefer the dedicated board link field over free-form body URLs."""
+    weak: str | None = None
+    for node in tree.css("th, td, dt, strong, b, span, div, p, li"):
+        if not _is_board_link_label(_label_text(node)):
+            continue
+        container = node.parent or node
+        # Prefer the adjacent cell / following siblings inside the same row.
+        blobs: list[str] = []
+        sibling = node.next
+        steps = 0
+        while sibling is not None and steps < 4:
+            html = sibling.html or ""
+            if html:
+                blobs.append(html)
+            sibling = sibling.next
+            steps += 1
+        if container is not None and container.html:
+            blobs.append(container.html)
+        for blob in blobs:
+            found = extract_shop_url(blob) or extract_goto_shop(blob)
+            if not found or is_junk_mall_url(found):
+                continue
+            if is_weak_mall_url(found):
+                weak = weak or found
+                continue
+            return found
+    return weak
+
+
+def _extract_body_mall(tree: HTMLParser) -> str | None:
+    for sel in BODY_SELECTORS:
+        root = tree.css_first(sel)
+        if not root:
+            continue
+        blob = root.html or ""
+        if not blob.strip():
+            continue
+        found = extract_shop_url(blob) or extract_goto_shop(blob)
+        if found and not is_junk_mall_url(found):
+            return found
+    return None

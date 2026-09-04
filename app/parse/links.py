@@ -216,6 +216,11 @@ def prefers_mall(candidate: str | None, current: str | None) -> bool:
         return False
     if not current or is_junk_mall_url(current):
         return True
+    # Listing/coupon landings (e.g. ohou today_deals) lose to real PDPs.
+    if is_weak_mall_url(current) and not is_weak_mall_url(candidate):
+        return True
+    if is_weak_mall_url(candidate) and not is_weak_mall_url(current):
+        return False
     return _mall_pref_key(candidate) < _mall_pref_key(current)
 
 
@@ -224,10 +229,14 @@ def _mall_pref_key(url: str) -> tuple:
     raw = (url or "").strip().lower()
     try:
         host = (urlparse(raw).hostname or "").lower()
+        path = (urlparse(raw).path or "").lower()
     except ValueError:
         host = ""
+        path = ""
     if is_junk_mall_url(url):
         return (9, raw)
+    if is_weak_mall_url(url):
+        return (7, raw)
     if "coupang.com" in host and "/vp/products/" in raw:
         return (0, raw)
     if "coupang.com" in host and "lptag=" in raw:
@@ -244,6 +253,9 @@ def _mall_pref_key(url: str) -> tuple:
             return (2, raw)
         if host == "oy.run" or host.endswith(".oy.run"):
             return (4, raw)
+        # Prefer product paths over generic store roots.
+        if any(tok in path for tok in ("/goods/", "/product", "/item", "/vp/products/")):
+            return (2, raw)
         return (3, raw)
     return (6, raw)
 
@@ -266,6 +278,31 @@ def is_oliveyoung_short(url: str | None) -> bool:
     except ValueError:
         return False
     return host == "oy.run" or host.endswith(".oy.run")
+
+
+def is_weak_mall_url(url: str | None) -> bool:
+    """True for coupon/listing landings that are rarely the actual buy target."""
+    if not url or is_junk_mall_url(url):
+        return True
+    try:
+        parsed = urlparse(url.strip())
+        host = (parsed.hostname or "").lower()
+        path = (parsed.path or "").lower()
+        query = (parsed.query or "").lower()
+    except ValueError:
+        return True
+    if not host:
+        return True
+    if "/today_deals" in path or path.rstrip("/").endswith("/today_deals"):
+        return True
+    if "ohou.se" in host and "activeindex=" in query:
+        return True
+    if path.rstrip("/") in {"", "/store", "/shop", "/goods", "/products"}:
+        return True
+    # Category / event list pages without a product id segment.
+    if any(tok in path for tok in ("/event/", "/events/", "/coupon", "/category/", "/categories/")):
+        return True
+    return False
 
 
 def _host_has(host: str, needle: str) -> bool:

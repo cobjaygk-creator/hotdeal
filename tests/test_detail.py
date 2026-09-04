@@ -2,6 +2,40 @@ from app.sources.detail import enrich_from_list_body, parse_detail
 from app.sources.quasarzone import parse_list
 
 
+def test_parse_detail_prefers_board_link_over_body_coupon():
+    from app.sources.detail import parse_detail
+
+    target_goods = "aHR0cHM6Ly9zdG9yZS5vaG91LnNlL2dvb2RzLzQxOTM5NTk="
+    target_coupon = "aHR0cHM6Ly9zdG9yZS5vaG91LnNlL3RvZGF5X2RlYWxzP2FjdGl2ZUluZGV4PTI="
+    html = f"""
+    <html><head><meta property="og:title" content="[오늘의집] 빈츠 세트 - 뽐뿌"></head>
+    <body>
+      <table>
+        <tr><th>관련링크</th><td>
+          <a href="https://s.ppomppu.co.kr?idno=ppomppu_1&target={target_goods}">buy</a>
+        </td></tr>
+      </table>
+      <div class="board-contents">
+        <p>쿠폰 받으세요</p>
+        <a href="https://s.ppomppu.co.kr?idno=x&target={target_coupon}">coupon</a>
+        <a href="https://store.ohou.se/today_deals?activeIndex=2">today</a>
+      </div>
+    </body></html>
+    """
+    detail = parse_detail(html, "https://www.ppomppu.co.kr/zboard/view.php?id=ppomppu&no=1")
+    assert detail.mall_url == "https://store.ohou.se/goods/4193959"
+
+
+def test_weak_today_deals_loses_to_goods():
+    from app.parse.links import is_weak_mall_url, prefers_mall
+
+    weak = "https://store.ohou.se/today_deals?activeIndex=2"
+    goods = "https://store.ohou.se/goods/4193959"
+    assert is_weak_mall_url(weak)
+    assert not is_weak_mall_url(goods)
+    assert prefers_mall(goods, weak)
+
+
 def test_parse_detail_quasarzone_gotolink():
     from app.sources.detail import parse_detail
 

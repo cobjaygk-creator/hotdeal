@@ -74,6 +74,7 @@ async def enrich_missing_ppomppu_malls(
                 OR lower(d.mall_url) LIKE '%dajooda.com%'
                 OR lower(d.mall_url) LIKE '%nhnace.com%'
                 OR lower(d.mall_url) LIKE '%acecounter.com%'
+                OR lower(d.mall_url) LIKE '%/today_deals%'
                 OR lower(d.mall_url) LIKE '%oy.run/%'
                 OR (
                   p.source = 'quasarzone'
