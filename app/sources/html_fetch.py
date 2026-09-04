@@ -13,6 +13,7 @@ ParseFn = Callable[[str], list[RawPost]]
 PROXY_FIRST_HOSTS = (
     "arca.live",
     "damoang.net",
+    "quasarzone.com",
 )
 
 _BLOCK_MARKERS = (

@@ -46,6 +46,31 @@ def test_enrich_from_rss_body():
     assert detail.mall_url == "https://www.coupang.com/vp/products/1"
 
 
+def test_quasarzone_v2_list_row():
+    html = """
+    <div class="v2-list-row v2-list-row--hotdeal" data-qc-id="1983943"
+         data-preview="https://img2.quasarzone.com/a.webp?">
+      <a href="/bbs/qb_saleinfo/views/1983943" class="subject-link">[지마켓] 필립스 모니터</a>
+      <span class="v2-list-row__price">￦870,510원</span>
+      <span class="ctn-count">1</span>
+      <span class="qc-count-hit">218</span>
+      <span class="v2-list-row__time">21분 전</span>
+      <span data-nick="로젠CJ"></span>
+    </div>
+    <div class="v2-list-row" data-qc-id="1">
+      <a href="/bbs/qb_saleinfo/views/1" class="subject-link">[기타] 핫딜 게시판 안내</a>
+    </div>
+    """
+    posts = parse_list(html)
+    assert len(posts) == 1
+    assert posts[0].source_post_id == "1983943"
+    assert "필립스" in posts[0].title
+    assert "870,510" in posts[0].title
+    assert posts[0].author == "로젠CJ"
+    assert posts[0].comments == 1
+    assert posts[0].extra["thumbnail_url"].startswith("https://img2.quasarzone.com/")
+
+
 def test_quasarzone_views_fallback():
     html = """
     <html><body>

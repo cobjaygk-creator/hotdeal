@@ -49,3 +49,23 @@ async def test_fetch_parsed_uses_proxy_first_for_arca(monkeypatch):
     )
     assert len(posts) == 1
     assert client.calls[0] == "http://proxy.test:1"
+
+
+@pytest.mark.asyncio
+async def test_fetch_parsed_uses_proxy_first_for_quasarzone(monkeypatch):
+    monkeypatch.setattr("app.sources.html_fetch.PPOMPPU_PROXY_URL", "http://proxy.test:1")
+    client = _FakeClient()
+    posts = await fetch_parsed(
+        client,
+        "https://quasarzone.com/bbs/qb_saleinfo",
+        lambda html: [
+            RawPost(
+                source="quasarzone",
+                source_post_id="1",
+                url="https://quasarzone.com/bbs/qb_saleinfo/views/1",
+                title="t",
+            )
+        ],
+    )
+    assert len(posts) == 1
+    assert client.calls[0] == "http://proxy.test:1"
