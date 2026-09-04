@@ -283,9 +283,21 @@ function isPostUrl(url) {
   return typeof url === "string" && /^https?:\/\//i.test(url.trim());
 }
 
-function renderRow(deal, { fresh = false } = {}) {
+const FRESH_STAGGER_MS = 150;
+const FRESH_PULSE_MS = 5000;
+const FRESH_DROP_MS = 700;
+
+function renderRow(deal, { fresh = false, freshIndex = 0 } = {}) {
   const li = document.createElement("li");
   li.className = "deal-card" + (fresh ? (isHot(deal) ? " fresh hot-fresh" : " fresh") : "");
+  if (fresh) {
+    const delay = freshIndex * FRESH_STAGGER_MS;
+    li.style.setProperty("--fresh-delay", `${delay}ms`);
+    window.setTimeout(() => {
+      li.classList.remove("fresh", "hot-fresh");
+      li.style.removeProperty("--fresh-delay");
+    }, delay + FRESH_PULSE_MS + FRESH_DROP_MS);
+  }
   li.dataset.id = String(deal.id);
   li.dataset.sources = deal.sources || "";
   li.dataset.ts = deal.last_seen_at || "";
@@ -478,15 +490,17 @@ function prefersReducedMotion() {
 
 function flipPrepend(rows, { animate = false } = {}) {
   if (!bodyEl || !rows.length) return;
+  // Prepend oldest-of-batch first so newest ends on top with delay 0.
+  const insertRows = [...rows].reverse();
   if (!animate || prefersReducedMotion()) {
-    for (const row of rows) bodyEl.prepend(row);
+    for (const row of insertRows) bodyEl.prepend(row);
     return;
   }
   const prev = new Map();
   bodyEl.querySelectorAll(".deal-card[data-id]").forEach((el) => {
     prev.set(el.dataset.id, el.getBoundingClientRect());
   });
-  for (const row of rows) bodyEl.prepend(row);
+  for (const row of insertRows) bodyEl.prepend(row);
   requestAnimationFrame(() => {
     bodyEl.querySelectorAll(".deal-card[data-id]").forEach((el) => {
       const first = prev.get(el.dataset.id);
@@ -495,14 +509,21 @@ function flipPrepend(rows, { animate = false } = {}) {
       const dx = first.left - last.left;
       const dy = first.top - last.top;
       if (!dx && !dy) return;
+      el.classList.add("is-shifting");
       el.style.transition = "none";
       el.style.transform = `translate(${dx}px, ${dy}px)`;
+      // Fade-out at old spot, then fade-in while settling into the new spot.
+      el.style.opacity = "0.12";
       requestAnimationFrame(() => {
-        el.style.transition = "transform 0.9s cubic-bezier(0.22, 1, 0.36, 1)";
+        el.style.transition =
+          "transform 780ms cubic-bezier(0.22, 1, 0.36, 1), opacity 560ms ease-in-out";
         el.style.transform = "";
+        el.style.opacity = "1";
         const clear = (ev) => {
           if (ev.propertyName && ev.propertyName !== "transform") return;
           el.style.transition = "";
+          el.style.opacity = "";
+          el.classList.remove("is-shifting");
           el.removeEventListener("transitionend", clear);
         };
         el.addEventListener("transitionend", clear);
@@ -549,7 +570,7 @@ function ingest(items, { animate = false, allowInsert = true } = {}) {
     if (config.seller && deal.seller !== config.seller) continue;
     if (config.category && deal.category !== config.category) continue;
     seen.add(id);
-    rows.push(renderRow(deal, { fresh: animate }));
+    rows.push(renderRow(deal, { fresh: animate, freshIndex: rows.length }));
   }
   if (rows.length) {
     bodyEl.querySelector(".empty-row")?.remove();
