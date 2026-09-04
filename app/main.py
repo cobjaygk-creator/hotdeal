@@ -7,6 +7,7 @@ import logging
 import math
 import re
 import secrets
+import time
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from hashlib import sha256
@@ -77,6 +78,9 @@ TEMPLATES.env.filters["clean_title"] = clean_deal_title
 TEMPLATES.env.globals["site_url"] = SITE_URL
 TEMPLATES.env.globals["amazon_jp_enabled"] = AMAZON_JP_ENABLED
 TEMPLATES.env.globals["mvno_enabled"] = MVNO_ENABLED
+# Cache-busting query param for /static/*.css|js — was always empty (never
+# set), so browsers kept serving stale CSS/JS across deploys indefinitely.
+TEMPLATES.env.globals["v"] = str(int(time.time()))
 TEMPLATES.env.globals["website_jsonld"] = {
     "@context": "https://schema.org",
     "@graph": [
