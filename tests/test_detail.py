@@ -41,6 +41,9 @@ def test_parse_detail_og_and_mall():
       <div class="board-contents">
         <a href="https://www.coupang.com/vp/products/99">구매</a>
         <img src="https://cdn.example.com/b.jpg">
+        <p>세탁할 때 보조로 쓰면 됩니다</p>
+        <script>alert(1)</script>
+        <img src="javascript:alert(1)">
       </div>
     </body></html>
     """
@@ -48,6 +51,31 @@ def test_parse_detail_og_and_mall():
     assert detail.title and "테스트 상품" in detail.title
     assert detail.thumbnail_url == "https://cdn.example.com/a.jpg"
     assert detail.mall_url == "https://www.coupang.com/vp/products/99"
+    assert detail.body_html
+    assert "세탁할 때" in detail.body_html
+    assert "cdn.example.com/b.jpg" in detail.body_html
+    assert "<script" not in detail.body_html.lower()
+    assert "javascript:" not in detail.body_html.lower()
+
+
+def test_sanitize_strips_xss():
+    from app.parse.sanitize_html import sanitize_body_html
+
+    dirty = (
+        '<p onclick="alert(1)">안녕</p>'
+        '<a href="javascript:alert(1)">x</a>'
+        '<img src="https://cdn.example.com/ok.jpg" onerror="alert(1)">'
+        '<img data-src="/rel.jpg">'
+    )
+    clean = sanitize_body_html(dirty, base_url="https://board.example.com/view/1")
+    assert clean
+    assert "onclick" not in clean
+    assert "javascript:" not in clean
+    assert "onerror" not in clean
+    assert 'src="https://cdn.example.com/ok.jpg"' in clean
+    assert 'src="https://board.example.com/rel.jpg"' in clean
+    assert 'referrerpolicy="no-referrer"' in clean
+
 
 
 def test_parse_detail_ppomppu_shortener():

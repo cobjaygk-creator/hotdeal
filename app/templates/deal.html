@@ -94,6 +94,11 @@
         <p class="mkt-note" id="market-note" hidden></p>
       </div>
 
+      {% if deal.body_html %}
+      <h2 class="dd-section">원문 내용{% if deal.body_source %} <span class="dd-section-sub">{{ source_labels.get(deal.body_source, deal.body_source) }}</span>{% endif %}</h2>
+      <div class="dd-body-html">{{ deal.body_html | safe }}</div>
+      {% endif %}
+
       <h2 class="dd-section">상품 정보</h2>
       <div class="dd-spec">
         {% if deal.seller %}<div class="dd-spec-row"><span>쇼핑몰</span><strong>{{ deal.seller }}</strong></div>{% endif %}
@@ -219,6 +224,45 @@
       }
     }
     setTimeout(tick, 1500);
+  })();
+  {% endif %}
+
+  {% if not deal.body_html %}
+  (function pollBody() {
+    var tries = 0;
+    var labels = {{ source_labels | tojson }};
+    async function tick() {
+      tries += 1;
+      try {
+        var res = await fetch("/api/deals/{{ deal.id }}", { cache: "no-store" });
+        if (!res.ok) throw new Error("bad");
+        var d = await res.json();
+        if (!d.body_html) {
+          if (tries < 8) setTimeout(tick, 2000);
+          return;
+        }
+        var market = document.querySelector(".dd-market");
+        if (!market || document.querySelector(".dd-body-html")) return;
+        var h = document.createElement("h2");
+        h.className = "dd-section";
+        h.textContent = "원문 내용";
+        if (d.body_source) {
+          var sub = document.createElement("span");
+          sub.className = "dd-section-sub";
+          sub.textContent = labels[d.body_source] || d.body_source;
+          h.appendChild(document.createTextNode(" "));
+          h.appendChild(sub);
+        }
+        var box = document.createElement("div");
+        box.className = "dd-body-html";
+        box.innerHTML = d.body_html;
+        market.insertAdjacentElement("afterend", h);
+        h.insertAdjacentElement("afterend", box);
+      } catch (e) {
+        if (tries < 8) setTimeout(tick, 2500);
+      }
+    }
+    setTimeout(tick, 1800);
   })();
   {% endif %}
 

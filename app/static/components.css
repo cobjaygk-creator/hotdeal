@@ -594,8 +594,8 @@ button:disabled,
   display: flex;
   flex: 1;
   min-width: 0;
-  gap: 14px;
-  padding: 14px 8px 14px 14px;
+  gap: 0;
+  padding: 14px 8px 14px 0;
   text-decoration: none;
   color: inherit;
 }
@@ -607,11 +607,21 @@ button:disabled,
   justify-content: center;
   width: 72px;
   flex: 0 0 72px;
+  margin: 14px 14px 14px 14px;
   padding: 0;
   background: transparent;
   overflow: visible;
   line-height: 0;
   box-sizing: border-box;
+  align-self: center;
+}
+.deal-thumb-hit {
+  display: block;
+  width: 72px;
+  height: 72px;
+  border-radius: 10px;
+  overflow: hidden;
+  line-height: 0;
 }
 .deal-thumb {
   width: 72px;
@@ -860,7 +870,7 @@ button:disabled,
   font-weight: 400;
   cursor: pointer;
   box-shadow: none;
-  opacity: 0.9;            /* 모바일은 hover가 없다 */
+  opacity: 0.9;
 }
 .bookmark-btn:hover {
   background: var(--surface-hover);
@@ -876,14 +886,68 @@ button:disabled,
   background: transparent;
 }
 
+/* 썸네일 좌측 하단 하트 찜하기 */
+.bookmark-btn.deal-wish {
+  position: absolute;
+  left: 4px;
+  bottom: 4px;
+  z-index: 2;
+  width: 26px;
+  height: 26px;
+  min-height: 26px;
+  border-radius: 999px;
+  border: 1.5px solid #fff;
+  background: #e11d48;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(17, 24, 39, 0.28);
+  opacity: 1;
+  line-height: 0;
+}
+.bookmark-btn.deal-wish:hover {
+  background: #be123c;
+  color: #fff;
+  filter: brightness(1.05);
+}
+.bookmark-btn.deal-wish .deal-wish-ico {
+  display: block;
+  width: 13px;
+  height: 13px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.bookmark-btn.deal-wish.on {
+  background: #e11d48;
+  color: #fff;
+}
+.bookmark-btn.deal-wish.on .deal-wish-ico {
+  fill: currentColor;
+  stroke: none;
+}
+.bookmark-btn.deal-wish:not(.on) {
+  background: rgba(17, 24, 39, 0.42);
+  border-color: rgba(255, 255, 255, 0.92);
+  color: #fff;
+}
+.bookmark-btn.deal-wish:not(.on):hover {
+  background: #e11d48;
+}
+
 @media (max-width: 639px) {
   .deal-cards { grid-template-columns: 1fr; gap: 8px; }
-  .deal-row-main { gap: 12px; padding: 12px 6px 12px 12px; }
-  .deal-thumb-wrap, .deal-thumb { width: 64px; height: 64px; }
-  .deal-thumb-wrap { flex-basis: 64px; }
+  .deal-row-main { gap: 0; padding: 12px 6px 12px 0; }
+  .deal-thumb-wrap, .deal-thumb, .deal-thumb-hit { width: 64px; height: 64px; }
+  .deal-thumb-wrap { flex-basis: 64px; margin: 12px 12px 12px 12px; }
   .deal-title { font-size: var(--text-body); }
   .deal-price { font-size: 16px; }
   .deal-row-side { padding: 6px 6px 6px 0; }
+  .bookmark-btn.deal-wish { width: 24px; height: 24px; min-height: 24px; left: 3px; bottom: 3px; }
+  .bookmark-btn.deal-wish .deal-wish-ico { width: 12px; height: 12px; }
 }
 
 /* ---------------- Modal ---------------- */

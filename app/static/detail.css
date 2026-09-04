@@ -393,6 +393,59 @@
 /* ---- 6) 스펙 표 ---- */
 .dd-spec-row:last-child { border-bottom: 0; }
 
+/* ---- 6b) 원문 본문 (시세 하단) ---- */
+.dd-body-html {
+  margin: 4px 0 8px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: var(--text-body-sm, 13.5px);
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.dd-body-html p { margin: 0 0 0.75em; }
+.dd-body-html p:last-child { margin-bottom: 0; }
+.dd-body-html img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 10px 0;
+  border-radius: 8px;
+  background: var(--surface-sunken, #f3f5f8);
+}
+.dd-body-html a {
+  color: var(--accent, #5c0282);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.dd-body-html table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 8px 0;
+  font-size: 12.5px;
+}
+.dd-body-html th,
+.dd-body-html td {
+  border: 1px solid var(--border);
+  padding: 6px 8px;
+  text-align: left;
+  vertical-align: top;
+}
+.dd-body-html ul,
+.dd-body-html ol {
+  margin: 0.4em 0 0.8em;
+  padding-left: 1.3em;
+}
+.dd-body-html blockquote {
+  margin: 8px 0;
+  padding: 6px 12px;
+  border-left: 3px solid var(--border-strong, #cfd6e0);
+  color: var(--ink-muted);
+}
+
 /* ---- 7) 스크롤 시 우측 상단 상품 핀 (댓글이 스르륵 내려감) ---- */
 .dd-chat-pin {
   display: grid;

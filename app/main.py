@@ -938,9 +938,14 @@ async def deal_detail(request: Request, deal_id: int):
     deal = await _get_deal(deal_id)
     if not deal:
         raise HTTPException(404, "deal not found")
-    if ENABLE_COLLECT and not (deal.get("mall_url") or "").strip():
-        asyncio.create_task(_kick_mall_enrich([deal_id]))
     posts = await _deal_posts(deal_id)
+    body_html, body_source = _pick_body_html(posts)
+    deal["body_html"] = body_html
+    deal["body_source"] = body_source
+    if ENABLE_COLLECT and (
+        not (deal.get("mall_url") or "").strip() or not body_html
+    ):
+        asyncio.create_task(_kick_mall_enrich([deal_id]))
     history = await _price_history(deal["product_key"])
     similar = await _similar_deals(deal)
     key = _client_key(request)
@@ -1068,9 +1073,13 @@ async def api_deal(deal_id: int):
         deal = await _get_deal(deal_id)
         if not deal:
             raise HTTPException(404, "deal not found")
+        posts = await _deal_posts(deal_id)
+        body_html, body_source = _pick_body_html(posts)
+        deal["body_html"] = body_html
+        deal["body_source"] = body_source
         deal["posts"] = [
-            {k: _json_safe(v) for k, v in row.items()}
-            for row in await _deal_posts(deal_id)
+            {k: _json_safe(v) for k, v in row.items() if k != "raw_json"}
+            for row in posts
         ]
         deal["history"] = [
             {k: _json_safe(v) for k, v in row.items()}
@@ -1085,7 +1094,9 @@ async def api_deal(deal_id: int):
     except Exception:
         log.exception("api deal failed id=%s", deal_id)
         raise HTTPException(503, "deal temporarily unavailable")
-    if ENABLE_COLLECT and not (deal.get("mall_url") or "").strip():
+    if ENABLE_COLLECT and (
+        not (deal.get("mall_url") or "").strip() or not deal.get("body_html")
+    ):
         asyncio.create_task(_kick_mall_enrich([deal_id]))
     return JSONResponse(deal)
 
@@ -1366,12 +1377,17 @@ async def api_debug_enrich(deal_id: int, apply: int = 0):
         codes = []
 
     applied = False
-    if apply and (detail.mall_url or detail.thumbnail_url):
+    if apply and (detail.mall_url or detail.thumbnail_url or detail.body_html):
         db = _db()
         if detail.thumbnail_url:
             await db.execute(
                 "UPDATE posts SET thumbnail_url=COALESCE(?, thumbnail_url) WHERE id=?",
                 (detail.thumbnail_url, post["id"]),
+            )
+        if detail.body_html:
+            await db.execute(
+                "UPDATE posts SET body_html=? WHERE id=?",
+                (detail.body_html, post["id"]),
             )
         await db.execute(
             """
@@ -1392,6 +1408,7 @@ async def api_debug_enrich(deal_id: int, apply: int = 0):
         "enriched_title": detail.title,
         "mall_url": detail.mall_url,
         "thumbnail_url": detail.thumbnail_url,
+        "body_html_len": len(detail.body_html or ""),
         "applied": applied,
         "mall_candidates": candidates,
         "href_candidates": hrefs,
@@ -1820,6 +1837,23 @@ async def _deal_posts(deal_id: int) -> list[dict]:
         (deal_id,),
     )
     return [dict(r) for r in await cur.fetchall()]
+
+
+def _pick_body_html(posts: list[dict]) -> tuple[str | None, str | None]:
+    """Prefer the longest sanitized community body among linked posts."""
+    best_html: str | None = None
+    best_source: str | None = None
+    best_len = 0
+    for row in posts or []:
+        html = (row.get("body_html") or "").strip()
+        if not html:
+            continue
+        n = len(html)
+        if n > best_len:
+            best_html = html
+            best_source = (row.get("source") or "").strip() or None
+            best_len = n
+    return best_html, best_source
 
 
 async def _price_history(product_key: str) -> list[dict]:

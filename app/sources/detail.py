@@ -18,6 +18,7 @@ from app.parse.links import (
     is_junk_mall_url,
     is_mall_url,
 )
+from app.parse.sanitize_html import sanitize_body_html
 from app.sources.html_fetch import PROXY_FIRST_HOSTS
 
 log = logging.getLogger(__name__)
@@ -62,6 +63,8 @@ class DetailEnrichment:
     title: str | None = None
     mall_url: str | None = None
     thumbnail_url: str | None = None
+    # Sanitized HTML fragment from the community post body (images allowed).
+    body_html: str | None = None
     # True only when the detail page was refused/soft-blocked (403, nginx block,
     # Cloudflare gate). A clean fetch that simply has no buy link stays False so
     # callers can tell "exit IP blocked" apart from "post has no mall link".
@@ -140,7 +143,7 @@ async def enrich_post(client: PoliteClient, source: str, url: str) -> DetailEnri
                 # Slim/login shells often have og:title but no buy link. Keep trying.
                 if _is_detail_stub(source, result.text):
                     continue
-                if parsed.title or parsed.thumbnail_url:
+                if parsed.title or parsed.thumbnail_url or parsed.body_html:
                     parsed.blocked = False
                     return parsed
             except Exception as exc:  # noqa: BLE001
@@ -252,7 +255,13 @@ def parse_detail(html: str, page_url: str = "") -> DetailEnrichment:
         thumb = urljoin(page_url, thumb)
     body_text = _body_blob(tree)
     mall = extract_goto_shop(html) or extract_shop_url(html, body_text, title)
-    return DetailEnrichment(title=title or None, mall_url=mall, thumbnail_url=thumb)
+    body_html = _extract_body_html(tree, page_url)
+    return DetailEnrichment(
+        title=title or None,
+        mall_url=mall,
+        thumbnail_url=thumb,
+        body_html=body_html,
+    )
 
 
 def _is_detail_stub(source: str, html: str) -> bool:
@@ -362,3 +371,34 @@ def _body_blob(tree: HTMLParser) -> str:
             if href:
                 chunks.append(href)
     return "\n".join(chunks)
+
+
+def _inner_html(node) -> str:
+    parts: list[str] = []
+    child = node.child
+    while child is not None:
+        html = child.html
+        if html:
+            parts.append(html)
+        child = child.next
+    return "".join(parts)
+
+
+def _extract_body_html(tree: HTMLParser, page_url: str = "") -> str | None:
+    raw = ""
+    for sel in BODY_SELECTORS:
+        root = tree.css_first(sel)
+        if not root:
+            continue
+        raw = _inner_html(root).strip()
+        if not raw:
+            continue
+        # Skip tiny chrome / empty shells.
+        text = " ".join((root.text() or "").split())
+        has_img = bool(root.css_first("img"))
+        if len(text) < 12 and not has_img:
+            continue
+        break
+    if not raw:
+        return None
+    return sanitize_body_html(raw, base_url=page_url)

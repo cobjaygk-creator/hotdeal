@@ -308,6 +308,8 @@ async def _ensure_columns(conn: aiosqlite.Connection) -> None:
     post_cols = {row[1] for row in await cur.fetchall()}
     if "thumbnail_url" not in post_cols:
         await conn.execute("ALTER TABLE posts ADD COLUMN thumbnail_url TEXT")
+    if "body_html" not in post_cols:
+        await conn.execute("ALTER TABLE posts ADD COLUMN body_html TEXT")
 
     try:
         cleaned = await get_meta(conn, "cleaned_sub1000_prices")

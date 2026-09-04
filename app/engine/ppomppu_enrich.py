@@ -52,7 +52,7 @@ async def enrich_missing_ppomppu_malls(
                 "cards": [],
                 "at": utcnow_iso(),
             }
-        # Explicit ids: re-fetch even when mall_url is already set (title repair).
+        # Explicit ids: re-fetch even when mall_url is already set (title/body repair).
         extra_sql = f" AND d.id IN ({','.join('?' * len(wanted))})"
         params.extend(wanted)
         mall_filter = "1=1"
@@ -75,6 +75,8 @@ async def enrich_missing_ppomppu_malls(
                   p.source = 'quasarzone'
                   AND d.thumbnail_url LIKE '{_STALE_QZ_THUMB}'
                 )
+                OR p.body_html IS NULL
+                OR TRIM(p.body_html) = ''
               )"""
     params.append(batch)
     cur = await conn.execute(
@@ -151,9 +153,11 @@ async def enrich_missing_ppomppu_malls(
             mall_url = getattr(detail, "mall_url", None)
             title_txt = (getattr(detail, "title", None) or "").strip()
             thumb = getattr(detail, "thumbnail_url", None)
+            body_html = (getattr(detail, "body_html", None) or "").strip() or None
             mall_better = prefers_mall(mall_url, row.get("mall_url"))
             title_update = len(title_txt) >= 4
             thumb_update = bool(thumb)
+            body_update = bool(body_html)
 
             if not mall_url:
                 if getattr(detail, "blocked", False):
@@ -164,9 +168,9 @@ async def enrich_missing_ppomppu_malls(
                     no_link += 1
                     by_source[source]["no_link"] += 1
                     consec_blocked = 0
-                if not title_update and not thumb_update:
+                if not title_update and not thumb_update and not body_update:
                     continue
-            elif not mall_better and not title_update and not thumb_update:
+            elif not mall_better and not title_update and not thumb_update and not body_update:
                 continue
             else:
                 consec_blocked = 0
@@ -199,6 +203,11 @@ async def enrich_missing_ppomppu_malls(
                         WHERE id = ?
                         """,
                         (thumb, row["post_id"]),
+                    )
+                if body_update:
+                    await conn.execute(
+                        "UPDATE posts SET body_html = ? WHERE id = ?",
+                        (body_html, row["post_id"]),
                     )
                 # Detail title wins when the list row was mismatched / truncated.
                 if title_update:
