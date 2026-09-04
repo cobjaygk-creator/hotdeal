@@ -142,9 +142,10 @@
 
     </div>
     <div class="dd-cta" id="modal-cta">
-      {% set buy_href = deal.mall_url or deal.deal_url or (posts[0].url if posts else none) %}
-      <a class="btn dd-cta-buy" href="{{ buy_href or ('/deal/' ~ deal.id) }}" target="_blank" rel="noopener">{% if deal.seller %}{{ deal.seller }}에서 {% endif %}{% if deal.price %}{{ "{:,}".format(deal.price) }}원 {% endif %}구매하기</a>
-      {% if deal.mall_url and deal.deal_url and deal.deal_url != deal.mall_url %}
+      {% if deal.mall_url %}
+      <a class="btn dd-cta-buy" href="{{ deal.mall_url }}" target="_blank" rel="noopener">{% if deal.seller %}{{ deal.seller }}에서 {% endif %}{% if deal.price %}{{ "{:,}".format(deal.price) }}원 {% endif %}구매하기</a>
+      {% endif %}
+      {% if deal.deal_url %}
       <a class="btn-secondary dd-cta-source" href="{{ deal.deal_url }}" target="_blank" rel="noopener">원문</a>
       {% endif %}
       <button type="button" class="dd-cta-star bookmark-btn" data-deal-id="{{ deal.id }}" aria-label="북마크" title="북마크">☆</button>
@@ -188,6 +189,38 @@
 
   if (window.DealChat) window.DealChat.open({{ deal.id }});
   if (window.DealChatPin) window.DealChatPin.bind();
+
+  {% if not deal.mall_url %}
+  (function pollBuy() {
+    var tries = 0;
+    async function tick() {
+      tries += 1;
+      try {
+        var res = await fetch("/api/deals/{{ deal.id }}");
+        if (!res.ok) throw new Error("bad");
+        var d = await res.json();
+        if (!d.mall_url) {
+          if (tries < 6) setTimeout(tick, 2000);
+          return;
+        }
+        var cta = document.getElementById("modal-cta");
+        if (!cta || cta.querySelector(".dd-cta-buy")) return;
+        var a = document.createElement("a");
+        a.className = "btn dd-cta-buy";
+        a.href = d.mall_url;
+        a.target = "_blank";
+        a.rel = "noopener";
+        var label = (d.seller ? d.seller + "에서 " : "") +
+          (d.price ? Number(d.price).toLocaleString() + "원 " : "") + "구매하기";
+        a.textContent = label;
+        cta.prepend(a);
+      } catch (e) {
+        if (tries < 6) setTimeout(tick, 2500);
+      }
+    }
+    setTimeout(tick, 1500);
+  })();
+  {% endif %}
 
   document.querySelector("[data-copy-link]")?.addEventListener("click", async () => {
     try { await navigator.clipboard.writeText(location.href); } catch (e) {}

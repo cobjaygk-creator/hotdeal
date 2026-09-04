@@ -511,6 +511,28 @@ function flipPrepend(rows) {
   });
 }
 
+function patchRowMall(deal) {
+  if (!bodyEl || !deal || !isPostUrl(deal.mall_url)) return;
+  const li = bodyEl.querySelector(`[data-id="${deal.id}"]`);
+  if (!li) return;
+  li.dataset.mallUrl = deal.mall_url;
+  const existing = li.querySelector(".deal-buy-btn");
+  if (existing) {
+    existing.href = deal.mall_url;
+    return;
+  }
+  const side = li.querySelector(".deal-row-side");
+  if (!side) return;
+  const a = document.createElement("a");
+  a.className = "deal-buy-btn";
+  a.href = deal.mall_url;
+  a.target = "_blank";
+  a.rel = "noopener";
+  a.textContent = "구매하기";
+  a.addEventListener("click", (ev) => ev.stopPropagation());
+  side.prepend(a);
+}
+
 function ingest(items) {
   if (!bodyEl || !items || !items.length) return;
   const empty = bodyEl.querySelector(".empty-row");
@@ -518,7 +540,10 @@ function ingest(items) {
   const rows = [];
   for (const deal of items) {
     const id = String(deal.id);
-    if (seen.has(id)) continue;
+    if (seen.has(id)) {
+      patchRowMall(deal);
+      continue;
+    }
     if (config.grade && !(deal.grade || "").includes(config.grade)) continue;
     if (config.seller && deal.seller !== config.seller) continue;
     if (config.category && deal.category !== config.category) continue;
@@ -741,10 +766,11 @@ async function openModal(id, opts) {
   const starred = isBookmarked(id);
   const starBtn =
     `<button type="button" class="dd-cta-star bookmark-btn${starred ? " on" : ""}" data-deal-id="${id}" aria-label="북마크" title="북마크">${starred ? "★" : "☆"}</button>`;
-  const buyHref = deal.mall_url || deal.deal_url || (posts[0] && posts[0].url) || `/deal/${id}`;
   const ctaHtml =
-    `<a class="btn dd-cta-buy" href="${esc(buyHref)}" target="_blank" rel="noopener">${buyLabel}</a>` +
-    (deal.mall_url && isPostUrl(deal.deal_url) && deal.deal_url !== deal.mall_url
+    (isPostUrl(deal.mall_url)
+      ? `<a class="btn dd-cta-buy" href="${esc(deal.mall_url)}" target="_blank" rel="noopener">${buyLabel}</a>`
+      : "") +
+    (isPostUrl(deal.deal_url)
       ? `<a class="btn-secondary dd-cta-source" href="${esc(deal.deal_url)}" target="_blank" rel="noopener">원문</a>`
       : "") +
     starBtn;
@@ -872,6 +898,39 @@ async function openModal(id, opts) {
   loadMarketCompare(id);
   if (window.DealChat) window.DealChat.open(id);
   if (window.DealChatPin) window.DealChatPin.bind();
+  if (!isPostUrl(deal.mall_url)) {
+    pollModalMall(id, deal);
+  }
+}
+
+async function pollModalMall(id, deal) {
+  const buyLabelBase = deal && deal.seller
+    ? `${esc(deal.seller)}에서 ${won(deal.price)} 구매`
+    : `${won(deal && deal.price)} 구매하기`;
+  for (let i = 0; i < 6; i++) {
+    await new Promise((r) => setTimeout(r, 2000));
+    if (modalOpenId !== Number(id)) return;
+    try {
+      const res = await fetch("/api/deals/" + id);
+      if (!res.ok) continue;
+      const fresh = await res.json();
+      if (!isPostUrl(fresh.mall_url)) continue;
+      patchRowMall(fresh);
+      if (!modalCta || modalCta.querySelector(".dd-cta-buy")) return;
+      const label = fresh.seller
+        ? `${esc(fresh.seller)}에서 ${won(fresh.price)} 구매`
+        : buyLabelBase;
+      const a = document.createElement("a");
+      a.className = "btn dd-cta-buy";
+      a.href = fresh.mall_url;
+      a.target = "_blank";
+      a.rel = "noopener";
+      a.innerHTML = label;
+      modalCta.prepend(a);
+      modalCta.hidden = false;
+      return;
+    } catch (err) {}
+  }
 }
 
 function renderMarketBars(items) {

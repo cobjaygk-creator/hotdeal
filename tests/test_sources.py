@@ -137,3 +137,57 @@ def test_fmkorea_parser():
     assert "11,340원" in posts[0].title
     assert posts[0].author == "테스터"
     assert posts[0].extra["thumbnail_url"].startswith("https://image.fmkorea.com/")
+
+
+def test_arca_list_thumbnail():
+    html = """
+    <div class="vrow hybrid">
+      <a class="title hybrid-title" href="/b/hotdeal/181">콜라 제로</a>
+      <span class="deal-price">12,990원</span>
+      <span class="deal-delivery">무료</span>
+      <a class="preview-image" href="/b/hotdeal/181">
+        <img src="//ac.arca.live/x.jpg?type=list" loading="lazy" alt="">
+      </a>
+      <img src="/static/assets/images/shipping.svg" width="16">
+    </div>
+    """
+    posts = parse_arca(html)
+    assert len(posts) == 1
+    assert posts[0].extra["thumbnail_url"].startswith("https://ac.arca.live/")
+
+
+def test_eomisae_card_thumbnail():
+    html = """
+    <div class="card_el n_ntc clear">
+      <div class="rt_area is_tmb">
+        <div class="tmb_wrp">
+          <img class="tmb" src="//img.eomisae.co.kr/files/thumbnails/1/2/3/190x190.crop.jpg" alt="">
+        </div>
+        <div class="card_content">
+          <p><span class="cate">식품</span><span>26.09.04</span></p>
+          <h3><a class="pjax" href="/fs/200123">콜라 제로 30개</a></h3>
+        </div>
+      </div>
+    </div>
+    """
+    posts = parse_eomisae(html)
+    assert len(posts) == 1
+    assert posts[0].source_post_id == "200123"
+    assert posts[0].extra["thumbnail_url"].startswith("https://img.eomisae.co.kr/")
+
+
+def test_dealbada_list_thumbnail():
+    html = """
+    <table><tr>
+      <td class="td_img"><img src="http://cdn.dealbada.com/data/editor/a.jpg" width="50"></td>
+      <td class="td_subject">
+        <a href="https://www.dealbada.com/bbs/board.php?bo_table=deal_domestic&wr_id=99">홍삼 세트</a>
+      </td>
+      <td class="td_date">09:00</td>
+      <td class="td_num">10</td>
+      <td class="td_num_g">1/0</td>
+    </tr></table>
+    """
+    posts = parse_dealbada(html)
+    assert len(posts) == 1
+    assert posts[0].extra["thumbnail_url"] == "https://cdn.dealbada.com/data/editor/a.jpg"

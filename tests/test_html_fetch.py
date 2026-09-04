@@ -52,17 +52,17 @@ async def test_fetch_parsed_uses_proxy_first_for_arca(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_fetch_parsed_uses_proxy_first_for_quasarzone(monkeypatch):
+async def test_fetch_parsed_uses_proxy_first_for_fmkorea(monkeypatch):
     monkeypatch.setattr("app.sources.html_fetch.PPOMPPU_PROXY_URL", "http://proxy.test:1")
     client = _FakeClient()
     posts = await fetch_parsed(
         client,
-        "https://quasarzone.com/bbs/qb_saleinfo",
+        "https://www.fmkorea.com/hotdeal",
         lambda html: [
             RawPost(
-                source="quasarzone",
+                source="fmkorea",
                 source_post_id="1",
-                url="https://quasarzone.com/bbs/qb_saleinfo/views/1",
+                url="https://www.fmkorea.com/1",
                 title="t",
             )
         ],

@@ -5,6 +5,7 @@ Ppomppu (and other blocked hosts) use PPOMPPU_PROXY_URL when set.
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from collections import defaultdict
@@ -12,17 +13,46 @@ from collections import defaultdict
 from app.config import PPOMPPU_ENRICH_BATCH, PPOMPPU_PROXY_URL
 from app.db import set_meta, utcnow_iso
 from app.parse.links import prefers_mall
+from app.pipeline import fetch_deal_card
 from app.sources.detail import enrich_post
 
 log = logging.getLogger(__name__)
 
+_ENRICH_TIMEOUT_SEC = 18.0
 
-async def enrich_missing_ppomppu_malls(conn, client, *, limit: int | None = None) -> dict:
+
+async def enrich_missing_ppomppu_malls(
+    conn,
+    client,
+    *,
+    limit: int | None = None,
+    deal_ids: list[int] | None = None,
+) -> dict:
     """Fill mall_url for recent deals (all sources) that still lack a buy link."""
     batch = limit if limit is not None else PPOMPPU_ENRICH_BATCH
     batch = max(1, min(50, batch))
+    extra_sql = ""
+    params: list = []
+    if deal_ids:
+        wanted = [int(x) for x in deal_ids if x]
+        if not wanted:
+            return {
+                "skipped": False,
+                "proxy": bool(PPOMPPU_PROXY_URL),
+                "attempted": 0,
+                "filled": 0,
+                "blocked": 0,
+                "no_link": 0,
+                "errors": 0,
+                "by_source": {},
+                "cards": [],
+                "at": utcnow_iso(),
+            }
+        extra_sql = f" AND d.id IN ({','.join('?' * len(wanted))})"
+        params.extend(wanted)
+    params.append(batch)
     cur = await conn.execute(
-        """
+        f"""
         SELECT deal_id, post_id, post_url, source, mall_url FROM (
           SELECT d.id AS deal_id,
                  p.id AS post_id,
@@ -54,12 +84,13 @@ async def enrich_missing_ppomppu_malls(conn, client, *, limit: int | None = None
               ORDER BY CASE WHEN p2.source = 'ppomppu' THEN 1 ELSE 0 END, p2.id
               LIMIT 1
             )
+            {extra_sql}
         )
-        WHERE rn <= 6
+        {"WHERE 1=1" if deal_ids else "WHERE rn <= 8"}
         ORDER BY source, deal_id DESC
         LIMIT ?
         """,
-        (batch,),
+        params,
     )
     rows = [dict(r) for r in await cur.fetchall()]
     filled = 0
@@ -67,60 +98,85 @@ async def enrich_missing_ppomppu_malls(conn, client, *, limit: int | None = None
     no_link = 0
     errors = 0
     attempted = 0
-    by_source: dict[str, dict[str, int]] = defaultdict(lambda: {"filled": 0, "blocked": 0, "no_link": 0})
-    consec_blocked: dict[str, int] = defaultdict(int)
-    filled_by_source: dict[str, int] = defaultdict(int)
-    skip_sources: set[str] = set()
+    by_source: dict[str, dict[str, int]] = defaultdict(
+        lambda: {"filled": 0, "blocked": 0, "no_link": 0}
+    )
+    filled_ids: list[int] = []
+    write_lock = asyncio.Lock()
 
+    grouped: dict[str, list[dict]] = defaultdict(list)
     for row in rows:
-        source = (row.get("source") or "").strip() or "ppomppu"
-        if source in skip_sources:
-            continue
-        attempted += 1
-        try:
-            detail = await enrich_post(client, source, row["post_url"])
-        except Exception:  # noqa: BLE001
-            log.exception("mall enrich failed source=%s deal=%s", source, row["deal_id"])
-            errors += 1
-            continue
-        if not detail.mall_url:
-            if getattr(detail, "blocked", False):
-                blocked += 1
-                by_source[source]["blocked"] += 1
-                consec_blocked[source] += 1
-                if consec_blocked[source] >= 3 and filled_by_source[source] == 0:
-                    skip_sources.add(source)
-            else:
-                no_link += 1
-                by_source[source]["no_link"] += 1
-                consec_blocked[source] = 0
-            continue
-        if not prefers_mall(detail.mall_url, row.get("mall_url")):
-            continue
-        consec_blocked[source] = 0
-        await conn.execute(
-            """
-            UPDATE deals
-            SET mall_url = ?,
-                thumbnail_url = COALESCE(?, thumbnail_url)
-            WHERE id = ?
-            """,
-            (detail.mall_url, detail.thumbnail_url, row["deal_id"]),
-        )
-        if detail.thumbnail_url:
-            await conn.execute(
-                """
-                UPDATE posts
-                SET thumbnail_url = COALESCE(?, thumbnail_url)
-                WHERE id = ?
-                """,
-                (detail.thumbnail_url, row["post_id"]),
-            )
-        filled += 1
-        filled_by_source[source] += 1
-        by_source[source]["filled"] += 1
+        grouped[(row.get("source") or "").strip() or "ppomppu"].append(row)
+
+    async def _run_source(source: str, items: list[dict]) -> None:
+        nonlocal filled, blocked, no_link, errors, attempted
+        consec_blocked = 0
+        filled_here = 0
+        for row in items:
+            if consec_blocked >= 3 and filled_here == 0:
+                break
+            attempted += 1
+            try:
+                detail = await asyncio.wait_for(
+                    enrich_post(client, source, row["post_url"]),
+                    timeout=_ENRICH_TIMEOUT_SEC,
+                )
+            except TimeoutError:
+                errors += 1
+                continue
+            except Exception:  # noqa: BLE001
+                log.exception("mall enrich failed source=%s deal=%s", source, row["deal_id"])
+                errors += 1
+                continue
+            if not detail.mall_url:
+                if getattr(detail, "blocked", False):
+                    blocked += 1
+                    by_source[source]["blocked"] += 1
+                    consec_blocked += 1
+                else:
+                    no_link += 1
+                    by_source[source]["no_link"] += 1
+                    consec_blocked = 0
+                continue
+            if not prefers_mall(detail.mall_url, row.get("mall_url")):
+                continue
+            consec_blocked = 0
+            async with write_lock:
+                await conn.execute(
+                    """
+                    UPDATE deals
+                    SET mall_url = ?,
+                        thumbnail_url = COALESCE(?, thumbnail_url)
+                    WHERE id = ?
+                    """,
+                    (detail.mall_url, detail.thumbnail_url, row["deal_id"]),
+                )
+                if detail.thumbnail_url:
+                    await conn.execute(
+                        """
+                        UPDATE posts
+                        SET thumbnail_url = COALESCE(?, thumbnail_url)
+                        WHERE id = ?
+                        """,
+                        (detail.thumbnail_url, row["post_id"]),
+                    )
+            filled += 1
+            filled_here += 1
+            filled_ids.append(int(row["deal_id"]))
+            by_source[source]["filled"] += 1
+
+    if grouped:
+        await asyncio.gather(*(_run_source(src, items) for src, items in grouped.items()))
 
     await conn.commit()
+    cards = []
+    try:
+        for deal_id in filled_ids:
+            card = await fetch_deal_card(conn, deal_id)
+            if card:
+                cards.append(card)
+    except Exception:
+        log.debug("enrich card fetch skipped", exc_info=True)
     summary = {
         "skipped": False,
         "proxy": bool(PPOMPPU_PROXY_URL),
@@ -130,9 +186,12 @@ async def enrich_missing_ppomppu_malls(conn, client, *, limit: int | None = None
         "no_link": no_link,
         "errors": errors,
         "by_source": dict(by_source),
+        "cards": cards,
         "at": utcnow_iso(),
     }
-    await set_meta(conn, "last_ppomppu_mall_enrich", json.dumps(summary, ensure_ascii=False))
+    meta = {k: v for k, v in summary.items() if k != "cards"}
+    await set_meta(conn, "last_ppomppu_mall_enrich", json.dumps(meta, ensure_ascii=False))
+    await conn.commit()
     log.info(
         "mall enrich attempted=%s filled=%s blocked=%s no_link=%s errors=%s sources=%s",
         attempted,

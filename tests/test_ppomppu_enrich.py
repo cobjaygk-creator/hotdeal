@@ -39,6 +39,12 @@ async def test_enrich_updates_mall(monkeypatch):
         async def fetchall(self):
             return self._rows
 
+        async def fetchone(self):
+            return self._rows[0] if self._rows else None
+
+        async def fetchone(self):
+            return self._rows[0] if self._rows else None
+
     class FakeConn:
         def __init__(self):
             self.updates = []

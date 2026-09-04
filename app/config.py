@@ -21,12 +21,12 @@ USER_AGENT = (
     "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 )
 
-MIN_REQUEST_INTERVAL_SEC = 2.0
+MIN_REQUEST_INTERVAL_SEC = 1.0
 # Legacy name: unused by the scheduler after source-tier jobs landed.
 COLLECT_INTERVAL_MINUTES = 3
-PPOMPPU_INTERVAL_SECONDS = 60
-COLLECT_FAST_SECONDS = int((os.environ.get("COLLECT_FAST_SECONDS") or "60").strip() or "60")
-COLLECT_PROXY_SECONDS = int((os.environ.get("COLLECT_PROXY_SECONDS") or "75").strip() or "75")
+PPOMPPU_INTERVAL_SECONDS = int((os.environ.get("PPOMPPU_INTERVAL_SECONDS") or "30").strip() or "30")
+COLLECT_FAST_SECONDS = int((os.environ.get("COLLECT_FAST_SECONDS") or "30").strip() or "30")
+COLLECT_PROXY_SECONDS = int((os.environ.get("COLLECT_PROXY_SECONDS") or "60").strip() or "60")
 COLLECT_SLOW_MINUTES = int((os.environ.get("COLLECT_SLOW_MINUTES") or "5").strip() or "5")
 FAMILY_SALE_INTERVAL_MINUTES = 30
 AMAZON_JP_INTERVAL_MINUTES = 30
@@ -86,7 +86,11 @@ PPOMPPU_PROXY_URL = (os.environ.get("PPOMPPU_PROXY_URL") or "").strip()
 PPOMPPU_ENRICH_INTERVAL_MINUTES = int(
     (os.environ.get("PPOMPPU_ENRICH_INTERVAL_MINUTES") or "5").strip() or "5"
 )
-PPOMPPU_ENRICH_BATCH = int((os.environ.get("PPOMPPU_ENRICH_BATCH") or "12").strip() or "12")
+MALL_ENRICH_INTERVAL_SECONDS = max(
+    15,
+    int((os.environ.get("MALL_ENRICH_INTERVAL_SECONDS") or "30").strip() or "30"),
+)
+PPOMPPU_ENRICH_BATCH = int((os.environ.get("PPOMPPU_ENRICH_BATCH") or "24").strip() or "24")
 
 SITE_URL = (os.environ.get("SITE_URL") or "").strip().rstrip("/")
 if not SITE_URL:

@@ -62,6 +62,8 @@ def parse_list(html: str, board: str = "deal_domestic") -> list[RawPost]:
         date_el = tr.css_first("td.td_date") if tr else None
         views_el = tr.css_first("td.td_num") if tr else None
         vote_el = tr.css_first("td.td_num_g") if tr else None
+        thumb = _thumb(tr)
+        extra = {"thumbnail_url": thumb} if thumb else {}
         posts.append(
             RawPost(
                 source="dealbada",
@@ -72,9 +74,28 @@ def parse_list(html: str, board: str = "deal_domestic") -> list[RawPost]:
                 posted_at=parse_kr_datetime(date_el.text() if date_el else None),
                 votes=parse_int(vote_el.text().split("/")[0] if vote_el else None),
                 views=parse_int(views_el.text() if views_el else None),
+                extra=extra,
             )
         )
     return posts
+
+
+def _thumb(tr) -> str | None:
+    if tr is None:
+        return None
+    img = tr.css_first("td.td_img img[src]")
+    if not img:
+        return None
+    src = (img.attributes.get("src") or "").strip()
+    if not src or src.startswith("data:") or "thumb_up.png" in src:
+        return None
+    if src.startswith("//"):
+        return "https:" + src
+    if src.startswith("http://"):
+        return "https://" + src[len("http://") :]
+    if src.startswith("/"):
+        return "https://www.dealbada.com" + src
+    return src
 
 
 def _wr_id(href: str) -> str | None:

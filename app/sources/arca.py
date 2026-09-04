@@ -44,6 +44,8 @@ def parse_list(html: str) -> list[RawPost]:
         time_el = row.css_first("time[datetime]")
         views_el = row.css_first("span.col-view")
         rate_el = row.css_first("span.col-rate")
+        thumb = _thumb(row)
+        extra = {"thumbnail_url": thumb} if thumb else {}
         posts.append(
             RawPost(
                 source="arca",
@@ -54,9 +56,23 @@ def parse_list(html: str) -> list[RawPost]:
                 posted_at=parse_iso(time_el.attributes.get("datetime") if time_el else None),
                 votes=parse_int(rate_el.text() if rate_el else None),
                 views=parse_int(views_el.text() if views_el else None),
+                extra=extra,
             )
         )
     return posts
+
+
+def _thumb(row) -> str | None:
+    for img in row.css("a.preview-image img[src], img[src*='ac.arca.live']"):
+        src = (img.attributes.get("src") or "").strip()
+        if not src or src.startswith("data:") or "shipping.svg" in src:
+            continue
+        if src.startswith("//"):
+            return "https:" + src
+        if src.startswith("/"):
+            return "https://arca.live" + src
+        return src
+    return None
 
 
 def _id_from_href(href: str) -> str | None:

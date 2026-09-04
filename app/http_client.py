@@ -126,14 +126,27 @@ class PoliteClient:
             if resp.status_code == 304:
                 return FetchResult(url, 304, "", b"", not_modified=True)
 
-            if resp.status_code == 403:
+            if resp.status_code in (403, 430):
                 if curl_fallback:
-                    log.warning("403 on %s, falling back to curl (proxy=%s)", url, bool(proxy))
+                    log.warning(
+                        "%s on %s, falling back to curl (proxy=%s)",
+                        resp.status_code,
+                        url,
+                        bool(proxy),
+                    )
                     return await self._curl_get(
                         url, encoding, timeout=req_timeout, proxy=proxy
                     )
-                log.warning("403 on %s (proxy=%s curl_fallback=%s)", url, bool(proxy), curl_fallback)
-                return self._decode(url, 403, resp.content, encoding, resp.encoding)
+                log.warning(
+                    "%s on %s (proxy=%s curl_fallback=%s)",
+                    resp.status_code,
+                    url,
+                    bool(proxy),
+                    curl_fallback,
+                )
+                return self._decode(
+                    url, resp.status_code, resp.content, encoding, resp.encoding
+                )
 
             if resp.status_code in (429, 500, 502, 503, 504):
                 delay = 2 ** attempt

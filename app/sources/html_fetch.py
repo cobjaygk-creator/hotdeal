@@ -14,6 +14,7 @@ PROXY_FIRST_HOSTS = (
     "arca.live",
     "damoang.net",
     "quasarzone.com",
+    "fmkorea.com",
 )
 
 _BLOCK_MARKERS = (

@@ -28,9 +28,9 @@ from app.config import (
     COLLECT_FAST_SECONDS,
     COLLECT_PROXY_SECONDS,
     COLLECT_SLOW_MINUTES,
+    MALL_ENRICH_INTERVAL_SECONDS,
     ENABLE_COLLECT,
     FAMILY_SALE_INTERVAL_MINUTES,
-    PPOMPPU_ENRICH_INTERVAL_MINUTES,
     PPOMPPU_INTERVAL_SECONDS,
     PPOMPPU_PROXY_URL,
     SITE_URL,
@@ -171,11 +171,11 @@ async def lifespan(app: FastAPI):
         scheduler.add_job(
             _scheduled_ppomppu_mall_enrich,
             "interval",
-            minutes=max(1, PPOMPPU_ENRICH_INTERVAL_MINUTES),
+            seconds=MALL_ENRICH_INTERVAL_SECONDS,
             id="enrich_ppomppu_malls",
             max_instances=1,
             coalesce=True,
-            next_run_time=datetime.now() + timedelta(seconds=45),
+            next_run_time=datetime.now() + timedelta(seconds=20),
         )
         log.info(
             "mall enrich worker enabled (proxy=%s)",
@@ -243,14 +243,57 @@ async def _scheduled_amazon_jp() -> None:
 
 
 async def _scheduled_ppomppu_mall_enrich() -> None:
+    await _run_mall_enrich()
+
+
+async def _kick_mall_enrich(deal_ids: list[int]) -> None:
+    if not deal_ids:
+        return
+    try:
+        await _run_mall_enrich(deal_ids=deal_ids)
+    except Exception:
+        log.exception("immediate mall enrich failed")
+
+
+async def _run_mall_enrich(
+    *, deal_ids: list[int] | None = None, limit: int | None = None
+) -> dict:
     lock = state.get("ppomppu_enrich_lock")
     if lock is None:
-        return
+        return {}
     async with lock:
+        conn = await connect()
         try:
-            await enrich_missing_ppomppu_malls(state["db"], state["http"])
+            out = await enrich_missing_ppomppu_malls(
+                conn, state["http"], deal_ids=deal_ids, limit=limit
+            )
         except Exception:
             log.exception("ppomppu mall enrich failed")
+            return {}
+        finally:
+            await conn.close()
+        cards = []
+        for raw in out.get("cards") or []:
+            try:
+                cards.append(_clean_deal(dict(raw)))
+            except Exception:
+                cards.append(dict(raw))
+        out["cards"] = cards
+        if cards:
+            try:
+                stats = await _stats()
+            except Exception:
+                stats = None
+            state["hub"].publish(
+                {
+                    "type": "tick",
+                    "stats": stats,
+                    "sources": {},
+                    "new_posts": 0,
+                    "items": cards,
+                }
+            )
+        return out
 
 
 async def _run_collect(names: list[str] | None) -> dict:
@@ -273,6 +316,13 @@ async def _run_collect(names: list[str] | None) -> dict:
                 "items": summary.get("new_deals") or [],
             }
         )
+        missing = [
+            int(d["id"])
+            for d in (summary.get("new_deals") or [])
+            if d.get("id") and not (d.get("mall_url") or "").strip()
+        ]
+        if missing:
+            asyncio.create_task(_kick_mall_enrich(missing))
         return summary
     finally:
         await conn.close()
@@ -845,6 +895,8 @@ async def deal_detail(request: Request, deal_id: int):
     deal = await _get_deal(deal_id)
     if not deal:
         raise HTTPException(404, "deal not found")
+    if ENABLE_COLLECT and not (deal.get("mall_url") or "").strip():
+        asyncio.create_task(_kick_mall_enrich([deal_id]))
     posts = await _deal_posts(deal_id)
     history = await _price_history(deal["product_key"])
     similar = await _similar_deals(deal)
@@ -978,6 +1030,8 @@ async def api_deal(deal_id: int):
     counts = await deal_comments.comment_counts(_db(), [deal_id])
     deal["user_comments"] = counts.get(deal_id, 0)
     deal["comment_count"] = deal["user_comments"]
+    if ENABLE_COLLECT and not (deal.get("mall_url") or "").strip():
+        asyncio.create_task(_kick_mall_enrich([deal_id]))
     return deal
 
 
@@ -1161,10 +1215,8 @@ async def api_ppomppu_enrich_malls(request: Request, limit: int = 12):
     lock = state.get("ppomppu_enrich_lock")
     if lock is None:
         raise HTTPException(503, "enrich lock unavailable")
-    async with lock:
-        return await enrich_missing_ppomppu_malls(
-            state["db"], state["http"], limit=limit
-        )
+    safe = {k: v for k, v in (out or {}).items() if k != "cards"}
+    return JSONResponse(safe)
 
 
 @app.get("/api/debug/feed")

@@ -76,7 +76,7 @@ async def enrich_post(client: PoliteClient, source: str, url: str) -> DetailEnri
     host = (urlparse(url).hostname or "").lower()
     prefer_proxy = bool(PPOMPPU_PROXY_URL) and (
         is_ppomppu
-        or source in {"quasarzone", "arca", "damoang"}
+        or source in {"quasarzone", "arca", "damoang", "fmkorea"}
         or any(host == item or host.endswith("." + item) for item in PROXY_FIRST_HOSTS)
     )
     # Ppomppu / CF boards: residential proxy first. Others try direct, then proxy.
