@@ -320,14 +320,17 @@ def parse_detail(html: str, page_url: str = "") -> DetailEnrichment:
     if thumb and page_url:
         thumb = urljoin(page_url, thumb)
     body_text = _body_blob(tree)
-    # 1) Board "구매/관련링크" field  2) goToLink / body  3) whole-page fallback
+    # 1) Board "구매/관련링크" field  2) goToLink / body  3) whole-page fallback.
+    # The loose fallback runs on visible text only — the raw page is full of
+    # CDN / script / doc URLs that look shop-ish (clipboard.js, css-tricks, …).
     board_mall = _extract_board_field_mall(tree)
     body_mall = _extract_body_mall(tree)
     mall = (
         board_mall
         or extract_goto_shop(html)
         or body_mall
-        or extract_shop_url(html, body_text, title)
+        or extract_mall_url(html, body_text, title)
+        or extract_shop_url(body_text, title)
     )
     # Prefer a strong board/body URL over a weak whole-page hit.
     if mall and is_weak_mall_url(mall):
@@ -335,6 +338,13 @@ def parse_detail(html: str, page_url: str = "") -> DetailEnrichment:
             if candidate and not is_weak_mall_url(candidate):
                 mall = candidate
                 break
+    # Never keep a junk hit (e.g. dealbada dbada.kr/func.php short-link API);
+    # leaving mall empty lets enrich_post follow the board link.php redirector.
+    if mall and is_junk_mall_url(mall):
+        mall = next(
+            (c for c in (board_mall, body_mall) if c and not is_junk_mall_url(c)),
+            None,
+        )
     body_html = _extract_body_html(tree, page_url)
     return DetailEnrichment(
         title=title or None,

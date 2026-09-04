@@ -146,6 +146,7 @@ COMMUNITY_HOST_PARTS = (
     "coolenjoy.net",
     "eomisae.co.kr",
     "dealbada.com",
+    "dbada.kr",  # dealbada's own short-link service / func.php AJAX endpoint
     "fmkorea.com",
     "algumon.com",
     "dealink.co.kr",
@@ -183,6 +184,18 @@ def extract_goto_shop(text: str | None) -> str | None:
     return None
 
 
+_NOISE_TAG_RE = re.compile(r"<(script|style|template|noscript)\b[^>]*>.*?</\1>", re.I | re.S)
+_HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.S)
+
+
+def _strip_markup_noise(text: str | None) -> str:
+    """Drop <script>/<style>/comments so the loose URL scan can't pick up
+    library, analytics or documentation links embedded in page chrome."""
+    if not text:
+        return ""
+    return _HTML_COMMENT_RE.sub(" ", _NOISE_TAG_RE.sub(" ", text))
+
+
 def extract_shop_url(*texts: str | None) -> str | None:
     """Allow-listed mall first, then a conservative product-looking shop URL."""
     for text in texts:
@@ -196,7 +209,7 @@ def extract_shop_url(*texts: str | None) -> str | None:
     for text in texts:
         if not text:
             continue
-        for url in _candidate_urls(text):
+        for url in _candidate_urls(_strip_markup_noise(text)):
             for candidate in _expand_candidates(url):
                 if _is_loose_shop_url(candidate):
                     loose.append(candidate)
@@ -335,6 +348,10 @@ def is_junk_mall_url(url: str | None) -> bool:
     path = (parsed.path or "").lower()
     if any(tok in path for tok in ("/adbiz/", "/oauth", "/nidlogin", "/authorize")):
         return True
+    # Community redirector / short-link *API* endpoints, not a real destination.
+    query = (parsed.query or "").lower()
+    if path.endswith("/func.php") or "makeshortlink" in query or "fn=makeshortlink" in query:
+        return True
     return False
 
 
@@ -362,8 +379,29 @@ def coupang_product_url(url: str | None) -> str | None:
     return f"{base}?{'&'.join(keep)}" if keep else base
 
 
+_ASSET_EXT_RE = re.compile(
+    r"\.(?:js|mjs|css|png|jpe?g|gif|webp|svg|ico|woff2?|ttf|map|json|xml|txt)(?:$|[?#])",
+    re.I,
+)
+_CDN_HOST_PARTS = (
+    "cdnjs.cloudflare.com",
+    "cdn.jsdelivr.net",
+    "unpkg.com",
+    "ajax.googleapis.com",
+    "code.jquery.com",
+    "fonts.googleapis.com",
+    "fonts.gstatic.com",
+    "gstatic.com",
+    "googletagmanager.com",
+    "google-analytics.com",
+    "cloudflareinsights.com",
+)
+
+
 def _is_loose_shop_url(url: str | None) -> bool:
     if not url or TRUNCATED_RE.search(url):
+        return False
+    if _ASSET_EXT_RE.search(url):
         return False
     try:
         parsed = urlparse(url.strip())
@@ -371,6 +409,8 @@ def _is_loose_shop_url(url: str | None) -> bool:
     except ValueError:
         return False
     if not host or any(part in host for part in COMMUNITY_HOST_PARTS + WRAPPER_HOST_PARTS):
+        return False
+    if any(part in host for part in _CDN_HOST_PARTS):
         return False
     if is_junk_mall_url(url):
         return False

@@ -131,6 +131,21 @@ def test_prefer_oliveyoung_over_dajooda_affiliate():
     )
 
 
+def test_reject_dealbada_shortlink_api_and_page_assets():
+    from app.parse.links import extract_shop_url, is_junk_mall_url
+
+    assert is_junk_mall_url("http://dbada.kr/public/func.php?fn=makeShortLink")
+    assert is_junk_mall_url("https://www.dealbada.com/bbs/func.php?fn=makeShortLink")
+    # A dealbada post page: the only shop-ish looking URLs are the short-link
+    # API endpoint and CDN script/doc links — none is a real mall.
+    html = """
+    <script>function getShortUrl(cb){ $.post('http://dbada.kr/public/func.php?fn=makeShortLink', {}); }</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/1.7.1/clipboard.min.js"></script>
+    <!-- via https://css-tricks.com/snippets/jquery/draggable-without-jquery-ui/#article-header-id-1 -->
+    """
+    assert extract_shop_url(html) is None
+
+
 def test_oy_run_is_mall_shortener():
     assert is_mall_url("https://oy.run/vo6NAPxoJR5UJt")
     assert extract_mall_url(

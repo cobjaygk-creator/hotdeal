@@ -77,6 +77,9 @@ async def enrich_missing_ppomppu_malls(
                 OR lower(d.mall_url) LIKE '%acecounter.com%'
                 OR lower(d.mall_url) LIKE '%/today_deals%'
                 OR lower(d.mall_url) LIKE '%oy.run/%'
+                OR lower(d.mall_url) LIKE '%dbada.kr/%'
+                OR lower(d.mall_url) LIKE '%makeshortlink%'
+                OR lower(d.mall_url) LIKE '%/func.php%'
                 OR (
                   p.source = 'quasarzone'
                   AND d.thumbnail_url LIKE '{_STALE_QZ_THUMB}'
