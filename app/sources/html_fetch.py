@@ -10,12 +10,14 @@ from app.sources import RawPost
 
 ParseFn = Callable[[str], list[RawPost]]
 
-# Railway datacenter IPs hit Cloudflare on these hosts; use the KR proxy first.
+# Railway datacenter IPs hit Cloudflare (or just hang) on these hosts; use the
+# KR proxy first.
 PROXY_FIRST_HOSTS = (
     "arca.live",
     "damoang.net",
     "quasarzone.com",
     "fmkorea.com",
+    "coolenjoy.net",
 )
 
 
@@ -50,13 +52,19 @@ async def fetch_parsed(
 
     result = None
     reason = None
+    last_exc: Exception | None = None
     for proxy in proxy_tries:
-        result = await client.get(
-            url,
-            encoding=encoding,
-            timeout=timeout or (20.0 if proxy else None),
-            proxy=proxy,
-        )
+        try:
+            result = await client.get(
+                url,
+                encoding=encoding,
+                timeout=timeout or (20.0 if proxy else None),
+                proxy=proxy,
+            )
+        except Exception as exc:  # noqa: BLE001 — timeout/conn error: try next exit
+            last_exc = exc
+            reason = f"fetch error:{type(exc).__name__}"
+            continue
         if result.not_modified:
             return []
         reason = block_reason(result)
@@ -75,7 +83,7 @@ async def fetch_parsed(
         if not reason:
             break
     if result is None:
-        raise RuntimeError(f"empty fetch ({url})")
+        raise RuntimeError(f"{reason or 'empty fetch'} ({url})") from last_exc
     if reason:
         raise RuntimeError(f"{reason} ({url})")
     posts = parse_fn(result.text)
