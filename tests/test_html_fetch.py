@@ -15,6 +15,20 @@ def test_block_reason_challenge():
     assert block_reason(result) == "blocked:just a moment"
 
 
+def test_block_reason_fmkorea_protect():
+    result = FetchResult(
+        url="https://www.fmkorea.com/hotdeal",
+        status=200,
+        text=(
+            "<html><head><title>이용자보호 조치 시스템</title></head>"
+            "<body>IP: 1.2.3.4 잠시 기다리면 자동으로 연결됩니다. "
+            "help@fmkorea.com</body></html>"
+        ),
+        content=b"",
+    )
+    assert block_reason(result) == "blocked:이용자보호"
+
+
 def test_block_reason_ignores_cf_email_widget():
     result = FetchResult(
         url="https://damoang.net/economy",

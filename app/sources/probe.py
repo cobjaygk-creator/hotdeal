@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from collections import Counter
+from urllib.parse import urlparse
 
 from selectolax.parser import HTMLParser
 
@@ -37,7 +38,15 @@ async def probe_source(client: PoliteClient, name: str) -> dict:
     if not url:
         return {"error": f"unsupported probe source: {name}", "supported": sorted(SOURCE_URLS)}
 
-    result = await client.get(url)
+    from app.config import PPOMPPU_PROXY_URL
+    from app.sources.html_fetch import PROXY_FIRST_HOSTS
+
+    host = (urlparse(url).hostname or "").lower() if url else ""
+    prefer_proxy = bool(PPOMPPU_PROXY_URL) and any(
+        host == item or host.endswith("." + item) for item in PROXY_FIRST_HOSTS
+    )
+    proxy = PPOMPPU_PROXY_URL if prefer_proxy else None
+    result = await client.get(url, proxy=proxy, timeout=20.0 if proxy else None)
     blocked = block_reason(result)
     text = result.text or ""
     tree = HTMLParser(text)
@@ -89,6 +98,7 @@ async def probe_source(client: PoliteClient, name: str) -> dict:
     return {
         "source": name,
         "url": url,
+        "proxy": bool(proxy),
         "status": result.status,
         "bytes": len(result.content),
         "blocked": blocked,

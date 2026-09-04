@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Callable
 from urllib.parse import urlparse
 
 from app.config import PPOMPPU_PROXY_URL
-from app.http_client import FetchResult, PoliteClient
+from app.http_client import FetchResult, PoliteClient, soft_block_reason
 from app.sources import RawPost
 
 ParseFn = Callable[[str], list[RawPost]]
@@ -17,28 +18,13 @@ PROXY_FIRST_HOSTS = (
     "fmkorea.com",
 )
 
-_BLOCK_MARKERS = (
-    "just a moment",
-    "cf-browser-verification",
-    "challenge-platform",
-    "attention required",
-    "access denied",
-    "checking your browser",
-    "enable javascript and cookies to continue",
-    "please checking if the site connection is secure",
-    "보안검사를 완료",
-    "보안 검사",
-)
-
 
 def block_reason(result: FetchResult) -> str | None:
-    head = (result.text or "")[:5000].lower()
-    if not head.strip():
+    head = (result.text or "").strip()
+    if not head:
         return "empty body"
-    for marker in _BLOCK_MARKERS:
-        if marker in head:
-            return f"blocked:{marker}"
-    return None
+    reason = soft_block_reason(result.text)
+    return f"blocked:{reason}" if reason else None
 
 
 async def fetch_parsed(
@@ -74,6 +60,18 @@ async def fetch_parsed(
         if result.not_modified:
             return []
         reason = block_reason(result)
+        if reason:
+            # Same-client cookie warm-up for soft gates (esp. FMKorea).
+            await asyncio.sleep(1.5)
+            result = await client.get(
+                url,
+                encoding=encoding,
+                timeout=timeout or (20.0 if proxy else None),
+                proxy=proxy,
+            )
+            if result.not_modified:
+                return []
+            reason = block_reason(result)
         if not reason:
             break
     if result is None:

@@ -19,6 +19,7 @@ from app.parse.links import (
     is_mall_url,
 )
 from app.parse.sanitize_html import sanitize_body_html
+from app.http_client import soft_block_reason
 from app.sources.html_fetch import PROXY_FIRST_HOSTS
 
 log = logging.getLogger(__name__)
@@ -271,20 +272,7 @@ def _is_detail_stub(source: str, html: str) -> bool:
 
 
 def _looks_blocked(html: str) -> bool:
-    head = html[:1500].lower()
-    return any(
-        token in head
-        for token in (
-            "403 forbidden",
-            "just a moment",
-            "cf-browser-verification",
-            "access denied",
-            "attention required",
-            "요청을 차단",
-            "보안검사를 완료",
-            "보안 검사",
-        )
-    )
+    return soft_block_reason(html) is not None
 
 
 def enrich_from_list_body(body: str | None) -> DetailEnrichment:

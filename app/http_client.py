@@ -18,9 +18,40 @@ from app.config import (
 log = logging.getLogger(__name__)
 
 
+def soft_block_reason(text: str | None) -> str | None:
+    """Return a short marker when the body is a bot/IP gate, else None."""
+    raw = text or ""
+    if not raw.strip():
+        return "empty body"
+    head = raw[:4000]
+    head_l = head.lower()
+    for marker in (
+        "403 forbidden",
+        "just a moment",
+        "cf-browser-verification",
+        "challenge-platform",
+        "attention required",
+        "access denied",
+        "checking your browser",
+        "enable javascript and cookies to continue",
+    ):
+        if marker in head_l:
+            return marker
+    for marker in (
+        "이용자보호",
+        "help@fmkorea.com",
+        "자동으로 연결",
+        "요청을 차단",
+        "보안검사를 완료",
+        "보안 검사",
+    ):
+        if marker in head:
+            return marker
+    return None
+
+
 def _soft_blocked(text: str) -> bool:
-    head = (text or "")[:800].lower()
-    return "403 forbidden" in head or "just a moment" in head
+    return soft_block_reason(text) is not None
 
 
 BROWSER_HEADERS = {
@@ -49,6 +80,7 @@ class PoliteClient:
             follow_redirects=True,
         )
         self._proxy_clients: dict[str, httpx.AsyncClient] = {}
+        self._impersonate_sessions: dict[str, object] = {}
         self._locks: dict[str, asyncio.Lock] = {}
         self._last: dict[str, float] = {}
         self._etag: dict[str, str] = {}
@@ -76,6 +108,17 @@ class PoliteClient:
         for client in self._proxy_clients.values():
             await client.aclose()
         self._proxy_clients.clear()
+        for session in self._impersonate_sessions.values():
+            close = getattr(session, "close", None) or getattr(session, "aclose", None)
+            if close is None:
+                continue
+            try:
+                result = close()
+                if asyncio.iscoroutine(result):
+                    await result
+            except Exception:  # noqa: BLE001
+                pass
+        self._impersonate_sessions.clear()
 
     async def get(
         self,
@@ -115,6 +158,22 @@ class PoliteClient:
                         )
                         if impersonated is not None and not _soft_blocked(impersonated.text):
                             return impersonated
+                        if impersonated is not None and _soft_blocked(impersonated.text):
+                            # FMKorea "이용자보호" often needs a second hit on the
+                            # same cookie jar after a short pause.
+                            log.warning(
+                                "soft-block via chrome TLS on %s (%s); retry after pause",
+                                url,
+                                soft_block_reason(impersonated.text),
+                            )
+                            await asyncio.sleep(2.5)
+                            impersonated = await self._impersonate_get(
+                                url, encoding, timeout=req_timeout, proxy=proxy
+                            )
+                            if impersonated is not None and not _soft_blocked(
+                                impersonated.text
+                            ):
+                                return impersonated
                     resp = await http.get(url, headers=extra, timeout=req_timeout)
                 except httpx.HTTPError as exc:
                     last_error = exc
@@ -221,16 +280,20 @@ class PoliteClient:
         except ImportError:
             log.warning("curl_cffi not installed; skip Chrome TLS fetch")
             return None
+        key = proxy or ""
+        session = self._impersonate_sessions.get(key)
+        if session is None:
+            session = AsyncSession()
+            self._impersonate_sessions[key] = session
         try:
-            async with AsyncSession() as session:
-                resp = await session.get(
-                    url,
-                    impersonate="chrome",
-                    proxy=proxy,
-                    timeout=timeout,
-                    headers={"Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7"},
-                    allow_redirects=True,
-                )
+            resp = await session.get(
+                url,
+                impersonate="chrome",
+                proxy=proxy,
+                timeout=timeout,
+                headers={"Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7"},
+                allow_redirects=True,
+            )
         except Exception as exc:  # noqa: BLE001
             log.warning("chrome TLS fetch failed %s: %s", url, exc)
             return None
