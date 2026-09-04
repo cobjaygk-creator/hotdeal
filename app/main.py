@@ -1318,63 +1318,77 @@ async def api_debug_probe(source: str):
 
 
 @app.get("/api/debug/raw")
-async def api_debug_raw(url: str, proxy: int = 1, redirect: int = 0):
-    """TEMP: dump a raw proxied fetch (headers + body) for gate analysis."""
+async def api_debug_raw(url: str, proxy: int = 1, redirect: int = 0, solve: int = 0):
+    """TEMP: dump a raw proxied fetch (headers + body) for gate analysis.
+
+    solve=1: run the FMKorea lite_year cookie-replay and report if it clears.
+    """
     _require_collect()
-    import httpx as _httpx
+    import re as _re
 
     from app.config import PPOMPPU_PROXY_URL
 
     use_proxy = PPOMPPU_PROXY_URL if (proxy and PPOMPPU_PROXY_URL) else None
     out: dict = {"url": url, "proxy_used": bool(use_proxy)}
 
-    # 1) plain httpx, no redirect-follow, to expose Location / Set-Cookie.
-    try:
-        async with _httpx.AsyncClient(
-            proxy=use_proxy,
-            follow_redirects=bool(redirect),
-            timeout=20.0,
-            headers={
-                "User-Agent": (
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                    "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
-                ),
-                "Accept-Language": "ko-KR,ko;q=0.9",
-            },
-        ) as c:
-            r = await c.get(url)
-            body = r.text or ""
-            out["httpx"] = {
-                "status": r.status_code,
-                "final_url": str(r.url),
-                "headers": dict(r.headers),
-                "len": len(body),
-                "body": body[:20000],
-            }
-    except Exception as exc:  # noqa: BLE001
-        out["httpx"] = {"error": f"{type(exc).__name__}: {exc}"}
+    from curl_cffi.requests import AsyncSession
 
-    # 2) curl_cffi Chrome impersonation through the same proxy.
-    try:
-        from curl_cffi.requests import AsyncSession
+    def _summ(r):
+        body = r.text or ""
+        return {
+            "status": int(r.status_code),
+            "headers": dict(r.headers),
+            "len": len(body),
+            "is_gate": ("보안 시스템" in body) or ("lite_year" in body),
+            "body": body[:16000],
+        }
 
+    try:
         async with AsyncSession() as s:
-            r = await s.get(
-                url,
-                impersonate="chrome",
-                proxy=use_proxy,
-                timeout=20.0,
+            r1 = await s.get(
+                url, impersonate="chrome", proxy=use_proxy, timeout=20.0,
                 allow_redirects=bool(redirect),
             )
-            body = r.text or ""
-            out["curl_cffi"] = {
-                "status": int(r.status_code),
-                "headers": dict(r.headers),
-                "len": len(body),
-                "body": body[:20000],
-            }
+            out["fetch1"] = _summ(r1)
+
+            if solve:
+                gate = r1.text or ""
+                m = _re.search(r"lite_year['\"]?\s*\+\s*\"=\"\s*\+\s*escape\('([0-9a-f]{16,64})'\)", gate)
+                fm5 = _re.search(r"fm5\('([0-9a-f]{16,64})',\s*'([0-9a-f]{16,64})'\)", gate)
+                token = m.group(1) if m else None
+                out["parsed"] = {
+                    "lite_year": token,
+                    "fm5_args": [fm5.group(1), fm5.group(2)] if fm5 else None,
+                }
+                if token:
+                    for name, dom in (("lite_year", None), ("g_lite_year", ".fmkorea.com")):
+                        try:
+                            s.cookies.set(name, token, domain=dom or "www.fmkorea.com")
+                        except Exception:  # noqa: BLE001
+                            s.cookies.set(name, token)
+                    # Try the mc.php module endpoint (may Set-Cookie server-side).
+                    try:
+                        rm = await s.get(
+                            "https://www.fmkorea.com/mc/mc.php", impersonate="chrome",
+                            proxy=use_proxy, timeout=20.0,
+                        )
+                        out["mc_php"] = {"status": int(rm.status_code), "ct": rm.headers.get("content-type"), "set_cookie": rm.headers.get("set-cookie"), "len": len(rm.content or b"")}
+                    except Exception as exc:  # noqa: BLE001
+                        out["mc_php"] = {"error": f"{type(exc).__name__}: {exc}"}
+                    sep = "&" if "?" in url else "?"
+                    r2 = await s.get(
+                        url + sep + "ddosCheckOnly=1", impersonate="chrome",
+                        proxy=use_proxy, timeout=20.0, allow_redirects=True,
+                    )
+                    out["fetch2_ddoscheck"] = _summ(r2)
+                    r3 = await s.get(
+                        url, impersonate="chrome", proxy=use_proxy, timeout=20.0,
+                        allow_redirects=True,
+                    )
+                    out["fetch3_plain"] = _summ(r3)
+                    out["cookies_after"] = {c.name: c.value[:12] for c in s.cookies.jar}
     except Exception as exc:  # noqa: BLE001
-        out["curl_cffi"] = {"error": f"{type(exc).__name__}: {exc}"}
+        out["error"] = f"{type(exc).__name__}: {exc}"
 
     return JSONResponse(out)
 
