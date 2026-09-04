@@ -33,6 +33,7 @@ _MALL_HOSTS: tuple[tuple[str, str, str], ...] = (
     ("nsmall.com", "NS홈쇼핑", "nsmall"),
     ("musinsa.com", "무신사", "musinsa"),
     ("ably.co.kr", "에이블리", "ably"),
+    ("a-bly.com", "에이블리", "ably"),
     ("zigzag.kr", "지그재그", "zigzag"),
     ("kream.co.kr", "크림", "kream"),
     ("ohou.se", "오늘의집", "ohouse"),

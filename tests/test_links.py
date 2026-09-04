@@ -98,6 +98,21 @@ def test_quasarzone_gotolink_base64():
     assert extract_shop_url(html) == "https://item.gmarket.co.kr/Item?goodscode=4212758930"
 
 
+def test_prefer_ably_over_nhnace_ad():
+    from app.parse.links import extract_shop_url, is_junk_mall_url, prefers_mall
+
+    ad = (
+        "https://cdn.nhnace.com/libs/aceadlib.html?pub_code=1281125299"
+        "&area_code=1743151083&pag=fmkorea.com"
+    )
+    good = "https://mobile.a-bly.com/goods/63730285"
+    html = f'<a href="{ad}">ad</a><a href="{good}">buy</a>'
+    assert is_junk_mall_url(ad)
+    assert is_mall_url(good)
+    assert extract_shop_url(html) == good
+    assert prefers_mall(good, ad)
+
+
 def test_prefer_oliveyoung_over_dajooda_affiliate():
     from app.parse.links import extract_shop_url, is_junk_mall_url, prefers_mall
 

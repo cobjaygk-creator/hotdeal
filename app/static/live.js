@@ -259,6 +259,7 @@ const MALL_HOSTS = [
   ["29cm.co.kr", "29CM", "29cm"],
   ["wconcept.co.kr", "W컨셉", "wconcept"],
   ["ably.co.kr", "에이블리", "ably"],
+  ["a-bly.com", "에이블리", "ably"],
   ["zigzag.kr", "지그재그", "zigzag"],
   ["kream.co.kr", "크림", "kream"],
   ["ohou.se", "오늘의집", "ohouse"],

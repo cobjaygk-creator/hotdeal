@@ -42,6 +42,7 @@ MALL_HOST_PARTS = (
     "ohou.se",
     "musinsa.com",
     "ably.co.kr",
+    "a-bly.com",
     "zigzag.kr",
     "temu.com",
     "aliexpress.com",
@@ -130,6 +131,10 @@ JUNK_HOST_PARTS = (
     "api.fixer.io",
     # Ruliweb / community sidebars sometimes inject this affiliate shortener.
     "dajooda.com",
+    # FMKorea (and others) inject NHN Ace / AceCounter ad iframes as links.
+    "nhnace.com",
+    "acecounter.com",
+    "ace.naver.com",
 )
 COMMUNITY_HOST_PARTS = (
     "ppomppu.co.kr",
