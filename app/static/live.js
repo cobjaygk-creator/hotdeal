@@ -147,12 +147,27 @@ function relativeTime(s) {
   }).format(d);
 }
 
-function clockTime(s) {
-  if (!s) return "";
+const RECENT_SECS = 10 * 60;
+
+function parseTs(s) {
+  if (!s) return null;
   const iso = String(s).includes("T") ? String(s) : String(s).replace(" ", "T");
   const aware = /Z$|[+-]\d{2}:?\d{2}$/.test(iso) ? iso : iso + "Z";
   const d = new Date(aware);
-  if (Number.isNaN(d.getTime())) return "";
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function isRecentTs(s, withinSecs = RECENT_SECS) {
+  const d = parseTs(s);
+  if (!d) return false;
+  const secs = (Date.now() - d.getTime()) / 1000;
+  return secs >= 0 && secs < withinSecs;
+}
+
+function clockTime(s) {
+  if (!s) return "";
+  const d = parseTs(s);
+  if (!d) return "";
   return new Intl.DateTimeFormat("en-GB", {
     timeZone: "Asia/Seoul",
     hour: "2-digit",
@@ -165,6 +180,7 @@ function refreshTimes() {
   if (!bodyEl) return;
   bodyEl.querySelectorAll(".time-rel[data-ts]").forEach((el) => {
     el.textContent = relativeTime(el.dataset.ts);
+    el.classList.toggle("is-recent", isRecentTs(el.dataset.ts));
   });
   bodyEl.querySelectorAll(".time-abs[data-ts]").forEach((el) => {
     el.textContent = clockTime(el.dataset.ts);
@@ -411,7 +427,7 @@ function priceRowMeta(deal, ts) {
     parts.push(`<span class="deal-source">${esc(src)}</span>`);
   }
   parts.push(
-    `<time class="time-rel" datetime="${esc(ts)}" data-ts="${esc(ts)}">${esc(relativeTime(ts))}</time>`
+    `<time class="time-rel${isRecentTs(ts) ? " is-recent" : ""}" datetime="${esc(ts)}" data-ts="${esc(ts)}">${esc(relativeTime(ts))}</time>`
   );
   return parts.join('<span class="deal-meta-sep" aria-hidden="true">|</span>');
 }
@@ -847,7 +863,7 @@ if (bodyEl) {
   setMoreVisible();
   if (selectedSources && selectedSources.length) ensureVisible(12);
   refreshTimes();
-  setInterval(refreshTimes, 30000);
+  setInterval(refreshTimes, 15000);
   if (config.live !== false) connect();
 } else {
   paintBookmarkButtons();

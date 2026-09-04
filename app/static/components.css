@@ -511,6 +511,17 @@ button:disabled,
   font-size: var(--text-caption);
   font-weight: 600;
 }
+.time-rel.is-recent {
+  color: var(--fresh, #ff9a3c);
+  animation: time-recent-pulse 1.8s ease-in-out infinite;
+}
+@keyframes time-recent-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.42; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .time-rel.is-recent { animation: none; opacity: 1; }
+}
 
 /* ---------------- Grade chips ---------------- */
 .grade-chip {
@@ -805,11 +816,14 @@ button:disabled,
   color: var(--price);
 }
 .deal-price .won { font-size: var(--text-body-sm); font-weight: 700; }
-/* 시간은 뉴트럴 — 초록은 할인율/최저가 갱신 전용 */
+/* 시간은 뉴트럴 — 초록은 할인율/최저가 갱신 전용. 10분 이내는 .is-recent */
 .deal-price-row .time-rel {
   color: var(--ink-faint);
   font-size: var(--text-label);
   font-weight: 600;
+}
+.deal-price-row .time-rel.is-recent {
+  color: var(--fresh, #ff9a3c);
 }
 .deal-off {
   display: inline-flex;
