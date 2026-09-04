@@ -92,6 +92,58 @@ def test_parse_detail_og_and_mall():
     assert "javascript:" not in detail.body_html.lower()
 
 
+def test_parse_detail_fmkorea_bd_capture_over_link_xe_content():
+    """Stray .xe_content (관련링크) must not beat #bd_capture body."""
+    html = """
+    <html><head>
+      <meta property="og:title" content="[알리] 코인 호주산 LA갈비 1kg+1kg 총 2kg - 에펨코리아">
+      <meta property="og:image" content="https://image.fmkorea.com/filesn/a.webp">
+    </head><body>
+      <div class="xe_content">
+        <a href="https://ko.aliexpress.com/item/1005009782228283.html">
+          https://ko.aliexpress.com/item/1005009782228283.html
+        </a>
+      </div>
+      <div id="bd_capture">
+        <div class="xe_content">
+          <img src="https://image.fmkorea.com/filesn/deal.jpg" alt="">
+          <p>1kg씩 따로 소분돼 있어서 먹을 만큼씩 꺼내기 편함</p>
+          <p>코인 6%에 YUAG03 선착순 쿠폰 먹이면 43,286원이고 1kg당 21,643원 나옴</p>
+          <a href="https://ko.aliexpress.com/item/1005009782228283.html">구매</a>
+        </div>
+      </div>
+    </body></html>
+    """
+    detail = parse_detail(html, "https://www.fmkorea.com/10295340047")
+    assert detail.mall_url and "aliexpress.com" in detail.mall_url
+    assert detail.body_html
+    assert "소분돼" in detail.body_html
+    assert "YUAG03" in detail.body_html
+    assert "image.fmkorea.com/filesn/deal.jpg" in detail.body_html
+    # Must not be link-only.
+    assert "소분" in detail.body_html or "YUAG03" in detail.body_html
+    assert detail.body_html.count("<a ") <= 2
+
+
+def test_parse_detail_fmkorea_picks_richest_xe_content():
+    """Without #bd_capture, prefer the .xe_content with prose+images."""
+    html = """
+    <html><body>
+      <div class="xe_content">
+        <a href="https://ko.aliexpress.com/item/1.html">https://ko.aliexpress.com/item/1.html</a>
+      </div>
+      <div class="xe_content">
+        <img data-original="//image.fmkorea.com/filesn/big.webp">
+        <p>1kg씩 따로 소분돼 있어서 먹을 만큼씩 꺼내기 편함</p>
+      </div>
+    </body></html>
+    """
+    detail = parse_detail(html, "https://www.fmkorea.com/1")
+    assert detail.body_html
+    assert "소분돼" in detail.body_html
+    assert "image.fmkorea.com/filesn/big.webp" in detail.body_html
+
+
 def test_sanitize_strips_xss():
     from app.parse.sanitize_html import sanitize_body_html
 
@@ -109,6 +161,22 @@ def test_sanitize_strips_xss():
     assert 'src="https://cdn.example.com/ok.jpg"' in clean
     assert 'src="https://board.example.com/rel.jpg"' in clean
     assert 'referrerpolicy="no-referrer"' in clean
+
+
+def test_thin_body_html_helpers():
+    from app.parse.sanitize_html import is_thin_body_html, prefers_body_html
+
+    link_only = (
+        '<a href="https://ko.aliexpress.com/item/1.html" target="_blank" '
+        'rel="noopener noreferrer">https://ko.aliexpress.com/item/1.html</a>'
+    )
+    rich = "<p>1kg씩 따로 소분돼 있어서 먹을 만큼씩 꺼내기 편함</p><img src=\"https://cdn.example.com/a.jpg\">"
+    assert is_thin_body_html(None)
+    assert is_thin_body_html("")
+    assert is_thin_body_html(link_only)
+    assert not is_thin_body_html(rich)
+    assert prefers_body_html(rich, link_only)
+    assert not prefers_body_html(link_only, rich)
 
 
 

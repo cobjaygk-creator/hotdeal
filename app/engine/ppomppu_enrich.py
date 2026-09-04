@@ -14,6 +14,7 @@ from app.config import PPOMPPU_ENRICH_BATCH, PPOMPPU_PROXY_URL
 from app.db import set_meta, utcnow_iso
 from app.engine.category import classify
 from app.parse.links import prefers_mall
+from app.parse.sanitize_html import prefers_body_html
 from app.parse.title import parse_title
 from app.pipeline import fetch_deal_card
 from app.sources.detail import enrich_post
@@ -82,16 +83,23 @@ async def enrich_missing_ppomppu_malls(
                 )
                 OR p.body_html IS NULL
                 OR TRIM(p.body_html) = ''
+                OR (
+                  -- Link-only / chrome body left by a wrong .xe_content hit.
+                  lower(p.body_html) LIKE '%<a %'
+                  AND lower(p.body_html) NOT LIKE '%<img %'
+                  AND length(p.body_html) < 400
+                )
               )"""
     params.append(batch)
     cur = await conn.execute(
         f"""
-        SELECT deal_id, post_id, post_url, source, mall_url FROM (
+        SELECT deal_id, post_id, post_url, source, mall_url, body_html FROM (
           SELECT d.id AS deal_id,
                  p.id AS post_id,
                  p.url AS post_url,
                  p.source AS source,
                  d.mall_url AS mall_url,
+                 p.body_html AS body_html,
                  ROW_NUMBER() OVER (
                    PARTITION BY p.source
                    ORDER BY d.last_seen_at DESC
@@ -162,7 +170,7 @@ async def enrich_missing_ppomppu_malls(
             mall_better = prefers_mall(mall_url, row.get("mall_url"))
             title_update = len(title_txt) >= 4
             thumb_update = bool(thumb)
-            body_update = bool(body_html)
+            body_update = prefers_body_html(body_html, row.get("body_html"))
 
             if not mall_url:
                 if getattr(detail, "blocked", False):

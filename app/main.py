@@ -49,6 +49,7 @@ from app.events import EventHub
 from app.http_client import PoliteClient
 from app.pipeline import collect_and_process
 from app.parse.mall import mall_key_from_url, mall_label_from_url
+from app.parse.sanitize_html import is_thin_body_html
 from app.parse.title import clean_deal_title
 from app.sources.registry import (
     COLLECT_FAST_SOURCES,
@@ -943,7 +944,9 @@ async def deal_detail(request: Request, deal_id: int):
     deal["body_html"] = body_html
     deal["body_source"] = body_source
     if ENABLE_COLLECT and (
-        not (deal.get("mall_url") or "").strip() or not body_html
+        not (deal.get("mall_url") or "").strip()
+        or not body_html
+        or is_thin_body_html(body_html)
     ):
         asyncio.create_task(_kick_mall_enrich([deal_id]))
     history = await _price_history(deal["product_key"])
@@ -1095,7 +1098,9 @@ async def api_deal(deal_id: int):
         log.exception("api deal failed id=%s", deal_id)
         raise HTTPException(503, "deal temporarily unavailable")
     if ENABLE_COLLECT and (
-        not (deal.get("mall_url") or "").strip() or not deal.get("body_html")
+        not (deal.get("mall_url") or "").strip()
+        or not deal.get("body_html")
+        or is_thin_body_html(deal.get("body_html"))
     ):
         asyncio.create_task(_kick_mall_enrich([deal_id]))
     return JSONResponse(deal)
@@ -1840,19 +1845,21 @@ async def _deal_posts(deal_id: int) -> list[dict]:
 
 
 def _pick_body_html(posts: list[dict]) -> tuple[str | None, str | None]:
-    """Prefer the longest sanitized community body among linked posts."""
+    """Prefer the richest sanitized community body among linked posts."""
+    from app.parse.sanitize_html import is_thin_body_html
+
     best_html: str | None = None
     best_source: str | None = None
-    best_len = 0
+    best_key = (-1, -1)  # (not_thin, length)
     for row in posts or []:
         html = (row.get("body_html") or "").strip()
         if not html:
             continue
-        n = len(html)
-        if n > best_len:
+        key = (0 if is_thin_body_html(html) else 1, len(html))
+        if key > best_key:
             best_html = html
             best_source = (row.get("source") or "").strip() or None
-            best_len = n
+            best_key = key
     return best_html, best_source
 
 

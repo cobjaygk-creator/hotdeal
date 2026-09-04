@@ -227,22 +227,34 @@
   })();
   {% endif %}
 
-  {% if not deal.body_html %}
+  {% if not deal.body_html or (deal.body_html | length) < 400 and '<img ' not in (deal.body_html | lower) %}
   (function pollBody() {
     var tries = 0;
     var labels = {{ source_labels | tojson }};
+    function isThin(html) {
+      if (!html || !String(html).trim()) return true;
+      var s = String(html);
+      if (/<img\s/i.test(s)) return false;
+      var text = s.replace(/<[^>]+>/g, " ").replace(/https?:\/\/\S+/gi, " ").replace(/\s+/g, " ").trim();
+      return text.length < 40;
+    }
     async function tick() {
       tries += 1;
       try {
         var res = await fetch("/api/deals/{{ deal.id }}", { cache: "no-store" });
         if (!res.ok) throw new Error("bad");
         var d = await res.json();
-        if (!d.body_html) {
+        if (!d.body_html || isThin(d.body_html)) {
           if (tries < 8) setTimeout(tick, 2000);
           return;
         }
+        var existing = document.querySelector(".dd-body-html");
+        if (existing) {
+          existing.innerHTML = d.body_html;
+          return;
+        }
         var market = document.querySelector(".dd-market");
-        if (!market || document.querySelector(".dd-body-html")) return;
+        if (!market) return;
         var h = document.createElement("h2");
         h.className = "dd-section";
         h.textContent = "원문 내용";

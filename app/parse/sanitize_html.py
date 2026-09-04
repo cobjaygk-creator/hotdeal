@@ -75,6 +75,35 @@ def sanitize_body_html(raw: str | None, *, base_url: str = "", max_len: int = MA
     return out
 
 
+_URL_TEXT_RE = re.compile(r"https?://\S+", re.I)
+
+
+def is_thin_body_html(html: str | None) -> bool:
+    """True when body is empty or basically a buy-link with no prose/images."""
+    raw = (html or "").strip()
+    if not raw:
+        return True
+    low = raw.lower()
+    if "<img " in low:
+        return False
+    text = " ".join(unescape(re.sub(r"<[^>]+>", " ", raw)).split())
+    prose = " ".join(_URL_TEXT_RE.sub(" ", text).split())
+    return len(prose) < 40
+
+
+def prefers_body_html(new: str | None, old: str | None) -> bool:
+    """Keep richer community bodies; never replace good prose with link-only."""
+    n = (new or "").strip()
+    if not n:
+        return False
+    o = (old or "").strip()
+    if not o or is_thin_body_html(o):
+        return True
+    if is_thin_body_html(n):
+        return False
+    return len(n) > len(o)
+
+
 class _BodySanitizer(HTMLParser):
     def __init__(self, *, base_url: str) -> None:
         super().__init__(convert_charrefs=True)

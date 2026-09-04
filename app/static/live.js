@@ -1113,9 +1113,21 @@ async function openModal(id, opts) {
   if (!isPostUrl(deal.mall_url)) {
     pollModalMall(id, deal);
   }
-  if (!deal.body_html) {
+  if (!deal.body_html || isThinBodyHtml(deal.body_html)) {
     pollModalBody(id);
   }
+}
+
+function isThinBodyHtml(html) {
+  if (!html || !String(html).trim()) return true;
+  const s = String(html);
+  if (/<img\s/i.test(s)) return false;
+  const text = s
+    .replace(/<[^>]+>/g, " ")
+    .replace(/https?:\/\/\S+/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return text.length < 40;
 }
 
 async function pollModalBody(id) {
@@ -1126,8 +1138,12 @@ async function pollModalBody(id) {
       const res = await fetch("/api/deals/" + id, { cache: "no-store" });
       if (!res.ok) continue;
       const fresh = await res.json();
-      if (!fresh.body_html || !modalBody) continue;
-      if (modalBody.querySelector(".dd-body-html")) return;
+      if (!fresh.body_html || isThinBodyHtml(fresh.body_html) || !modalBody) continue;
+      const existing = modalBody.querySelector(".dd-body-html");
+      if (existing) {
+        existing.innerHTML = fresh.body_html;
+        return;
+      }
       const market = modalBody.querySelector(".dd-market");
       if (!market) return;
       const h = document.createElement("h2");

@@ -43,6 +43,9 @@ TITLE_SELECTORS = (
 )
 
 BODY_SELECTORS = (
+    # FMKorea (XE): FLICK-style — prefer capture root over stray .xe_content.
+    "#bd_capture .xe_content",
+    "#bd_capture",
     "#new_bbs_content",
     ".board-contents",
     ".bbs-contents",
@@ -57,6 +60,11 @@ BODY_SELECTORS = (
     "td.han",
     "#article_1",
 )
+
+# Broader shells (.content / article) often wrap nav+comments; keep them for
+# mall/thumb harvest but not for body_html.
+_BODY_HTML_SKIP = frozenset({".content", "article", "#article"})
+_URL_IN_TEXT_RE = re.compile(r"https?://\S+", re.I)
 
 # Board meta rows: prefer these over free-form body links (coupon tips etc.).
 BOARD_LINK_LABELS = (
@@ -411,24 +419,65 @@ def _inner_html(node) -> str:
     return "".join(parts)
 
 
+def _body_node_score(root) -> tuple[int, int, int]:
+    """Rank body candidates: images, then prose (URLs stripped), then raw text."""
+    text = " ".join((root.text() or "").split())
+    prose = " ".join(_URL_IN_TEXT_RE.sub(" ", text).split())
+    imgs = 0
+    for img in root.css("img"):
+        src = (
+            (img.attributes.get("src") or "").strip()
+            or (img.attributes.get("data-src") or "").strip()
+            or (img.attributes.get("data-original") or "").strip()
+        )
+        if src and not src.startswith("data:") and "icon" not in src.lower():
+            imgs += 1
+    return (imgs, len(prose), len(text))
+
+
 def _extract_body_html(tree: HTMLParser, page_url: str = "") -> str | None:
-    raw = ""
+    best_raw = ""
+    best_score = (-1, -1, -1)
     for sel in BODY_SELECTORS:
-        root = tree.css_first(sel)
-        if not root:
+        if sel in _BODY_HTML_SKIP:
             continue
-        raw = _inner_html(root).strip()
-        if not raw:
+        nodes = tree.css(sel)
+        if not nodes:
             continue
-        # Skip tiny chrome / empty shells.
-        text = " ".join((root.text() or "").split())
-        has_img = bool(root.css_first("img"))
-        if len(text) < 12 and not has_img:
+        # Class-only selectors can hit link fields / signatures; score all.
+        # Id / compound selectors are specific enough to take the first hit.
+        consider = nodes if sel.startswith(".") else nodes[:1]
+        local_raw = ""
+        local_score = (-1, -1, -1)
+        for root in consider:
+            raw = _inner_html(root).strip()
+            if not raw:
+                continue
+            score = _body_node_score(root)
+            # Skip tiny chrome / empty shells (link-only still has long URL text).
+            if score[0] == 0 and score[1] < 12 and score[2] < 12:
+                continue
+            if score > local_score:
+                local_score = score
+                local_raw = raw
+        if not local_raw:
             continue
-        break
-    if not raw:
+        # Prefer richer nodes across selectors (avoids first tiny .xe_content).
+        if local_score > best_score:
+            best_score = local_score
+            best_raw = local_raw
+        # Strong FMKorea / board roots: stop once we have real prose or images.
+        if sel.startswith("#bd_capture") or sel in {
+            "#new_bbs_content",
+            ".board-contents",
+            ".bbs-contents",
+            ".view_content",
+        }:
+            if best_score[0] > 0 or best_score[1] >= 20:
+                break
+    if not best_raw:
         return None
-    return sanitize_body_html(raw, base_url=page_url)
+    return sanitize_body_html(best_raw, base_url=page_url)
 
 
 def _label_text(node) -> str:
