@@ -91,6 +91,70 @@ def is_thin_body_html(html: str | None) -> bool:
     return len(prose) < 40
 
 
+_FIELD_TABLE_LABELS = ("링크", "쇼핑몰", "상품명", "가격", "배송")
+_CHROME_TOKENS = ("조회 수", "추천 수", "비추천", "스크랩", "신고", "댓글로 가기", "위로", "아래로")
+_ICON_SRC_PARTS = ("/modules/", "/icons/", "/point/", "emoticon", "/level", "blank.gif", "/addons/")
+_DATE_ONLY_RE = re.compile(r"^\d{4}[.\-/]\d{1,2}[.\-/]\d{1,2}(\s+\d{1,2}:\d{2}(:\d{2})?)?$")
+
+
+def _has_content_img(node) -> bool:
+    for img in node.css("img"):
+        src = (img.attributes.get("src") or img.attributes.get("data-src") or "").lower()
+        if src and not any(p in src for p in _ICON_SRC_PARTS):
+            return True
+    return False
+
+
+def strip_board_chrome(html: str | None) -> str | None:
+    """Drop FMKorea/XE board header + nav + the 링크·쇼핑몰·상품명·가격·배송
+    hotdeal_table from a body fragment. Class-independent so it also cleans
+    bodies captured before the extractor learned to skip that chrome."""
+    raw = (html or "").strip()
+    if not raw:
+        return html
+    lower = raw.lower()
+    if "<table" not in lower and not any(t in raw for t in _CHROME_TOKENS[:2]):
+        return html
+    try:
+        from selectolax.parser import HTMLParser as _P
+
+        tree = _P(raw)
+    except Exception:  # noqa: BLE001
+        return html
+    for tbl in tree.css("table"):
+        txt = " ".join((tbl.text() or "").split())
+        hits = sum(1 for lab in _FIELD_TABLE_LABELS if lab in txt)
+        if hits >= 3 and len(txt) < 400:
+            tbl.decompose()
+    for node in tree.css("h1"):
+        node.decompose()
+    # Header/nav strips: a small element that is a meta-count row, a nav bar,
+    # a bare date, or an author byline (short text + only an avatar/level icon).
+    for node in tree.css("div, span, p, ul"):
+        try:
+            txt = " ".join((node.text() or "").split())
+        except Exception:  # noqa: BLE001
+            continue
+        if len(txt) > 120 or _has_content_img(node):
+            continue
+        chrome = sum(1 for t in _CHROME_TOKENS if t in txt)
+        is_date = bool(_DATE_ONLY_RE.match(txt))
+        is_byline = bool(txt) and len(txt) <= 20 and node.css_first("img") is not None
+        if chrome >= 2 or is_date or is_byline:
+            node.decompose()
+    body = tree.body
+    parts: list[str] = []
+    child = body.child if body else None
+    while child is not None:
+        if child.html:
+            parts.append(child.html)
+        child = child.next
+    out = "".join(parts).strip()
+    if not out or (("<img" not in out.lower()) and len(re.sub(r"<[^>]+>", " ", out).split()) < 4):
+        return None
+    return out
+
+
 def prefers_body_html(new: str | None, old: str | None) -> bool:
     """Keep richer community bodies; never replace good prose with link-only."""
     n = (new or "").strip()

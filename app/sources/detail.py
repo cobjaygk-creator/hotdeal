@@ -20,7 +20,7 @@ from app.parse.links import (
     is_oliveyoung_short,
     is_weak_mall_url,
 )
-from app.parse.sanitize_html import sanitize_body_html
+from app.parse.sanitize_html import sanitize_body_html, strip_board_chrome
 from app.http_client import soft_block_reason
 from app.sources.html_fetch import PROXY_FIRST_HOSTS
 
@@ -548,7 +548,7 @@ def _extract_body_html(tree: HTMLParser, page_url: str = "") -> str | None:
                 break
     if not best_raw:
         return None
-    return sanitize_body_html(best_raw, base_url=page_url)
+    return strip_board_chrome(sanitize_body_html(best_raw, base_url=page_url))
 
 
 def _label_text(node) -> str:

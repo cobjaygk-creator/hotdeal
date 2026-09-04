@@ -1872,13 +1872,13 @@ async def _deal_posts(deal_id: int) -> list[dict]:
 
 def _pick_body_html(posts: list[dict]) -> tuple[str | None, str | None]:
     """Prefer the richest sanitized community body among linked posts."""
-    from app.parse.sanitize_html import is_thin_body_html
+    from app.parse.sanitize_html import is_thin_body_html, strip_board_chrome
 
     best_html: str | None = None
     best_source: str | None = None
     best_key = (-1, -1)  # (not_thin, length)
     for row in posts or []:
-        html = (row.get("body_html") or "").strip()
+        html = (strip_board_chrome(row.get("body_html")) or "").strip()
         if not html:
             continue
         key = (0 if is_thin_body_html(html) else 1, len(html))

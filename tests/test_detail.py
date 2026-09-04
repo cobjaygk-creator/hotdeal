@@ -228,6 +228,31 @@ def test_thin_body_html_helpers():
 
 
 
+def test_strip_board_chrome():
+    from app.parse.sanitize_html import strip_board_chrome
+
+    # Class-stripped FMKorea body: header + hotdeal_table + nav, no real content.
+    chrome_only = (
+        "<div><div><span>2026.09.04 12:57</span><h1><span>[쿠팡] 사이다</span></h1></div>"
+        "<div><span><img src=\"https://image.fmkorea.com/modules/point/icons/21.png\">믜믜지</span></div>"
+        "<div><span>조회 수 <b>4727</b></span><span>추천 수 <b>4</b></span><span>댓글 <b>7</b></span></div></div>"
+        "<table><tbody><tr><th>링크</th><td><a href=\"https://link.coupang.com/a/x\">x</a></td></tr>"
+        "<tr><th>쇼핑몰</th><td>쿠팡</td></tr><tr><th>상품명</th><td>사이다</td></tr>"
+        "<tr><th>가격</th><td>25,920원</td></tr><tr><th>배송</th><td>무료</td></tr></tbody></table>"
+        "<div><span>위로</span><span>아래로</span><span>스크랩</span></div>"
+    )
+    assert strip_board_chrome(chrome_only) is None
+
+    mixed = chrome_only + "<p>실제 본문 설명 여러 줄입니다</p><p><img src=\"https://image.fmkorea.com/files/attach/deal.jpg\"></p>"
+    out = strip_board_chrome(mixed)
+    assert out and "실제 본문 설명" in out and "deal.jpg" in out
+    assert "링크" not in out and "조회 수" not in out and "믜믜지" not in out
+    assert "<table" not in out and "<h1" not in out
+
+    clean = "<p><img src=\"https://image.fmkorea.com/files/x.webp\"></p><p>휴대하기 편함</p>"
+    assert strip_board_chrome(clean) == clean
+
+
 def test_parse_detail_ppomppu_shortener():
     # https://item.gmarket.co.kr/Item?goodscode=2713640571
     target = (
