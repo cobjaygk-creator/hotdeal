@@ -17,3 +17,10 @@ def test_mall_from_url():
     assert mall_from_url("https://item.gmarket.co.kr/Item?goodscode=1") == ("G마켓", "gmarket")
     assert mall_from_url("https://brand.naver.com/x/products/1") == ("네이버", "naver")
     assert mall_from_url(None) == (None, None)
+
+
+def test_mall_guess_from_unknown_host():
+    label, key = mall_from_url("https://www.seorincomputer.co.kr/shop/system_detail.html?sid=1")
+    assert label == "Seorincomputer"
+    assert key == "guess-seorincomputer"
+    assert mall_from_url("https://item.examplebrand.co.kr/product/99")[0] == "Examplebrand"

@@ -583,7 +583,7 @@ button:disabled,
 /* Soft 1px orange blink — no thick blue glow */
 @keyframes deal-new-pulse {
   0%, 100% { border-color: var(--border); }
-  10%, 35%, 60%, 85% { border-color: var(--hot); }
+  10%, 35%, 60%, 85% { border-color: var(--fresh, #ff9a3c); }
   22%, 47%, 72% { border-color: var(--border); }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -741,7 +741,11 @@ button:disabled,
 .deal-tag-mall[data-mall="kyobo"] { color: #503396; }
 .deal-tag-mall[data-mall="samsung"] { color: #1428a0; }
 .deal-tag-mall[data-mall="himart"] { color: #e31c23; }
-.deal-tag-mall[data-mall="homeplus"] { color: #da291c; }
+.deal-tag-mall[data-mall^="guess-"] {
+  color: var(--ink-muted);
+  border-color: var(--border-strong);
+  background: var(--surface-sunken);
+}
 .deal-tag-lowest {
   color: var(--success);
   font-weight: 700;

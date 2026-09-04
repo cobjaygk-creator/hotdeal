@@ -45,17 +45,17 @@
   --border: #e4e7ec;
   --border-strong: #cdd2da;
 
-  /* ---- 프라이머리: 파랑은 실행·링크 전용 1개 ---- */
-  --accent: #0052cc;
-  --accent-hover: #0747a6;
+  /* ---- 프라이머리: 브랜드 퍼플 ---- */
+  --accent: #5c0282;
+  --accent-hover: #470166;
   --accent-ink: #ffffff;
-  --accent-soft: #e6effd;
+  --accent-soft: #f3e8fb;
 
   /* ---- 의미색 ---- */
   --success: #167c4a;        /* 최저가 갱신·라이브 정상 */
   --warning: #b7791f;
   --danger: #c81e1e;         /* 초특가·경고·에러 */
-  --price: #e11d48;          /* 가격 시그니처 */
+  --price: #5c0282;          /* 가격 = 브랜드 퍼플 */
 
   /* 선택 상태는 파랑이 아니라 잉크 */
   --seg-active: var(--ink);
@@ -71,6 +71,7 @@
   --hot: #c2410c;
   --hot-bg: #fff3e8;
   --hot-line: #fbd9be;
+  --fresh: #ff9a3c;          /* 신규 카드 보더 (밝은 주황) */
   --watch: #96690e;
   --watch-bg: #fff8e6;
   --watch-line: #f3e1b4;
@@ -129,14 +130,14 @@
     --ink-faint: #6b7382;
     --border: #2a2f3a;
     --border-strong: #3a4150;
-    --accent: #579dff;
-    --accent-hover: #7bb1ff;
-    --accent-ink: #08182b;
-    --accent-soft: #1c2b41;
+    --accent: #c084fc;
+    --accent-hover: #d8b4fe;
+    --accent-ink: #2e1065;
+    --accent-soft: #2a1838;
     --success: #4caf7d;
     --warning: #e0a940;
     --danger: #e0685f;
-    --price: #fb7185;
+    --price: #d8b4fe;
     --seg-active: #edeff3;
     --seg-active-ink: #12151b;
     --super: #12151b;
@@ -148,6 +149,7 @@
     --hot: #f6a970;
     --hot-bg: #2a1a10;
     --hot-line: #45291a;
+    --fresh: #ffb26b;
     --watch: #e0a940;
     --watch-bg: #2a2410;
     --watch-line: #453c1a;
@@ -169,14 +171,14 @@
   --ink-faint: #6b7382;
   --border: #2a2f3a;
   --border-strong: #3a4150;
-  --accent: #579dff;
-  --accent-hover: #7bb1ff;
-  --accent-ink: #08182b;
-  --accent-soft: #1c2b41;
+  --accent: #c084fc;
+  --accent-hover: #d8b4fe;
+  --accent-ink: #2e1065;
+  --accent-soft: #2a1838;
   --success: #4caf7d;
   --warning: #e0a940;
   --danger: #e0685f;
-  --price: #fb7185;
+  --price: #d8b4fe;
   --seg-active: #edeff3;
   --seg-active-ink: #12151b;
   --super: #12151b;
@@ -188,6 +190,7 @@
   --hot: #f6a970;
   --hot-bg: #2a1a10;
   --hot-line: #45291a;
+  --fresh: #ffb26b;
   --watch: #e0a940;
   --watch-bg: #2a2410;
   --watch-line: #453c1a;

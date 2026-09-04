@@ -1,6 +1,7 @@
 """Infer display mall name / key from a shop URL host."""
 from __future__ import annotations
 
+import re
 from urllib.parse import urlparse
 
 # (host needle, display label, css data-mall key)
@@ -30,8 +31,6 @@ _MALL_HOSTS: tuple[tuple[str, str, str], ...] = (
     ("cjmall.com", "CJ온스타일", "cjmall"),
     ("nsmall.com", "NS홈쇼핑", "nsmall"),
     ("musinsa.com", "무신사", "musinsa"),
-    ("29cm.co.kr", "29CM", "29cm"),
-    ("wconcept.co.kr", "W컨셉", "wconcept"),
     ("ably.co.kr", "에이블리", "ably"),
     ("zigzag.kr", "지그재그", "zigzag"),
     ("kream.co.kr", "크림", "kream"),
@@ -49,7 +48,41 @@ _MALL_HOSTS: tuple[tuple[str, str, str], ...] = (
     ("e-himart.co.kr", "하이마트", "himart"),
     ("himart.co.kr", "하이마트", "himart"),
     ("homeplus.co.kr", "홈플러스", "homeplus"),
+    ("danawa.com", "다나와", "danawa"),
+    ("enuri.com", "에누리", "enuri"),
 )
+
+_SKIP_LABELS = frozenset(
+    {
+        "www",
+        "www2",
+        "m",
+        "mobile",
+        "amp",
+        "shop",
+        "store",
+        "item",
+        "items",
+        "product",
+        "products",
+        "mall",
+        "cdn",
+        "img",
+        "image",
+        "static",
+        "assets",
+        "api",
+        "link",
+        "links",
+        "gate",
+        "click",
+        "track",
+        "go",
+        "out",
+        "redirect",
+    }
+)
+_MULTI_TLD = frozenset({"co", "or", "ac", "go", "ne", "re", "pe", "se"})
 
 
 def mall_from_url(url: str | None) -> tuple[str | None, str | None]:
@@ -68,7 +101,28 @@ def mall_from_url(url: str | None) -> tuple[str | None, str | None]:
             return label, key
         if host == needle or host.endswith("." + needle) or needle in host:
             return label, key
-    return None, None
+    return _guess_from_host(host)
+
+
+def _guess_from_host(host: str) -> tuple[str | None, str | None]:
+    parts = [p for p in host.split(".") if p]
+    if len(parts) >= 3 and parts[-2] in _MULTI_TLD:
+        base = parts[:-2]
+    else:
+        base = parts[:-1] if len(parts) > 1 else parts
+    label = ""
+    for part in reversed(base):
+        if part in _SKIP_LABELS or part.isdigit() or len(part) < 2:
+            continue
+        label = part
+        break
+    if not label and base:
+        label = base[-1]
+    if not label or label in _SKIP_LABELS:
+        return None, None
+    display = label.upper() if len(label) <= 4 and label.isalpha() else label.capitalize()
+    key = "guess-" + re.sub(r"[^a-z0-9]+", "", label.lower())[:24]
+    return display, key or "guess"
 
 
 def mall_label_from_url(url: str | None) -> str | None:

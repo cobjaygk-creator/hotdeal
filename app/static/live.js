@@ -262,7 +262,66 @@ const MALL_HOSTS = [
   ["e-himart.co.kr", "하이마트", "himart"],
   ["himart.co.kr", "하이마트", "himart"],
   ["homeplus.co.kr", "홈플러스", "homeplus"],
+  ["danawa.com", "다나와", "danawa"],
+  ["enuri.com", "에누리", "enuri"],
 ];
+
+const MALL_SKIP_LABELS = new Set([
+  "www",
+  "www2",
+  "m",
+  "mobile",
+  "amp",
+  "shop",
+  "store",
+  "item",
+  "items",
+  "product",
+  "products",
+  "mall",
+  "cdn",
+  "img",
+  "image",
+  "static",
+  "assets",
+  "api",
+  "link",
+  "links",
+  "gate",
+  "click",
+  "track",
+  "go",
+  "out",
+  "redirect",
+]);
+const MALL_MULTI_TLD = new Set(["co", "or", "ac", "go", "ne", "re", "pe", "se"]);
+
+function guessMallFromHost(host) {
+  const parts = String(host || "")
+    .split(".")
+    .filter(Boolean);
+  let base;
+  if (parts.length >= 3 && MALL_MULTI_TLD.has(parts[parts.length - 2])) {
+    base = parts.slice(0, -2);
+  } else {
+    base = parts.length > 1 ? parts.slice(0, -1) : parts;
+  }
+  let label = "";
+  for (let i = base.length - 1; i >= 0; i--) {
+    const part = base[i];
+    if (MALL_SKIP_LABELS.has(part) || /^\d+$/.test(part) || part.length < 2) continue;
+    label = part;
+    break;
+  }
+  if (!label && base.length) label = base[base.length - 1];
+  if (!label || MALL_SKIP_LABELS.has(label)) return { label: "", key: "" };
+  const display =
+    label.length <= 4 && /^[a-z]+$/i.test(label)
+      ? label.toUpperCase()
+      : label.charAt(0).toUpperCase() + label.slice(1);
+  const key = "guess-" + label.toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 24);
+  return { label: display, key: key || "guess" };
+}
 
 function mallFromUrl(url) {
   if (!isPostUrl(url)) return { label: "", key: "" };
@@ -281,7 +340,7 @@ function mallFromUrl(url) {
       return { label, key };
     }
   }
-  return { label: "", key: "" };
+  return guessMallFromHost(host);
 }
 
 function pct(rate) {
