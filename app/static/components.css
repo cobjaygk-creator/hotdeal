@@ -1009,6 +1009,7 @@ button:disabled,
   letter-spacing: -0.035em;
   font-variant-numeric: tabular-nums;
   line-height: var(--lh-tight);
+  color: var(--price);
 }
 .modal-price .won { font-size: var(--text-title); }
 /* 할인율이 회색 .muted로 묻히던 문제 → 배지 */

@@ -55,7 +55,7 @@
   --success: #167c4a;        /* 최저가 갱신·라이브 정상 */
   --warning: #b7791f;
   --danger: #c81e1e;         /* 초특가·경고·에러 */
-  --price: #5c0282;          /* 가격 = 브랜드 퍼플 */
+  --price: #e11d48;          /* 가격 = 붉은색 */
 
   /* 선택 상태는 파랑이 아니라 잉크 */
   --seg-active: var(--ink);
@@ -137,7 +137,7 @@
     --success: #4caf7d;
     --warning: #e0a940;
     --danger: #e0685f;
-    --price: #d8b4fe;
+    --price: #fb7185;
     --seg-active: #edeff3;
     --seg-active-ink: #12151b;
     --super: #12151b;

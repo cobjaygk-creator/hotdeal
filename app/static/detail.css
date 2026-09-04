@@ -353,6 +353,7 @@
   font-weight: 800;
   letter-spacing: -0.035em;
   line-height: 1.1;
+  color: var(--price);
 }
 .dd-hero .modal-price .won {
   font-size: 16px;
