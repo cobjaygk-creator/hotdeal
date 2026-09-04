@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from urllib.parse import parse_qs, urlparse
 
 from selectolax.parser import HTMLParser
@@ -55,6 +56,8 @@ def parse_list(html: str, board: str = "deal_domestic") -> list[RawPost]:
             continue
         title = " ".join((link.text() or "").split())
         title = title.replace("댓글", "").strip()
+        title = re.sub(r"^딜바다\s*::\s*", "", title, flags=re.I)
+        title = re.sub(r"\s*>\s*(국내핫딜|해외핫딜|기타정보|인기정보)\s*$", "", title)
         if not title or title.startswith("[공지]") or "이용안내" in title:
             continue
         tr = row.parent

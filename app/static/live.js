@@ -201,12 +201,86 @@ function strikeHtml(deal, hasBaseline, cheaper) {
 }
 
 function lowestHtml(deal) {
-  if (!deal.min_price || !deal.price || Number(deal.price) > Number(deal.min_price)) return "";
-  return (
-    '<span class="deal-lowest">' +
-    '<svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M3 8.5l3 3 7-7"></path></svg>최저가' +
-    "</span>"
-  );
+  const samples = Number(deal.sample_count) || 0;
+  if (samples < 3) return "";
+  if (!deal.min_price || !deal.baseline_price || !deal.price) return "";
+  if (Number(deal.price) > Number(deal.min_price)) return "";
+  if (Number(deal.price) >= Number(deal.baseline_price)) return "";
+  return '<span class="deal-tag deal-tag-lowest">최저가</span>';
+}
+
+function cleanDealTitle(title) {
+  let t = String(title || "").trim();
+  t = t.replace(/^(출석|정보|공지|이벤트)\s+/, "");
+  t = t.replace(/^딜바다\s*::\s*/i, "");
+  t = t.replace(/\s*>\s*(국내핫딜|해외핫딜|기타정보|인기정보)\s*$/, "");
+  return t.replace(/\s+/g, " ").trim();
+}
+
+const MALL_HOSTS = [
+  ["coupa.ng", "쿠팡", "coupang"],
+  ["link.coupang.com", "쿠팡", "coupang"],
+  ["coupang.com", "쿠팡", "coupang"],
+  ["smartstore.naver.com", "네이버", "naver"],
+  ["brand.naver.com", "네이버", "naver"],
+  ["shopping.naver.com", "네이버", "naver"],
+  ["m.shopping.naver.com", "네이버", "naver"],
+  ["naver.me", "네이버", "naver"],
+  ["gmarket.co.kr", "G마켓", "gmarket"],
+  ["gma.me", "G마켓", "gmarket"],
+  ["auction.co.kr", "옥션", "auction"],
+  ["11st.co.kr", "11번가", "11st"],
+  ["11st.kr", "11번가", "11st"],
+  ["ssg.com", "SSG", "ssg"],
+  ["lotteon.com", "롯데온", "lotteon"],
+  ["elm.lotte.com", "롯데온", "lotteon"],
+  ["lotteimall.com", "롯데홈쇼핑", "lotte"],
+  ["kurly.com", "컬리", "kurly"],
+  ["oliveyoung.co.kr", "올리브영", "oliveyoung"],
+  ["hmall.com", "현대Hmall", "hmall"],
+  ["gsshop.com", "GS샵", "gsshop"],
+  ["cjmall.com", "CJ온스타일", "cjmall"],
+  ["nsmall.com", "NS홈쇼핑", "nsmall"],
+  ["musinsa.com", "무신사", "musinsa"],
+  ["29cm.co.kr", "29CM", "29cm"],
+  ["wconcept.co.kr", "W컨셉", "wconcept"],
+  ["ably.co.kr", "에이블리", "ably"],
+  ["zigzag.kr", "지그재그", "zigzag"],
+  ["kream.co.kr", "크림", "kream"],
+  ["ohou.se", "오늘의집", "ohouse"],
+  ["store.kakao.com", "카카오톡스토어", "kakao"],
+  ["gift.kakao.com", "카카오톡선물하기", "kakao"],
+  ["temu.com", "테무", "temu"],
+  ["aliexpress.com", "알리익스프레스", "ali"],
+  ["amazon.", "아마존", "amazon"],
+  ["iherb.com", "아이허브", "iherb"],
+  ["qoo10.", "Qoo10", "qoo10"],
+  ["yes24.com", "예스24", "yes24"],
+  ["kyobobook.co.kr", "교보문고", "kyobo"],
+  ["shop.samsung.com", "삼성닷컴", "samsung"],
+  ["e-himart.co.kr", "하이마트", "himart"],
+  ["himart.co.kr", "하이마트", "himart"],
+  ["homeplus.co.kr", "홈플러스", "homeplus"],
+];
+
+function mallFromUrl(url) {
+  if (!isPostUrl(url)) return { label: "", key: "" };
+  let host = "";
+  try {
+    host = new URL(url).hostname.toLowerCase();
+  } catch (e) {
+    return { label: "", key: "" };
+  }
+  for (const [needle, label, key] of MALL_HOSTS) {
+    if (needle.endsWith(".")) {
+      if (host.includes(needle)) return { label, key };
+      continue;
+    }
+    if (host === needle || host.endsWith("." + needle) || host.includes(needle)) {
+      return { label, key };
+    }
+  }
+  return { label: "", key: "" };
 }
 
 function pct(rate) {
@@ -234,22 +308,38 @@ function labelSources(raw) {
   return toks.map((s) => sourceLabels[s] || s).join(", ");
 }
 
+function joinMeta(parts) {
+  return parts
+    .filter(Boolean)
+    .join('<span class="deal-tag-sep" aria-hidden="true">|</span>');
+}
+
 function tagsHtml(deal) {
   const parts = [];
   if (deal.category) {
-    parts.push(`<span class="deal-tag">${esc(deal.category)}</span>`);
+    parts.push(`<span class="deal-tag deal-tag-cat">${esc(deal.category)}</span>`);
   }
-  if (deal.seller) {
-    parts.push(`<span class="deal-tag">${esc(deal.seller)}</span>`);
-  }
-  for (const key of sourceTokens(deal.sources)) {
-    const label = sourceLabels[key] || key;
-    const initial = label.slice(0, 1) || "?";
+  const mall = mallFromUrl(deal.mall_url);
+  if (mall.label) {
     parts.push(
-      `<span class="deal-tag deal-tag-source" data-source="${esc(key)}"><span class="deal-tag-ico" aria-hidden="true">${esc(initial)}</span>${esc(label)}</span>`
+      `<span class="deal-tag deal-tag-mall" data-mall="${esc(mall.key)}">${esc(mall.label)}</span>`
     );
   }
-  return `<div class="deal-tags">${parts.join("")}</div>`;
+  const lowest = lowestHtml(deal);
+  if (lowest) parts.push(lowest);
+  return `<div class="deal-tags">${joinMeta(parts)}</div>`;
+}
+
+function priceRowMeta(deal, ts) {
+  const parts = [`<div class="deal-price">${priceHtml(deal.price)}</div>`];
+  const src = labelSources(deal.sources);
+  if (src && src !== "-") {
+    parts.push(`<span class="deal-source">${esc(src)}</span>`);
+  }
+  parts.push(
+    `<time class="time-rel" datetime="${esc(ts)}" data-ts="${esc(ts)}">${esc(relativeTime(ts))}</time>`
+  );
+  return parts.join('<span class="deal-meta-sep" aria-hidden="true">|</span>');
 }
 
 function matchesSources(raw) {
@@ -308,7 +398,7 @@ function renderRow(deal, { fresh = false, freshIndex = 0 } = {}) {
   li.dataset.status = deal.status || "";
   if (deal.mall_url) li.dataset.mallUrl = deal.mall_url;
   const starred = isBookmarked(deal.id);
-  const title = deal.product_name || "(제목 없음)";
+  const title = cleanDealTitle(deal.product_name || "(제목 없음)");
   const thumb = deal.thumbnail_url
     ? `<img class="deal-thumb" src="${esc(deal.thumbnail_url)}" alt="" loading="lazy" referrerpolicy="no-referrer">`
     : `<div class="deal-thumb placeholder" aria-hidden="true"></div>`;
@@ -329,10 +419,7 @@ function renderRow(deal, { fresh = false, freshIndex = 0 } = {}) {
     `<div class="deal-body">` +
     tagsHtml(deal) +
     `<span class="deal-title">${esc(title)}</span>` +
-    `<div class="deal-price-row"><div class="deal-price">${priceHtml(deal.price)}</div>` +
-    offHtml(deal.discount_rate) +
-    lowestHtml(deal) +
-    `<time class="time-rel" datetime="${esc(ts)}" data-ts="${esc(ts)}">${esc(relativeTime(ts))}</time>${comments}${userComments}${soldout}</div>` +
+    `<div class="deal-price-row">${priceRowMeta(deal, ts)}${comments}${userComments}${soldout}</div>` +
     `</div></a>` +
     `<div class="deal-row-side">` +
     (isPostUrl(deal.mall_url)

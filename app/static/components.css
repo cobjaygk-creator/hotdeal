@@ -693,31 +693,72 @@ button:disabled,
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.deal-tag-source { color: var(--ink-muted); font-weight: 600; }
-.deal-tag-ico {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: #4f8cff;
-  color: #fff;
-  font-size: 9px;
-  font-weight: 800;
-  flex-shrink: 0;
+.deal-tag-cat {
+  padding: 1px 7px;
+  border-radius: 5px;
+  background: var(--surface-sunken);
+  color: var(--ink-muted);
+  border: 1px solid var(--border);
+  font-weight: 600;
 }
-/* 소스 아이덴티티 컬러 — 브랜드 파랑과 별개 계열로 유지 */
-.deal-tag-source[data-source="ppomppu"] .deal-tag-ico { background: #ff7a18; }
-.deal-tag-source[data-source="ruliweb"] .deal-tag-ico { background: #3b82f6; }
-.deal-tag-source[data-source="clien"] .deal-tag-ico { background: #1d4ed8; }
-.deal-tag-source[data-source="quasarzone"] .deal-tag-ico { background: #0ea5e9; }
-.deal-tag-source[data-source="eomisae"] .deal-tag-ico { background: #16a34a; }
-.deal-tag-source[data-source="dealbada"] .deal-tag-ico { background: #db2777; }
-.deal-tag-source[data-source="coolenjoy"] .deal-tag-ico { background: #7c3aed; }
-.deal-tag-source[data-source="arca"] .deal-tag-ico { background: #ef4444; }
-.deal-tag-source[data-source="damoang"] .deal-tag-ico { background: #0891b2; }
-.deal-tag-source[data-source="fmkorea"] .deal-tag-ico { background: #ca8a04; }
+.deal-tag-mall {
+  padding: 1px 7px;
+  border-radius: 5px;
+  border: 1px solid color-mix(in srgb, currentColor 28%, var(--border));
+  background: color-mix(in srgb, currentColor 8%, var(--surface));
+  font-weight: 700;
+  color: var(--ink-muted);
+}
+.deal-tag-mall[data-mall="coupang"] { color: #e31837; }
+.deal-tag-mall[data-mall="naver"] { color: #03c75a; }
+.deal-tag-mall[data-mall="gmarket"] { color: #00a651; }
+.deal-tag-mall[data-mall="auction"] { color: #eb1c24; }
+.deal-tag-mall[data-mall="11st"] { color: #f0451d; }
+.deal-tag-mall[data-mall="ssg"] { color: #c8102e; }
+.deal-tag-mall[data-mall="lotteon"],
+.deal-tag-mall[data-mall="lotte"] { color: #e60012; }
+.deal-tag-mall[data-mall="kurly"] { color: #5f0080; }
+.deal-tag-mall[data-mall="oliveyoung"] { color: #9acc49; }
+.deal-tag-mall[data-mall="hmall"] { color: #111111; }
+.deal-tag-mall[data-mall="gsshop"] { color: #00a0e9; }
+.deal-tag-mall[data-mall="cjmall"] { color: #ff6600; }
+.deal-tag-mall[data-mall="nsmall"] { color: #e31c23; }
+.deal-tag-mall[data-mall="musinsa"] { color: #000000; }
+.deal-tag-mall[data-mall="29cm"] { color: #1a1a1a; }
+.deal-tag-mall[data-mall="wconcept"] { color: #111111; }
+.deal-tag-mall[data-mall="ably"] { color: #ff2d55; }
+.deal-tag-mall[data-mall="zigzag"] { color: #3c64ff; }
+.deal-tag-mall[data-mall="kream"] { color: #222222; }
+.deal-tag-mall[data-mall="ohouse"] { color: #35c5f0; }
+.deal-tag-mall[data-mall="kakao"] { color: #3c1e1e; }
+.deal-tag-mall[data-mall="temu"] { color: #fb7701; }
+.deal-tag-mall[data-mall="ali"] { color: #ff6a00; }
+.deal-tag-mall[data-mall="amazon"] { color: #ff9900; }
+.deal-tag-mall[data-mall="iherb"] { color: #458500; }
+.deal-tag-mall[data-mall="qoo10"] { color: #e4002b; }
+.deal-tag-mall[data-mall="yes24"] { color: #0080c6; }
+.deal-tag-mall[data-mall="kyobo"] { color: #503396; }
+.deal-tag-mall[data-mall="samsung"] { color: #1428a0; }
+.deal-tag-mall[data-mall="himart"] { color: #e31c23; }
+.deal-tag-mall[data-mall="homeplus"] { color: #da291c; }
+.deal-tag-lowest {
+  color: var(--success);
+  font-weight: 700;
+}
+.deal-tag-sep,
+.deal-meta-sep {
+  color: var(--border-strong);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+  user-select: none;
+}
+.deal-source {
+  color: var(--ink-muted);
+  font-size: var(--text-label);
+  font-weight: 600;
+  white-space: nowrap;
+}
 .deal-title {
   display: block;
   overflow: hidden;

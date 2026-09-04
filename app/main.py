@@ -48,6 +48,8 @@ from app.family.query import CATEGORIES, get_sale, list_sales, month_grid, parse
 from app.events import EventHub
 from app.http_client import PoliteClient
 from app.pipeline import collect_and_process
+from app.parse.mall import mall_key_from_url, mall_label_from_url
+from app.parse.title import clean_deal_title
 from app.sources.registry import (
     COLLECT_FAST_SOURCES,
     COLLECT_PROXY_SOURCES,
@@ -64,6 +66,9 @@ TEMPLATES = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 TEMPLATES.env.filters["kst"] = format_kst
 TEMPLATES.env.filters["reltime"] = format_relative
 TEMPLATES.env.filters["clock"] = format_clock
+TEMPLATES.env.filters["mall_label"] = mall_label_from_url
+TEMPLATES.env.filters["mall_key"] = mall_key_from_url
+TEMPLATES.env.filters["clean_title"] = clean_deal_title
 TEMPLATES.env.globals["site_url"] = SITE_URL
 TEMPLATES.env.globals["amazon_jp_enabled"] = AMAZON_JP_ENABLED
 TEMPLATES.env.globals["website_jsonld"] = {

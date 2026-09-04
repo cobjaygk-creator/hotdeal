@@ -8,34 +8,26 @@
       {% endif %}
     </div>
     <div class="deal-body">
+      {% set mall_name = d.mall_url | mall_label %}
+      {% set mall_key = d.mall_url | mall_key %}
+      {% set is_lowest = d.sample_count is defined and d.sample_count and d.sample_count >= 3
+            and d.min_price and d.baseline_price and d.price
+            and d.price <= d.min_price and d.price < d.baseline_price %}
       <div class="deal-tags">
-        {% if d.category %}<span class="deal-tag">{{ d.category }}</span>{% endif %}
-        {% if d.seller %}<span class="deal-tag">{{ d.seller }}</span>{% endif %}
-        {% if d.sources is string and d.sources %}
-        {% for s in d.sources.split(",") if s.strip() %}
-        {% set key = s.strip() %}
-        {% set label = source_labels.get(key, key) %}
-        <span class="deal-tag deal-tag-source" data-source="{{ key }}"><span class="deal-tag-ico" aria-hidden="true">{{ label[:1] }}</span>{{ label }}</span>
-        {% endfor %}
-        {% endif %}
+        {% if d.category %}<span class="deal-tag deal-tag-cat">{{ d.category }}</span>{% endif %}
+        {% if d.category and mall_name %}<span class="deal-tag-sep" aria-hidden="true">|</span>{% endif %}
+        {% if mall_name %}<span class="deal-tag deal-tag-mall" data-mall="{{ mall_key or '' }}">{{ mall_name }}</span>{% endif %}
+        {% if (d.category or mall_name) and is_lowest %}<span class="deal-tag-sep" aria-hidden="true">|</span>{% endif %}
+        {% if is_lowest %}<span class="deal-tag deal-tag-lowest">최저가</span>{% endif %}
       </div>
-      <span class="deal-title">{{ d.product_name }}</span>
+      <span class="deal-title">{{ d.product_name | clean_title }}</span>
       <div class="deal-price-row">
         <div class="deal-price">{% if d.price %}{{ "{:,}".format(d.price) }}<span class="won">원</span>{% else %}-{% endif %}</div>
-        {% if d.discount_rate is defined and d.discount_rate is not none %}
-        <span class="deal-off">{{ "%.0f"|format(-d.discount_rate * 100) }}%</span>
+        {% if d.sources is string and d.sources %}
+        <span class="deal-meta-sep" aria-hidden="true">|</span>
+        <span class="deal-source">{% for s in d.sources.split(",") if s.strip() %}{{ source_labels.get(s.strip(), s.strip()) }}{% if not loop.last %}, {% endif %}{% endfor %}</span>
         {% endif %}
-        {#
-          최저가 배지는 가격 이력이 실제로 쌓였을 때만 의미가 있습니다.
-          표본 1건이면 min_price == price 라서 모든 딜에 붙어버립니다.
-        #}
-        {% if d.sample_count is defined and d.sample_count and d.sample_count >= 3
-              and d.min_price and d.baseline_price and d.price
-              and d.price <= d.min_price and d.price < d.baseline_price %}
-        <span class="deal-lowest">
-          <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M3 8.5l3 3 7-7"></path></svg>최저가
-        </span>
-        {% endif %}
+        <span class="deal-meta-sep" aria-hidden="true">|</span>
         <time class="time-rel" datetime="{{ d.last_seen_at or '' }}" data-ts="{{ d.last_seen_at or '' }}">{{ d.last_seen_at | reltime }}</time>
         {% if d.comments and d.comments > 0 %}
         <span class="deal-comments" aria-label="원문 댓글 {{ d.comments }}">댓글 {{ d.comments }}</span>

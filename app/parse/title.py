@@ -43,7 +43,7 @@ class ParsedOffer:
 
 
 def parse_title(title: str) -> ParsedOffer:
-    title = _clean_title(title)
+    title = clean_deal_title(title)
     truncated = bool(TRUNCATED.search(title))
     seller, name, price_blob, conf = _split(title)
     price, shipping_fee, shipping_free, raw = _parse_price_blob(price_blob, title)
@@ -82,11 +82,14 @@ def parse_title(title: str) -> ParsedOffer:
     )
 
 
-def _clean_title(title: str) -> str:
-    title = title.strip()
+def clean_deal_title(title: str) -> str:
+    title = (title or "").strip()
     title = re.sub(r"^(출석|정보|공지|이벤트)\s+", "", title)
+    # Dealbada list subjects: "딜바다::[쿠팡] … > 국내핫딜"
+    title = re.sub(r"^딜바다\s*::\s*", "", title, flags=re.I)
+    title = re.sub(r"\s*>\s*(국내핫딜|해외핫딜|기타정보|인기정보)\s*$", "", title)
     title = re.sub(r"\s+", " ", title)
-    return title
+    return title.strip()
 
 
 def _split(title: str) -> tuple[str | None, str, str | None, float]:
