@@ -35,6 +35,24 @@ QUASARZONE_INTERVAL_MINUTES = int(
 )
 FAMILY_SALE_INTERVAL_MINUTES = 30
 AMAZON_JP_INTERVAL_MINUTES = 30
+# 알뜰요금제 (이벤트성 MVNO plans, scraped from Moyo theme pages).
+MVNO_ENABLED = (os.environ.get("MVNO_ENABLED") or "1").strip().lower() not in (
+    "",
+    "0",
+    "false",
+    "no",
+)
+MVNO_INTERVAL_MINUTES = int(
+    (os.environ.get("MVNO_INTERVAL_MINUTES") or "60").strip() or "60"
+)
+MOYO_THEME_URLS = [
+    u.strip()
+    for u in (
+        os.environ.get("MOYO_THEME_URLS")
+        or "https://www.moyoplan.com/plans/themes/one-month-free"
+    ).split(",")
+    if u.strip()
+]
 AMAZON_JP_ASSOCIATE_TAG = os.environ.get("AMAZON_JP_ASSOCIATE_TAG", "").strip()
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "").strip()
 ADMIN_USERNAME = (os.environ.get("ADMIN_USERNAME") or "admin").strip() or "admin"

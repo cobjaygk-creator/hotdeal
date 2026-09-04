@@ -227,9 +227,37 @@ CREATE TABLE IF NOT EXISTS amazon_jp_deals (
     active INTEGER NOT NULL DEFAULT 1
 );
 
+CREATE TABLE IF NOT EXISTS mvno_plans (
+    plan_id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    mvno TEXT,
+    mno TEXT,
+    network TEXT,
+    data_gb REAL,
+    data_unlimited INTEGER NOT NULL DEFAULT 0,
+    data_daily_gb REAL,
+    qos_kbps INTEGER,
+    voice_min INTEGER,
+    voice_unlimited INTEGER NOT NULL DEFAULT 0,
+    sms_unlimited INTEGER NOT NULL DEFAULT 0,
+    original_fee INTEGER,
+    discount_fee INTEGER,
+    discount_months INTEGER,
+    promo TEXT,
+    promo_all TEXT,
+    rating REAL,
+    signup_count INTEGER,
+    plan_url TEXT NOT NULL,
+    brand_image TEXT,
+    first_seen_at TEXT NOT NULL,
+    last_seen_at TEXT NOT NULL,
+    active INTEGER NOT NULL DEFAULT 1
+);
+
 CREATE INDEX IF NOT EXISTS idx_family_dates ON family_sales(start_date, end_date);
 CREATE INDEX IF NOT EXISTS idx_family_group ON family_sales(group_id);
 CREATE INDEX IF NOT EXISTS idx_amazon_jp_active ON amazon_jp_deals(active, discount_rate);
+CREATE INDEX IF NOT EXISTS idx_mvno_active ON mvno_plans(active, discount_fee);
 """
 
 

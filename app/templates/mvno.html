@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}알뜰요금제 이벤트 · 핫딜모음{% endblock %}
+{% block extra_head %}
+<meta property="og:title" content="알뜰요금제 이벤트">
+<meta property="og:description" content="현금성 혜택·사은품이 붙은 이벤트성 알뜰폰 요금제를 모읍니다.">
+<meta property="og:url" content="{{ site_url }}/mvno">
+<meta property="og:type" content="website">
+{% endblock %}
+{% block body %}
+<div class="page-head">
+  <h1>알뜰요금제 이벤트</h1>
+  <div class="page-head-actions">
+    <div class="page-meta">마지막 수집 {{ last | kst }}</div>
+    <button type="button" id="mvno-collect" class="btn-secondary">지금 수집</button>
+  </div>
+</div>
+<p class="muted" style="margin:-6px 0 14px;font-size:13px">페이백·사은품 등 현금성 혜택이 붙은 요금제만 모읍니다. 혜택가는 프로모션 기간에만 적용될 수 있으니 가입 전 조건을 확인하세요.</p>
+
+<form class="toolbar" method="get" action="/mvno" style="margin-bottom:14px">
+  <select name="sort" onchange="this.form.submit()">
+    <option value="fee" {% if sort == 'fee' %}selected{% endif %}>요금 낮은순</option>
+    <option value="popular" {% if sort == 'popular' %}selected{% endif %}>가입자 많은순</option>
+    <option value="data" {% if sort == 'data' %}selected{% endif %}>데이터 많은순</option>
+  </select>
+  <select name="mno" onchange="this.form.submit()">
+    <option value="">통신망 전체</option>
+    {% for m in mnos %}
+    <option value="{{ m }}" {% if mno == m %}selected{% endif %}>{{ m }}망</option>
+    {% endfor %}
+  </select>
+</form>
+
+<div class="summary-chips">
+  <span class="summary-chip">이벤트 요금제 <strong>{{ plans|length }}</strong></span>
+</div>
+
+<ul class="deal-cards" id="mvno-body">
+  {% for p in plans %}
+  {% include "_mvno_card.html" %}
+  {% else %}
+  <li class="empty-row empty">아직 이벤트 요금제가 없습니다. 수집을 실행하세요.</li>
+  {% endfor %}
+</ul>
+<script>
+document.getElementById("mvno-collect")?.addEventListener("click", async () => {
+  const btn = document.getElementById("mvno-collect");
+  if (!btn) return;
+  btn.disabled = true;
+  try {
+    const res = await fetch("/api/mvno/collect", { method: "POST" });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      alert(err.detail || "수집을 실행할 수 없습니다.");
+      return;
+    }
+    location.reload();
+  } catch (e) {
+    alert("수집 요청에 실패했습니다.");
+  } finally {
+    btn.disabled = false;
+  }
+});
+</script>
+{% endblock %}

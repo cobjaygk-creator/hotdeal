@@ -1,0 +1,37 @@
+<li class="deal-card" data-plan-id="{{ p.plan_id }}">
+  <div class="deal-thumb-wrap">
+    {% if p.brand_image %}
+    <img class="deal-thumb" src="{{ p.brand_image }}" alt="" loading="lazy" referrerpolicy="no-referrer" style="object-fit:contain;background:#fff">
+    {% else %}
+    <div class="deal-thumb placeholder" aria-hidden="true"></div>
+    {% endif %}
+  </div>
+  <div class="deal-body">
+    <div class="deal-tags">
+      {% if p.mno %}<span class="deal-tag">{{ p.mno }}망{% if p.network %} · {{ p.network }}{% endif %}</span>{% endif %}
+      {% if p.mvno %}<span class="deal-tag deal-tag-source">{{ p.mvno }}</span>{% endif %}
+    </div>
+    <a class="deal-title" href="{{ p.plan_url }}" target="_blank" rel="noopener">{{ p.name }}</a>
+    <div class="muted" style="font-size:12.5px;margin:2px 0 4px">
+      데이터 {% if p.data_unlimited %}무제한{% elif p.data_gb %}{{ p.data_gb|int }}GB{% else %}-{% endif %}
+      · 통화 {% if p.voice_unlimited %}무제한{% elif p.voice_min %}{{ p.voice_min }}분{% else %}기본{% endif %}
+      · 문자 {% if p.sms_unlimited %}무제한{% else %}기본{% endif %}
+    </div>
+    {% if p.promo %}
+    <div class="deal-tag deal-tag-lowest" style="display:inline-block;margin-bottom:4px">🎁 {{ p.promo }}</div>
+    {% endif %}
+    <div class="deal-price-row">
+      <div class="deal-price">{% if p.discount_fee is not none %}{{ "{:,}".format(p.discount_fee) }}<span class="won">원/월</span>{% else %}-{% endif %}</div>
+      {% if p.original_fee and p.discount_fee is not none and p.original_fee > p.discount_fee %}
+      <span class="muted" style="text-decoration:line-through">{{ "{:,}".format(p.original_fee) }}원</span>
+      {% endif %}
+      {% if p.discount_months %}
+      <span class="deal-off">{{ p.discount_months }}개월</span>
+      {% endif %}
+    </div>
+    <div class="deal-foot">
+      <a class="deal-cta-btn" href="{{ p.plan_url }}" target="_blank" rel="noopener">요금제 보기</a>
+      {% if p.rating %}<span class="muted" style="font-size:12px">★{{ "%.1f"|format(p.rating) }}{% if p.signup_count %} · 가입 {{ "{:,}".format(p.signup_count) }}{% endif %}</span>{% endif %}
+    </div>
+  </div>
+</li>

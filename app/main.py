@@ -31,6 +31,8 @@ from app.config import (
     MALL_ENRICH_INTERVAL_SECONDS,
     ENABLE_COLLECT,
     FAMILY_SALE_INTERVAL_MINUTES,
+    MVNO_ENABLED,
+    MVNO_INTERVAL_MINUTES,
     PPOMPPU_INTERVAL_SECONDS,
     QUASARZONE_INTERVAL_MINUTES,
     PPOMPPU_PROXY_URL,
@@ -74,6 +76,7 @@ TEMPLATES.env.filters["mall_key"] = mall_key_from_url
 TEMPLATES.env.filters["clean_title"] = clean_deal_title
 TEMPLATES.env.globals["site_url"] = SITE_URL
 TEMPLATES.env.globals["amazon_jp_enabled"] = AMAZON_JP_ENABLED
+TEMPLATES.env.globals["mvno_enabled"] = MVNO_ENABLED
 TEMPLATES.env.globals["website_jsonld"] = {
     "@context": "https://schema.org",
     "@graph": [
@@ -185,6 +188,16 @@ async def lifespan(app: FastAPI):
                 coalesce=True,
                 next_run_time=datetime.now() + timedelta(seconds=40),
             )
+        if MVNO_ENABLED:
+            scheduler.add_job(
+                _scheduled_mvno,
+                "interval",
+                minutes=max(5, MVNO_INTERVAL_MINUTES),
+                id="collect_mvno",
+                max_instances=1,
+                coalesce=True,
+                next_run_time=datetime.now() + timedelta(seconds=60),
+            )
         scheduler.add_job(
             _scheduled_ppomppu_mall_enrich,
             "interval",
@@ -267,6 +280,16 @@ async def _scheduled_amazon_jp() -> None:
             await collect_amazon_jp(state["db"], state["http"])
         except Exception:
             log.exception("amazon jp collect failed")
+
+
+async def _scheduled_mvno() -> None:
+    from app.mvno.pipeline import collect_mvno_plans
+
+    async with state["collect_lock"]:
+        try:
+            await collect_mvno_plans(state["db"], state["http"])
+        except Exception:
+            log.exception("mvno collect failed")
 
 
 async def _scheduled_ppomppu_mall_enrich() -> None:
@@ -754,6 +777,42 @@ async def amazon_jp_index(request: Request):
             "last": last,
         },
     )
+
+
+@app.get("/mvno", response_class=HTMLResponse)
+async def mvno_index(request: Request, sort: str = "fee", mno: str | None = None):
+    if not MVNO_ENABLED:
+        raise HTTPException(404, "알뜰요금제 메뉴가 비활성화되어 있습니다")
+    from app.mvno.query import list_event_plans, mno_options
+
+    db = _db()
+    plans = await list_event_plans(db, sort=sort, mno=mno or None)
+    last = await get_meta(db, "last_mvno_collect_at")
+    return TEMPLATES.TemplateResponse(
+        "mvno.html",
+        {
+            "request": request,
+            "nav": "mvno",
+            "plans": plans,
+            "mnos": await mno_options(db),
+            "sort": sort,
+            "mno": mno or "",
+            "last": last,
+        },
+    )
+
+
+@app.post("/api/mvno/collect")
+async def api_mvno_collect():
+    if not MVNO_ENABLED:
+        raise HTTPException(404, "알뜰요금제 메뉴가 비활성화되어 있습니다")
+    _require_collect()
+    from app.mvno.pipeline import collect_mvno_plans
+
+    async with state["collect_lock"]:
+        summary = await collect_mvno_plans(state["db"], state["http"])
+    await set_meta(state["db"], "last_mvno_collect_at", utcnow_iso())
+    return JSONResponse(summary)
 
 
 @app.post("/api/family/collect")

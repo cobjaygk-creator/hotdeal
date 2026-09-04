@@ -53,6 +53,9 @@
         {% if amazon_jp_enabled %}
         <a href="/amazon-jp" class="{% if current_nav == 'amazon_jp' %}on{% endif %}">일마존</a>
         {% endif %}
+        {% if mvno_enabled %}
+        <a href="/mvno" class="{% if current_nav == 'mvno' %}on{% endif %}">알뜰요금제</a>
+        {% endif %}
       </nav>
     </div>
     <div class="topbar-right">
@@ -103,6 +106,12 @@
           <span class="nav-ico" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="2" y="3.2" width="12" height="10.8" rx="2"></rect><path d="M2 6.6h12M5.6 1.8v2.4M10.4 1.8v2.4"></path></svg></span>
           패밀리세일
         </a>
+        {% if mvno_enabled %}
+        <a href="/mvno" class="{% if current_nav == 'mvno' %}on{% endif %}">
+          <span class="nav-ico" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="3" y="1.5" width="10" height="13" rx="1.6"></rect><path d="M6 12h4"></path></svg></span>
+          알뜰요금제
+        </a>
+        {% endif %}
       </nav>
       <div class="sidebar-label" style="margin-top:20px">도구</div>
       <nav class="sidebar-nav">
