@@ -237,6 +237,8 @@ def _looks_blocked(html: str) -> bool:
             "access denied",
             "attention required",
             "요청을 차단",
+            "보안검사를 완료",
+            "보안 검사",
         )
     )
 

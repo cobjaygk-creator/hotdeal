@@ -13,6 +13,8 @@ from app.util.timeparse import parse_int, parse_kr_datetime
 LIST_URL = "https://quasarzone.com/bbs/qb_saleinfo"
 VIEWS_RE = re.compile(r"/bbs/qb_saleinfo/views/(\d+)")
 SKIP_TITLES = ("게시판 안내", "게시판 규정", "이용 안내")
+# Shared list placeholder (2020) — not a real product thumb.
+_DEFAULT_PREVIEW_MARKERS = ("dc9345db51f5b6aa0e363ed2cfbe9358",)
 
 
 class QuasarzoneSource:
@@ -37,16 +39,28 @@ def _parse_v2_rows(tree: HTMLParser) -> list[RawPost]:
     posts: list[RawPost] = []
     seen: set[str] = set()
     for row in tree.css("div.v2-list-row"):
-        post_id = (row.attributes.get("data-qc-id") or "").strip()
-        link = row.css_first("a.subject-link[href], a[href*='/views/']")
-        href = link.attributes.get("href") if link else ""
-        if not post_id:
-            post_id = _id_from_href(href or "") or ""
+        # Skip notice / non-deal chrome rows.
+        if "v2-list-row--hotdeal" not in (row.attributes.get("class") or ""):
+            # Older markup may omit the modifier; keep rows that still look like deals.
+            if not row.css_first("span.v2-list-row__price") and not row.attributes.get(
+                "data-preview"
+            ):
+                continue
+        link = row.css_first("a.subject-link[href*='/views/'], a[href*='/bbs/qb_saleinfo/views/']")
+        if not link:
+            continue
+        href = link.attributes.get("href") or ""
+        href_id = _id_from_href(href) or ""
+        attr_id = (row.attributes.get("data-qc-id") or "").strip()
+        # Title belongs to the subject href. Prefer it when the two ids disagree.
+        post_id = href_id or attr_id
+        if href_id and attr_id and href_id != attr_id:
+            post_id = href_id
         if not post_id or post_id in seen:
             continue
-        title = " ".join((link.text() if link else "").split())
+        title = " ".join((link.text() or "").split())
         if not title:
-            title = ((link.attributes.get("title") if link else "") or "").strip()
+            title = ((link.attributes.get("title") or "") or "").strip()
         if not title or any(skip in title for skip in SKIP_TITLES) or "공지" in title:
             continue
         badge = row.css_first("span.v2-badge")
@@ -63,7 +77,9 @@ def _parse_v2_rows(tree: HTMLParser) -> list[RawPost]:
         views = row.css_first("span.qc-count-hit")
         date_el = row.css_first("span.v2-list-row__time")
         thumb = (row.attributes.get("data-preview") or "").rstrip("?")
-        extra = {"thumbnail_url": thumb} if thumb.startswith("http") else {}
+        extra = {}
+        if thumb.startswith("http") and not any(m in thumb for m in _DEFAULT_PREVIEW_MARKERS):
+            extra["thumbnail_url"] = thumb
         posts.append(
             RawPost(
                 source="quasarzone",

@@ -26,6 +26,8 @@ _BLOCK_MARKERS = (
     "checking your browser",
     "enable javascript and cookies to continue",
     "please checking if the site connection is secure",
+    "보안검사를 완료",
+    "보안 검사",
 )
 
 

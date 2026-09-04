@@ -279,9 +279,11 @@ async def _run_mall_enrich(
         cards = []
         for raw in out.get("cards") or []:
             try:
-                cards.append(_clean_deal(dict(raw)))
+                card = _clean_deal(dict(raw))
             except Exception:
-                cards.append(dict(raw))
+                card = dict(raw)
+            card["list_ready"] = True
+            cards.append(card)
         out["cards"] = cards
         if cards:
             try:
@@ -303,6 +305,8 @@ async def _run_mall_enrich(
 async def _run_collect(names: list[str] | None) -> dict:
     # Own SQLite connection so fast/proxy/slow ticks can overlap under WAL
     # without sharing state["db"] with request handlers.
+    from app.pipeline import fetch_deal_card
+
     conn = await connect()
     try:
         try:
@@ -310,6 +314,43 @@ async def _run_collect(names: list[str] | None) -> dict:
         except Exception:
             log.exception("scheduled collect failed")
             return {"errors": ["collect failed"], "new_deals": [], "sources": {}}
+
+        new_deals = summary.get("new_deals") or []
+        missing = [
+            int(d["id"])
+            for d in new_deals
+            if d.get("id") and not (d.get("mall_url") or "").strip()
+        ]
+        # Fill shop links before the live list updates, so cards and 구매하기
+        # appear together instead of a delayed buy button.
+        if missing:
+            lock = state.get("ppomppu_enrich_lock")
+            if lock is not None:
+                async with lock:
+                    try:
+                        await enrich_missing_ppomppu_malls(
+                            conn,
+                            state["http"],
+                            deal_ids=missing,
+                            limit=len(missing),
+                        )
+                    except Exception:
+                        log.exception("pre-publish mall enrich failed")
+
+        ready: list[dict] = []
+        for d in new_deals:
+            did = d.get("id")
+            if not did:
+                continue
+            try:
+                card = await fetch_deal_card(conn, int(did))
+            except Exception:
+                card = None
+            item = _clean_deal(dict(card)) if card else dict(d)
+            item["list_ready"] = True
+            ready.append(item)
+        summary["new_deals"] = ready
+
         stats = await _stats()
         state["hub"].publish(
             {
@@ -317,16 +358,9 @@ async def _run_collect(names: list[str] | None) -> dict:
                 "stats": stats,
                 "sources": summary.get("sources") or {},
                 "new_posts": summary.get("new_posts") or 0,
-                "items": summary.get("new_deals") or [],
+                "items": ready,
             }
         )
-        missing = [
-            int(d["id"])
-            for d in (summary.get("new_deals") or [])
-            if d.get("id") and not (d.get("mall_url") or "").strip()
-        ]
-        if missing:
-            asyncio.create_task(_kick_mall_enrich(missing))
         return summary
     finally:
         await conn.close()
@@ -1477,6 +1511,15 @@ async def _list_deals(
         placeholders = ",".join("?" for _ in ids)
         sql += f" AND id IN ({placeholders})"
         params.extend(ids)
+    else:
+        # Hide brand-new cards until a shop link is ready (or a short grace
+        # window passes for the rare post with no mall link).
+        sql += (
+            " AND ("
+            " (mall_url IS NOT NULL AND TRIM(mall_url) != '')"
+            " OR first_seen_at <= datetime('now', '-3 minutes')"
+            " )"
+        )
     if before_id:
         cur = await db.execute("SELECT id, last_seen_at FROM deals WHERE id=?", (before_id,))
         cursor = await cur.fetchone()

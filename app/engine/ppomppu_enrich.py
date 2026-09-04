@@ -12,13 +12,17 @@ from collections import defaultdict
 
 from app.config import PPOMPPU_ENRICH_BATCH, PPOMPPU_PROXY_URL
 from app.db import set_meta, utcnow_iso
+from app.engine.category import classify
 from app.parse.links import prefers_mall
+from app.parse.title import parse_title
 from app.pipeline import fetch_deal_card
 from app.sources.detail import enrich_post
 
 log = logging.getLogger(__name__)
 
 _ENRICH_TIMEOUT_SEC = 18.0
+# Quasarzone list sometimes attaches this ancient shared placeholder as data-preview.
+_STALE_QZ_THUMB = "%dc9345db51f5b6aa0e363ed2cfbe9358%"
 
 
 async def enrich_missing_ppomppu_malls(
@@ -48,8 +52,23 @@ async def enrich_missing_ppomppu_malls(
                 "cards": [],
                 "at": utcnow_iso(),
             }
+        # Explicit ids: re-fetch even when mall_url is already set (title repair).
         extra_sql = f" AND d.id IN ({','.join('?' * len(wanted))})"
         params.extend(wanted)
+        mall_filter = "1=1"
+    else:
+        mall_filter = f"""(
+                d.mall_url IS NULL
+                OR TRIM(d.mall_url) = ''
+                OR (
+                  lower(d.mall_url) LIKE '%www.coupang.com/%'
+                  AND lower(d.mall_url) NOT LIKE '%lptag=%'
+                )
+                OR (
+                  p.source = 'quasarzone'
+                  AND d.thumbnail_url LIKE '{_STALE_QZ_THUMB}'
+                )
+              )"""
     params.append(batch)
     cur = await conn.execute(
         f"""
@@ -66,14 +85,7 @@ async def enrich_missing_ppomppu_malls(
           FROM deals d
           JOIN deal_posts dp ON dp.deal_id = d.id
           JOIN posts p ON p.id = dp.post_id
-          WHERE (
-                d.mall_url IS NULL
-                OR TRIM(d.mall_url) = ''
-                OR (
-                  lower(d.mall_url) LIKE '%www.coupang.com/%'
-                  AND lower(d.mall_url) NOT LIKE '%lptag=%'
-                )
-              )
+          WHERE {mall_filter}
             AND p.url IS NOT NULL
             AND p.id = (
               SELECT p2.id
@@ -128,7 +140,15 @@ async def enrich_missing_ppomppu_malls(
                 log.exception("mall enrich failed source=%s deal=%s", source, row["deal_id"])
                 errors += 1
                 continue
-            if not detail.mall_url:
+
+            mall_url = getattr(detail, "mall_url", None)
+            title_txt = (getattr(detail, "title", None) or "").strip()
+            thumb = getattr(detail, "thumbnail_url", None)
+            mall_better = prefers_mall(mall_url, row.get("mall_url"))
+            title_update = len(title_txt) >= 4
+            thumb_update = bool(thumb)
+
+            if not mall_url:
                 if getattr(detail, "blocked", False):
                     blocked += 1
                     by_source[source]["blocked"] += 1
@@ -137,29 +157,82 @@ async def enrich_missing_ppomppu_malls(
                     no_link += 1
                     by_source[source]["no_link"] += 1
                     consec_blocked = 0
+                if not title_update and not thumb_update:
+                    continue
+            elif not mall_better and not title_update and not thumb_update:
                 continue
-            if not prefers_mall(detail.mall_url, row.get("mall_url")):
-                continue
-            consec_blocked = 0
+            else:
+                consec_blocked = 0
+
             async with write_lock:
-                await conn.execute(
-                    """
-                    UPDATE deals
-                    SET mall_url = ?,
-                        thumbnail_url = COALESCE(?, thumbnail_url)
-                    WHERE id = ?
-                    """,
-                    (detail.mall_url, detail.thumbnail_url, row["deal_id"]),
-                )
-                if detail.thumbnail_url:
+                if mall_better and mall_url:
+                    await conn.execute(
+                        """
+                        UPDATE deals
+                        SET mall_url = ?,
+                            thumbnail_url = COALESCE(?, thumbnail_url)
+                        WHERE id = ?
+                        """,
+                        (mall_url, thumb, row["deal_id"]),
+                    )
+                elif thumb_update:
+                    await conn.execute(
+                        """
+                        UPDATE deals
+                        SET thumbnail_url = COALESCE(?, thumbnail_url)
+                        WHERE id = ?
+                        """,
+                        (thumb, row["deal_id"]),
+                    )
+                if thumb_update:
                     await conn.execute(
                         """
                         UPDATE posts
                         SET thumbnail_url = COALESCE(?, thumbnail_url)
                         WHERE id = ?
                         """,
-                        (detail.thumbnail_url, row["post_id"]),
+                        (thumb, row["post_id"]),
                     )
+                # Detail title wins when the list row was mismatched / truncated.
+                if title_update:
+                    await conn.execute(
+                        "UPDATE posts SET title=? WHERE id=?",
+                        (title_txt, row["post_id"]),
+                    )
+                    offer = parse_title(title_txt)
+                    name = offer.product_name or title_txt
+                    cat = classify(name, offer.seller)
+                    if offer.product_key:
+                        await conn.execute(
+                            """
+                            UPDATE deals
+                            SET product_name=?,
+                                product_key=?,
+                                seller=COALESCE(?, seller),
+                                price=COALESCE(?, price),
+                                category=COALESCE(?, category)
+                            WHERE id=?
+                            """,
+                            (
+                                name,
+                                offer.product_key,
+                                offer.seller,
+                                offer.price,
+                                cat,
+                                row["deal_id"],
+                            ),
+                        )
+                    else:
+                        await conn.execute(
+                            """
+                            UPDATE deals
+                            SET product_name=?,
+                                seller=COALESCE(?, seller),
+                                category=COALESCE(?, category)
+                            WHERE id=?
+                            """,
+                            (name, offer.seller, cat, row["deal_id"]),
+                        )
             filled += 1
             filled_here += 1
             filled_ids.append(int(row["deal_id"]))

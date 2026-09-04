@@ -99,6 +99,21 @@ def test_quasarzone_v2_list_row():
     assert posts[0].extra["thumbnail_url"].startswith("https://img2.quasarzone.com/")
 
 
+def test_quasarzone_prefers_href_id_over_data_qc_id():
+    html = """
+    <div class="v2-list-row v2-list-row--hotdeal" data-qc-id="999"
+         data-preview="https://img2.quasarzone.com/qb_saleinfo/2020/12/05/dc9345db51f5b6aa0e363ed2cfbe9358.png">
+      <a href="/bbs/qb_saleinfo/views/277137" class="subject-link">[롯데온] 사이버펑크 2077</a>
+      <span class="v2-list-row__price">￦45,000원</span>
+    </div>
+    """
+    posts = parse_list(html)
+    assert len(posts) == 1
+    assert posts[0].source_post_id == "277137"
+    assert "사이버펑크" in posts[0].title
+    assert not posts[0].extra.get("thumbnail_url")
+
+
 def test_quasarzone_views_fallback():
     html = """
     <html><body>

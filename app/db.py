@@ -656,9 +656,7 @@ async def upsert_post(conn: aiosqlite.Connection, post: dict) -> tuple[int, bool
                :votes, :views, :comments, :collected_at, :raw_json, :thumbnail_url)
         ON CONFLICT(source, source_post_id) DO UPDATE SET
             url=excluded.url,
-            title=CASE
-                WHEN length(COALESCE(excluded.title, '')) > length(COALESCE(posts.title, ''))
-                THEN excluded.title ELSE posts.title END,
+            title=COALESCE(NULLIF(excluded.title, ''), posts.title),
             body=COALESCE(excluded.body, posts.body),
             author=COALESCE(excluded.author, posts.author),
             posted_at=COALESCE(excluded.posted_at, posts.posted_at),

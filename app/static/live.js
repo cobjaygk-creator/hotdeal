@@ -544,6 +544,8 @@ function ingest(items) {
       patchRowMall(deal);
       continue;
     }
+    // Wait for shop-link enrichment before inserting a brand-new live card.
+    if (!isPostUrl(deal.mall_url) && !deal.list_ready) continue;
     if (config.grade && !(deal.grade || "").includes(config.grade)) continue;
     if (config.seller && deal.seller !== config.seller) continue;
     if (config.category && deal.category !== config.category) continue;
