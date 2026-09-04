@@ -43,6 +43,12 @@ TITLE_SELECTORS = (
 )
 
 BODY_SELECTORS = (
+    # FMKorea (XE): the real post body sits in .rd_body/<article>; the header
+    # (.rd_hd) carries the 링크·쇼핑몰·상품명·가격·배송 hotdeal_table, which must
+    # never end up in body_html — target the article content first.
+    "#bd_capture .rd_body article .xe_content",
+    "#bd_capture .rd_body .xe_content",
+    ".rd_body article .xe_content",
     # FMKorea (XE): FLICK-style — prefer capture root over stray .xe_content.
     "#bd_capture .xe_content",
     "#bd_capture",
@@ -435,6 +441,23 @@ def _body_node_score(root) -> tuple[int, int, int]:
     return (imgs, len(prose), len(text))
 
 
+_FIELD_CHROME_CLASSES = frozenset({"hotdeal_table", "rd_hd", "rd_nav_side"})
+
+
+def _in_field_table(node) -> bool:
+    """True when a node lives inside FMKorea's 링크/쇼핑몰/상품명/가격/배송 table
+    or the post header chrome — those are structured fields, not the body."""
+    parent = node.parent
+    depth = 0
+    while parent is not None and depth < 12:
+        classes = set((parent.attributes.get("class") or "").split())
+        if classes & _FIELD_CHROME_CLASSES:
+            return True
+        parent = parent.parent
+        depth += 1
+    return False
+
+
 def _extract_body_html(tree: HTMLParser, page_url: str = "") -> str | None:
     best_raw = ""
     best_score = (-1, -1, -1)
@@ -446,7 +469,10 @@ def _extract_body_html(tree: HTMLParser, page_url: str = "") -> str | None:
             continue
         # Class-only selectors can hit link fields / signatures; score all.
         # Id / compound selectors are specific enough to take the first hit.
-        consider = nodes if sel.startswith(".") else nodes[:1]
+        candidates = [n for n in nodes if not _in_field_table(n)]
+        if not candidates:
+            continue
+        consider = candidates if sel.startswith(".") else candidates[:1]
         local_raw = ""
         local_score = (-1, -1, -1)
         for root in consider:

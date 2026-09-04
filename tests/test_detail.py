@@ -125,6 +125,54 @@ def test_parse_detail_fmkorea_bd_capture_over_link_xe_content():
     assert detail.body_html.count("<a ") <= 2
 
 
+def test_parse_detail_fmkorea_excludes_hotdeal_field_table():
+    """Real FMKorea layout: .rd_hd holds the 링크/쇼핑몰/상품명/가격/배송
+    hotdeal_table; body_html must carry only the article image + description."""
+    html = """
+    <html><head>
+      <meta property="og:image" content="https://image.fmkorea.com/filesn/thumb.jpg">
+    </head><body>
+      <div id="bd_capture">
+        <div class="rd_hd clear">
+          <div class="board clear">
+            <table class="hotdeal_table"><tbody>
+              <tr><th scope="row">링크</th><td><div class="xe_content">
+                <a href="https://smartstore.naver.com/mulhana/products/11162891811" class="hotdeal_url">https://smartstore.naver.com/mulhana/products/11162891811</a>
+              </div></td></tr>
+              <tr><th scope="row">쇼핑몰</th><td><div class="xe_content">네이버 </div></td></tr>
+              <tr><th scope="row">상품명</th><td><div class="xe_content">프레시웰 500ml X 80개</div></td></tr>
+              <tr><th scope="row">가격</th><td><div class="xe_content">13,490원</div></td></tr>
+              <tr><th scope="row">배송</th><td><div class="xe_content">무료</div></td></tr>
+            </tbody></table>
+          </div>
+          <div class="rd_nav_side"><a class="scrap">스크랩</a></div>
+        </div>
+        <div class="rd_body clear">
+          <div class="document_address"><a href="/10296126521">https://www.fmkorea.com/10296126521</a></div>
+          <article><div class="document_1_2 xe_content">
+            <p><img src="https://image.fmkorea.com/filesn/water.jpg.webp" alt=""></p>
+            <p>500ml로 휴대하면서 마시기 편함</p>
+            <p>유라벨/무라벨 랜덤 발송인점 참고</p>
+          </div></article>
+        </div>
+      </div>
+    </body></html>
+    """
+    detail = parse_detail(html, "https://www.fmkorea.com/10296126521")
+    assert detail.body_html
+    assert "휴대하면서 마시기 편함" in detail.body_html
+    assert "유라벨/무라벨 랜덤 발송인점 참고" in detail.body_html
+    assert "image.fmkorea.com/filesn/water.jpg" in detail.body_html
+    # Structured fields stay out of the body.
+    assert "프레시웰 500ml X 80개" not in detail.body_html
+    assert "13,490원" not in detail.body_html
+    assert "무료" not in detail.body_html
+    assert "smartstore.naver.com/mulhana" not in detail.body_html
+    assert "<table" not in detail.body_html.lower()
+    # ...but the link field still feeds mall_url.
+    assert detail.mall_url == "https://smartstore.naver.com/mulhana/products/11162891811"
+
+
 def test_parse_detail_fmkorea_picks_richest_xe_content():
     """Without #bd_capture, prefer the .xe_content with prose+images."""
     html = """
