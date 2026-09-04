@@ -173,7 +173,8 @@ async def upsert_deal_from_post(conn, post_row: dict) -> int | None:
             "JOIN posts p ON p.id=dp.post_id WHERE dp.deal_id=?",
             (deal_id,),
         )
-        existing_sources = ((await src_cur.fetchone()) or {}).get("sources") or ""
+        src_row = await src_cur.fetchone()
+        existing_sources = (src_row["sources"] if src_row else None) or ""
         take_display = prefers_non_ppomppu(post_row.get("source"), existing_sources)
         display_name = offer.product_name or match["product_name"]
         display_url = post_row["url"]

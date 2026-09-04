@@ -27,6 +27,7 @@ MALL_HOST_PARTS = (
     "naver.me",
     "coupang.com",
     "link.coupang.com",
+    "coupa.ng",
     "coupang.cn",
     "11st.co.kr",
     "gmarket.co.kr",
@@ -127,6 +128,8 @@ COMMUNITY_HOST_PARTS = (
 
 
 def extract_mall_url(*texts: str | None) -> str | None:
+    found: list[str] = []
+    loose: list[str] = []
     for text in texts:
         if not text:
             continue
@@ -134,13 +137,13 @@ def extract_mall_url(*texts: str | None) -> str | None:
             expanded = _expand_candidates(url)
             for candidate in expanded:
                 if is_mall_url(candidate):
-                    return candidate
+                    found.append(candidate)
             # Community redirectors may unwrap to a brand shop not on the allow-list.
             if any(part in url.lower() for part in COMMUNITY_HOST_PARTS + WRAPPER_HOST_PARTS):
                 for candidate in expanded[1:]:
                     if _is_loose_shop_url(candidate):
-                        return candidate
-    return None
+                        loose.append(candidate)
+    return prefer_mall(found) or prefer_mall(loose)
 
 
 def extract_goto_shop(text: str | None) -> str | None:
@@ -163,14 +166,46 @@ def extract_shop_url(*texts: str | None) -> str | None:
     found = extract_mall_url(*texts)
     if found:
         return found
+    loose: list[str] = []
     for text in texts:
         if not text:
             continue
         for url in _candidate_urls(text):
             for candidate in _expand_candidates(url):
                 if _is_loose_shop_url(candidate):
-                    return candidate
-    return None
+                    loose.append(candidate)
+    return prefer_mall(loose)
+
+
+def prefer_mall(urls: list[str] | None) -> str | None:
+    """Pick the most clickable shop URL. Coupang partner gates beat raw PDP links."""
+    cleaned = [u for u in (urls or []) if u]
+    if not cleaned:
+        return None
+    return min(cleaned, key=_mall_pref_key)
+
+
+def prefers_mall(candidate: str | None, current: str | None) -> bool:
+    if not candidate:
+        return False
+    if not current:
+        return True
+    return _mall_pref_key(candidate) < _mall_pref_key(current)
+
+
+def _mall_pref_key(url: str) -> tuple:
+    raw = (url or "").strip().lower()
+    try:
+        host = (urlparse(raw).hostname or "").lower()
+    except ValueError:
+        host = ""
+    if host == "coupa.ng" or host.endswith(".coupa.ng") or "link.coupang.com" in host:
+        return (0, raw)
+    if "coupang.com" in host and "lptag=" in raw:
+        return (1, raw)
+    if "coupang.com" in host:
+        return (3, raw)
+    return (2, raw)
 
 
 def _is_loose_shop_url(url: str | None) -> bool:

@@ -216,7 +216,7 @@ def parse_detail(html: str, page_url: str = "") -> DetailEnrichment:
     if thumb and page_url:
         thumb = urljoin(page_url, thumb)
     body_text = _body_blob(tree)
-    mall = extract_goto_shop(html) or extract_shop_url(body_text, title)
+    mall = extract_goto_shop(html) or extract_shop_url(html, body_text, title)
     return DetailEnrichment(title=title or None, mall_url=mall, thumbnail_url=thumb)
 
 

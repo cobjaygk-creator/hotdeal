@@ -16,6 +16,20 @@ def test_parse_detail_quasarzone_gotolink():
     assert detail.mall_url == "https://item.gmarket.co.kr/Item?goodscode=4212758930"
 
 
+def test_parse_detail_arca_prefers_coupang_partner():
+    html = """
+    <html><head><meta property="og:title" content="콜라 - 아카라이브"></head>
+    <body>
+      <article>
+        <a href="https://unsafelink.com/https://www.coupang.com/vp/products/8174473713?itemId=1&amp;vendorItemId=2">링크</a>
+      </article>
+      <script>window.__APP={"el":{"https://link.coupang.com/a/gK5O00F3GC":"encoded"}}</script>
+    </body></html>
+    """
+    detail = parse_detail(html, "https://arca.live/b/hotdeal/181957622")
+    assert detail.mall_url == "https://link.coupang.com/a/gK5O00F3GC"
+
+
 def test_parse_detail_og_and_mall():
     html = """
     <html><head>

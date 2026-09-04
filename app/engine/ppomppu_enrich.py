@@ -11,6 +11,7 @@ from collections import defaultdict
 
 from app.config import PPOMPPU_ENRICH_BATCH, PPOMPPU_PROXY_URL
 from app.db import set_meta, utcnow_iso
+from app.parse.links import prefers_mall
 from app.sources.detail import enrich_post
 
 log = logging.getLogger(__name__)
@@ -22,11 +23,12 @@ async def enrich_missing_ppomppu_malls(conn, client, *, limit: int | None = None
     batch = max(1, min(50, batch))
     cur = await conn.execute(
         """
-        SELECT deal_id, post_id, post_url, source FROM (
+        SELECT deal_id, post_id, post_url, source, mall_url FROM (
           SELECT d.id AS deal_id,
                  p.id AS post_id,
                  p.url AS post_url,
                  p.source AS source,
+                 d.mall_url AS mall_url,
                  ROW_NUMBER() OVER (
                    PARTITION BY p.source
                    ORDER BY d.last_seen_at DESC
@@ -34,7 +36,14 @@ async def enrich_missing_ppomppu_malls(conn, client, *, limit: int | None = None
           FROM deals d
           JOIN deal_posts dp ON dp.deal_id = d.id
           JOIN posts p ON p.id = dp.post_id
-          WHERE (d.mall_url IS NULL OR TRIM(d.mall_url) = '')
+          WHERE (
+                d.mall_url IS NULL
+                OR TRIM(d.mall_url) = ''
+                OR (
+                  lower(d.mall_url) LIKE '%www.coupang.com/%'
+                  AND lower(d.mall_url) NOT LIKE '%lptag=%'
+                )
+              )
             AND p.url IS NOT NULL
             AND p.id = (
               SELECT p2.id
@@ -85,6 +94,8 @@ async def enrich_missing_ppomppu_malls(conn, client, *, limit: int | None = None
                 no_link += 1
                 by_source[source]["no_link"] += 1
                 consec_blocked[source] = 0
+            continue
+        if not prefers_mall(detail.mall_url, row.get("mall_url")):
             continue
         consec_blocked[source] = 0
         await conn.execute(

@@ -16,6 +16,19 @@ def test_coupang_ok():
     assert extract_mall_url("링크 https://link.coupang.com/a/AbC") == "https://link.coupang.com/a/AbC"
 
 
+def test_prefer_coupang_partner_over_raw_pdp():
+    html = """
+    <a href="https://unsafelink.com/https://www.coupang.com/vp/products/8174473713?itemId=19977722612&amp;vendorItemId=88377301608">링크</a>
+    <script>{"el":{"https://link.coupang.com/a/gK5O00F3GC":"x"}}</script>
+    """
+    assert extract_mall_url(html) == "https://link.coupang.com/a/gK5O00F3GC"
+
+
+def test_coupa_ng_short_link():
+    assert is_mall_url("https://coupa.ng/b2abcde")
+    assert extract_mall_url("https://coupa.ng/b2abcde") == "https://coupa.ng/b2abcde"
+
+
 def test_reject_bare_mall_homepage():
     assert not is_mall_url("https://www.coupang.com/")
     assert not is_mall_url("https://www.coupang.com")
