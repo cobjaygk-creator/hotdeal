@@ -429,6 +429,9 @@ def is_mall_url(url: str | None) -> bool:
         return False
     if is_junk_mall_url(raw):
         return False
+    # Static assets on a mall's own CDN (cf-static.oliveyoung.co.kr/*.js, …).
+    if _ASSET_EXT_RE.search(raw):
+        return False
     try:
         parsed = urlparse(raw)
         host = (parsed.hostname or "").lower()
@@ -437,6 +440,8 @@ def is_mall_url(url: str | None) -> bool:
     if not host:
         return False
     if any(part in host for part in COMMUNITY_HOST_PARTS + WRAPPER_HOST_PARTS):
+        return False
+    if host.split(".")[0] in ("static", "cf-static", "img", "image", "cdn", "assets"):
         return False
     if not any(part in host for part in MALL_HOST_PARTS):
         return False

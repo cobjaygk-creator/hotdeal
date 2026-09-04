@@ -146,6 +146,20 @@ def test_reject_dealbada_shortlink_api_and_page_assets():
     assert extract_shop_url(html) is None
 
 
+def test_reject_mall_cdn_static_assets():
+    from app.parse.links import extract_shop_url, is_mall_url
+
+    js = (
+        "https://cf-static.oliveyoung.co.kr/lavender/2026082601/_next/static/"
+        "chunks/164f4fb6-e503072531906ba7.js"
+    )
+    pdp = "https://www.oliveyoung.co.kr/store/goods/getGoodsDetail.do?goodsNo=A000000255150"
+    assert not is_mall_url(js)
+    assert is_mall_url(pdp)
+    html = f'<script src="{js}"></script><link rel="canonical" href="{pdp}">'
+    assert extract_shop_url(pdp, html) == pdp
+
+
 def test_oy_run_is_mall_shortener():
     assert is_mall_url("https://oy.run/vo6NAPxoJR5UJt")
     assert extract_mall_url(
