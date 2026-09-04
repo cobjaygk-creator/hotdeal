@@ -285,17 +285,26 @@ async def resolve_outbound_mall(
         # Skip non-post helpers like board_link.php?type=best
         if not any(tok in abs_url for tok in ("wr_id=", "no=", "idno=", "target=", "url=")):
             continue
-        try:
-            use_proxy = PPOMPPU_PROXY_URL if "ppomppu.co.kr" in host else None
-            result = await client.get(abs_url, timeout=12.0, proxy=use_proxy)
-            final = result.url or ""
-            nested = extract_shop_url(final, result.text or "")
-            if nested:
-                return nested
-            if is_mall_url(final) or extract_shop_url(final):
-                return extract_shop_url(final) or final
-        except Exception as exc:  # noqa: BLE001
-            log.debug("outbound resolve failed %s: %s", abs_url, exc)
+        # Datacenter IPs get an interstitial from some redirectors (dealbada
+        # link.php 302s only for KR residential IPs); retry via the proxy.
+        proxy_order: list[str | None] = [None]
+        if PPOMPPU_PROXY_URL and (
+            "ppomppu.co.kr" in host or "dealbada.com" in host
+        ):
+            proxy_order = (
+                [PPOMPPU_PROXY_URL] if "ppomppu.co.kr" in host else [None, PPOMPPU_PROXY_URL]
+            )
+        for use_proxy in proxy_order:
+            try:
+                result = await client.get(abs_url, timeout=12.0, proxy=use_proxy)
+                final = result.url or ""
+                nested = extract_shop_url(final, result.text or "")
+                if nested:
+                    return nested
+                if is_mall_url(final) or extract_shop_url(final):
+                    return extract_shop_url(final) or final
+            except Exception as exc:  # noqa: BLE001
+                log.debug("outbound resolve failed %s: %s", abs_url, exc)
         if len(seen) >= 3:
             break
     return None
