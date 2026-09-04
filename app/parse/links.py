@@ -15,6 +15,8 @@ NESTED_URL_RE = re.compile(
 TRUNCATED_RE = re.compile(r"(?:\.{3}|…|%E2%80%A6)")
 # RSS/plain text often glues Korean labels onto short links: naver.me/xxx상품링크
 TRAILING_CJK_RE = re.compile(r"[\u1100-\u11FF\u3130-\u318F\uAC00-\uD7A3].*$")
+# Quasarzone buy button: javascript:goToLink('base64url')
+GOTO_LINK_RE = re.compile(r"goToLink\(\s*['\"]([A-Za-z0-9_\-]+=*)['\"]", re.I)
 
 MALL_HOST_PARTS = (
     "smartstore.naver.com",
@@ -141,8 +143,23 @@ def extract_mall_url(*texts: str | None) -> str | None:
     return None
 
 
+def extract_goto_shop(text: str | None) -> str | None:
+    """Decode Quasarzone javascript:goToLink('base64') buy URLs."""
+    if not text:
+        return None
+    for m in GOTO_LINK_RE.finditer(text):
+        decoded = _b64_http_url(m.group(1))
+        if decoded and (is_mall_url(decoded) or _is_loose_shop_url(decoded)):
+            return decoded
+    return None
+
+
 def extract_shop_url(*texts: str | None) -> str | None:
     """Allow-listed mall first, then a conservative product-looking shop URL."""
+    for text in texts:
+        goto = extract_goto_shop(text)
+        if goto:
+            return goto
     found = extract_mall_url(*texts)
     if found:
         return found

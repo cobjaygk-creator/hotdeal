@@ -63,6 +63,18 @@ def test_unwrap_ppomppu_target_base64():
     )
 
 
+def test_quasarzone_gotolink_base64():
+    from app.parse.links import extract_goto_shop, extract_shop_url
+
+    html = (
+        "<a href=\"javascript:goToLink("
+        "'aHR0cHM6Ly9pdGVtLmdtYXJrZXQuY28ua3IvSXRlbT9nb29kc2NvZGU9NDIxMjc1ODkzMA=='"
+        ");\">buy</a>"
+    )
+    assert extract_goto_shop(html) == "https://item.gmarket.co.kr/Item?goodscode=4212758930"
+    assert extract_shop_url(html) == "https://item.gmarket.co.kr/Item?goodscode=4212758930"
+
+
 def test_unwrap_unsafelink_prefix():
     from app.parse.links import extract_shop_url, is_mall_url
 

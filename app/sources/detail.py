@@ -3,13 +3,14 @@ from __future__ import annotations
 import logging
 import re
 from dataclasses import dataclass
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 
 from selectolax.parser import HTMLParser
 
 from app.config import PPOMPPU_PROXY_URL
 from app.http_client import PoliteClient
-from app.parse.links import extract_mall_url, extract_shop_url, is_mall_url
+from app.parse.links import extract_goto_shop, extract_mall_url, extract_shop_url, is_mall_url
+from app.sources.html_fetch import PROXY_FIRST_HOSTS
 
 log = logging.getLogger(__name__)
 
@@ -72,11 +73,18 @@ async def enrich_post(client: PoliteClient, source: str, url: str) -> DetailEnri
     # Prefer https; ppomppu RSS still emits http:// links that bounce via script.
     if url.startswith("http://"):
         url = "https://" + url[len("http://") :]
-    # Ppomppu is blocked from datacenter IPs — use the residential proxy first.
-    # Other communities try direct, then the same proxy if the page is gated.
+    host = (urlparse(url).hostname or "").lower()
+    prefer_proxy = bool(PPOMPPU_PROXY_URL) and (
+        is_ppomppu
+        or source in {"quasarzone", "arca", "damoang"}
+        or any(host == item or host.endswith("." + item) for item in PROXY_FIRST_HOSTS)
+    )
+    # Ppomppu / CF boards: residential proxy first. Others try direct, then proxy.
     proxy_tries: list[str | None] = []
-    if is_ppomppu:
-        proxy_tries.append(PPOMPPU_PROXY_URL or None)
+    if prefer_proxy:
+        proxy_tries.append(PPOMPPU_PROXY_URL)
+        if not is_ppomppu:
+            proxy_tries.append(None)
     else:
         proxy_tries.append(None)
         if PPOMPPU_PROXY_URL:
@@ -114,7 +122,13 @@ async def enrich_post(client: PoliteClient, source: str, url: str) -> DetailEnri
                     resolved = await resolve_outbound_mall(client, candidate, result.text)
                     if resolved:
                         parsed.mall_url = resolved
-                if parsed.title or parsed.mall_url or parsed.thumbnail_url:
+                if parsed.mall_url:
+                    parsed.blocked = False
+                    return parsed
+                # Slim/login shells often have og:title but no buy link. Keep trying.
+                if _is_detail_stub(source, result.text):
+                    continue
+                if parsed.title or parsed.thumbnail_url:
                     parsed.blocked = False
                     return parsed
             except Exception as exc:  # noqa: BLE001
@@ -202,8 +216,14 @@ def parse_detail(html: str, page_url: str = "") -> DetailEnrichment:
     if thumb and page_url:
         thumb = urljoin(page_url, thumb)
     body_text = _body_blob(tree)
-    mall = extract_shop_url(body_text, html[:50000], title)
+    mall = extract_goto_shop(html) or extract_shop_url(body_text, title)
     return DetailEnrichment(title=title or None, mall_url=mall, thumbnail_url=thumb)
+
+
+def _is_detail_stub(source: str, html: str) -> bool:
+    if source == "quasarzone":
+        return "goToLink(" not in html
+    return False
 
 
 def _looks_blocked(html: str) -> bool:

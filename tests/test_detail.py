@@ -2,6 +2,20 @@ from app.sources.detail import enrich_from_list_body, parse_detail
 from app.sources.quasarzone import parse_list
 
 
+def test_parse_detail_quasarzone_gotolink():
+    from app.sources.detail import parse_detail
+
+    html = """
+    <html><head><meta property="og:title" content="모니터 - 퀘이사존"></head>
+    <body><table><tr><th>구매링크</th><td>
+    <a href="javascript:goToLink('aHR0cHM6Ly9pdGVtLmdtYXJrZXQuY28ua3IvSXRlbT9nb29kc2NvZGU9NDIxMjc1ODkzMA==');">
+    https://item.gmarket.co.kr/Item?goodscode=4212758930</a>
+    </td></tr></table></body></html>
+    """
+    detail = parse_detail(html, "https://quasarzone.com/bbs/qb_saleinfo/views/1")
+    assert detail.mall_url == "https://item.gmarket.co.kr/Item?goodscode=4212758930"
+
+
 def test_parse_detail_og_and_mall():
     html = """
     <html><head>
