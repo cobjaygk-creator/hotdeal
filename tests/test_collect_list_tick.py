@@ -7,6 +7,7 @@ from app.sources.registry import (
     ALL_SOURCES,
     COLLECT_FAST_SOURCES,
     COLLECT_PROXY_SOURCES,
+    COLLECT_QUASARZONE_SOURCES,
     COLLECT_SLOW_SOURCES,
 )
 
@@ -43,7 +44,12 @@ async def test_list_tick_skips_detail_fetch(tmp_path, monkeypatch):
 
 
 def test_collect_tiers_cover_every_source():
-    scheduled = set(COLLECT_FAST_SOURCES + COLLECT_PROXY_SOURCES + COLLECT_SLOW_SOURCES)
+    scheduled = set(
+        COLLECT_FAST_SOURCES
+        + COLLECT_PROXY_SOURCES
+        + COLLECT_QUASARZONE_SOURCES
+        + COLLECT_SLOW_SOURCES
+    )
     scheduled.add("ppomppu")
     assert {s.name for s in ALL_SOURCES} == scheduled
     assert not (set(COLLECT_FAST_SOURCES) & set(COLLECT_PROXY_SOURCES))

@@ -28,6 +28,11 @@ PPOMPPU_INTERVAL_SECONDS = int((os.environ.get("PPOMPPU_INTERVAL_SECONDS") or "3
 COLLECT_FAST_SECONDS = int((os.environ.get("COLLECT_FAST_SECONDS") or "30").strip() or "30")
 COLLECT_PROXY_SECONDS = int((os.environ.get("COLLECT_PROXY_SECONDS") or "240").strip() or "240")
 COLLECT_SLOW_MINUTES = int((os.environ.get("COLLECT_SLOW_MINUTES") or "30").strip() or "30")
+# Quasarzone has no RSS, so its list page is the heaviest proxy fetch left.
+# Give it its own (slower) cadence instead of dragging arca down with it.
+QUASARZONE_INTERVAL_MINUTES = int(
+    (os.environ.get("QUASARZONE_INTERVAL_MINUTES") or "6").strip() or "6"
+)
 FAMILY_SALE_INTERVAL_MINUTES = 30
 AMAZON_JP_INTERVAL_MINUTES = 30
 AMAZON_JP_ASSOCIATE_TAG = os.environ.get("AMAZON_JP_ASSOCIATE_TAG", "").strip()

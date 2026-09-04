@@ -32,6 +32,7 @@ from app.config import (
     ENABLE_COLLECT,
     FAMILY_SALE_INTERVAL_MINUTES,
     PPOMPPU_INTERVAL_SECONDS,
+    QUASARZONE_INTERVAL_MINUTES,
     PPOMPPU_PROXY_URL,
     SITE_URL,
 )
@@ -54,6 +55,7 @@ from app.parse.title import clean_deal_title
 from app.sources.registry import (
     COLLECT_FAST_SOURCES,
     COLLECT_PROXY_SOURCES,
+    COLLECT_QUASARZONE_SOURCES,
     COLLECT_SLOW_SOURCES,
     SOURCE_LABELS,
     get_sources,
@@ -147,13 +149,22 @@ async def lifespan(app: FastAPI):
             next_run_time=datetime.now() + timedelta(seconds=35),
         )
         scheduler.add_job(
+            _scheduled_collect_quasarzone,
+            "interval",
+            minutes=max(1, QUASARZONE_INTERVAL_MINUTES),
+            id="collect_quasarzone",
+            max_instances=1,
+            coalesce=True,
+            next_run_time=datetime.now() + timedelta(seconds=45),
+        )
+        scheduler.add_job(
             _scheduled_collect_slow,
             "interval",
             minutes=COLLECT_SLOW_MINUTES,
             id="collect_slow",
             max_instances=1,
             coalesce=True,
-            next_run_time=datetime.now() + timedelta(seconds=50),
+            next_run_time=datetime.now() + timedelta(seconds=55),
         )
         scheduler.add_job(
             _scheduled_family,
@@ -232,6 +243,10 @@ async def _scheduled_collect_fast() -> None:
 
 async def _scheduled_collect_proxy() -> None:
     await _run_collect(COLLECT_PROXY_SOURCES)
+
+
+async def _scheduled_collect_quasarzone() -> None:
+    await _run_collect(COLLECT_QUASARZONE_SOURCES)
 
 
 async def _scheduled_collect_slow() -> None:

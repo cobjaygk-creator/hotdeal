@@ -40,7 +40,8 @@ ALL_SOURCES = [
 # fmkorea runs on the slow tier: each headless-browser hit costs a gate solve
 # and hammering it gets the proxy exit IP escalated to a Turnstile CAPTCHA.
 COLLECT_FAST_SOURCES = ["clien", "ruliweb", "eomisae", "dealbada"]
-COLLECT_PROXY_SOURCES = ["arca", "damoang", "quasarzone"]
+COLLECT_PROXY_SOURCES = ["arca", "damoang"]
+COLLECT_QUASARZONE_SOURCES = ["quasarzone"]  # own cadence: no RSS, heavy page
 COLLECT_SLOW_SOURCES = ["coolenjoy", "fmkorea"]
 
 
