@@ -142,11 +142,10 @@
 
     </div>
     <div class="dd-cta" id="modal-cta">
-      {% if deal.mall_url %}
-      <a class="btn dd-cta-buy" href="{{ deal.mall_url }}" target="_blank" rel="noopener">{% if deal.seller %}{{ deal.seller }}에서 {% endif %}{% if deal.price %}{{ "{:,}".format(deal.price) }}원 {% endif %}구매하기</a>
-      {% if deal.deal_url %}<a class="btn-secondary dd-cta-source" href="{{ deal.deal_url }}" target="_blank" rel="noopener">원문</a>{% endif %}
-      {% elif deal.deal_url %}
-      <a class="btn dd-cta-buy" href="{{ deal.deal_url }}" target="_blank" rel="noopener">원문에서 확인</a>
+      {% set buy_href = deal.mall_url or deal.deal_url or (posts[0].url if posts else none) %}
+      <a class="btn dd-cta-buy" href="{{ buy_href or ('/deal/' ~ deal.id) }}" target="_blank" rel="noopener">{% if deal.seller %}{{ deal.seller }}에서 {% endif %}{% if deal.price %}{{ "{:,}".format(deal.price) }}원 {% endif %}구매하기</a>
+      {% if deal.mall_url and deal.deal_url and deal.deal_url != deal.mall_url %}
+      <a class="btn-secondary dd-cta-source" href="{{ deal.deal_url }}" target="_blank" rel="noopener">원문</a>
       {% endif %}
       <button type="button" class="dd-cta-star bookmark-btn" data-deal-id="{{ deal.id }}" aria-label="북마크" title="북마크">☆</button>
     </div>

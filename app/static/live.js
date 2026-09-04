@@ -741,21 +741,13 @@ async function openModal(id, opts) {
   const starred = isBookmarked(id);
   const starBtn =
     `<button type="button" class="dd-cta-star bookmark-btn${starred ? " on" : ""}" data-deal-id="${id}" aria-label="북마크" title="북마크">${starred ? "★" : "☆"}</button>`;
-  let ctaHtml = "";
-  if (deal.mall_url) {
-    ctaHtml =
-      `<a class="btn dd-cta-buy" href="${esc(deal.mall_url)}" target="_blank" rel="noopener">${buyLabel}</a>` +
-      (isPostUrl(deal.deal_url)
-        ? `<a class="btn-secondary dd-cta-source" href="${esc(deal.deal_url)}" target="_blank" rel="noopener">원문</a>`
-        : "") +
-      starBtn;
-  } else if (isPostUrl(deal.deal_url)) {
-    ctaHtml =
-      `<a class="btn dd-cta-buy" href="${esc(deal.deal_url)}" target="_blank" rel="noopener">원문에서 확인</a>` +
-      starBtn;
-  } else {
-    ctaHtml = starBtn;
-  }
+  const buyHref = deal.mall_url || deal.deal_url || (posts[0] && posts[0].url) || `/deal/${id}`;
+  const ctaHtml =
+    `<a class="btn dd-cta-buy" href="${esc(buyHref)}" target="_blank" rel="noopener">${buyLabel}</a>` +
+    (deal.mall_url && isPostUrl(deal.deal_url) && deal.deal_url !== deal.mall_url
+      ? `<a class="btn-secondary dd-cta-source" href="${esc(deal.deal_url)}" target="_blank" rel="noopener">원문</a>`
+      : "") +
+    starBtn;
   const similarHtml = similar.length
     ? `<h2 class="dd-section">비슷한 핫딜</h2><ul class="dd-similar">${similar
         .map((s) => `<li><a href="/deal/${s.id}" data-deal-id="${s.id}">${esc(s.product_name)}${s.price ? " · " + won(s.price) : ""}</a></li>`)
