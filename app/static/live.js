@@ -533,10 +533,8 @@ function patchRowMall(deal) {
   side.prepend(a);
 }
 
-function ingest(items, { animate = false } = {}) {
+function ingest(items, { animate = false, allowInsert = true } = {}) {
   if (!bodyEl || !items || !items.length) return;
-  const empty = bodyEl.querySelector(".empty-row");
-  if (empty) empty.remove();
   const rows = [];
   for (const deal of items) {
     const id = String(deal.id);
@@ -544,6 +542,7 @@ function ingest(items, { animate = false } = {}) {
       patchRowMall(deal);
       continue;
     }
+    if (!allowInsert) continue;
     // Wait for shop-link enrichment before inserting a brand-new live card.
     if (!isPostUrl(deal.mall_url) && !deal.list_ready) continue;
     if (config.grade && !(deal.grade || "").includes(config.grade)) continue;
@@ -552,8 +551,11 @@ function ingest(items, { animate = false } = {}) {
     seen.add(id);
     rows.push(renderRow(deal, { fresh: animate }));
   }
-  if (rows.length) flipPrepend(rows, { animate });
-  applySourceFilter();
+  if (rows.length) {
+    bodyEl.querySelector(".empty-row")?.remove();
+    flipPrepend(rows, { animate });
+    applySourceFilter();
+  }
 }
 
 function setLive(ok, text) {
@@ -574,16 +576,16 @@ function connect() {
   es.onmessage = (ev) => {
     if (!ev.data) return;
     const data = JSON.parse(ev.data);
-    applyStats(data.stats);
-    const n = data.new_posts || 0;
-    if (n) {
-      setLive(true, `신규 ${n}건 반영`);
-    } else {
-      setLive(true, "실시간 수신 중");
+    const n = Number(data.new_posts) || 0;
+    if (!n) {
+      // Mall-link enrichment can publish existing cards with new_posts: 0.
+      // Only update a card that is already on screen; do not refresh the list.
+      ingest(data.items || [], { allowInsert: false });
+      return;
     }
-    // Mall-link enrichment can publish existing cards with new_posts: 0.
-    // Insert those cards without treating them as newly collected deals.
-    ingest(data.items || [], { animate: n > 0 });
+    applyStats(data.stats);
+    setLive(true, `신규 ${n}건 반영`);
+    ingest(data.items || [], { animate: true });
   };
   es.onerror = () => {
     setLive(false, "연결 끊김 · 재시도 중");
@@ -615,7 +617,7 @@ document.getElementById("collect-btn")?.addEventListener("click", async (e) => {
     const res = await fetch("/api/collect", { method: "POST" });
     const data = await res.json();
     const newPosts = Number(data.new_posts) || 0;
-    ingest(data.new_deals || [], { animate: newPosts > 0 });
+    ingest(data.new_deals || [], { animate: newPosts > 0, allowInsert: newPosts > 0 });
     setLive(true, `수동 수집 완료 · 신규 ${newPosts}건`);
   } catch (err) {
     setLive(false, "수집 실패");
