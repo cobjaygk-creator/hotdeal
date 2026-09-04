@@ -83,6 +83,23 @@ PPOMPPU_DETAIL_PER_TICK = 0
 # Residential / Korea proxy for ppomppu detail HTML (buy-link extraction).
 # Example: http://user:pass@host:port  or  socks5://host:port
 PPOMPPU_PROXY_URL = (os.environ.get("PPOMPPU_PROXY_URL") or "").strip()
+
+# FMKorea fronts /hotdeal with an Akamai + WASM proof-of-work gate that plain
+# HTTP clients cannot pass. When enabled, a headless Chromium (Playwright)
+# solves the gate and keeps the cleared cookies warm for the process.
+FMKOREA_BROWSER_ENABLED = (
+    os.environ.get("FMKOREA_BROWSER_ENABLED") or "1"
+).strip().lower() not in ("", "0", "false", "no")
+# Proxy for the FMKorea browser. Falls back to PPOMPPU_PROXY_URL. Prefer a
+# sticky-session endpoint: put "{session}" in the URL and it is replaced with a
+# token that rotates every few minutes so one page load stays on one exit IP.
+# Example: http://user-session-{session}:pass@gate.provider.com:7000
+FMKOREA_PROXY_URL = (
+    os.environ.get("FMKOREA_PROXY_URL") or os.environ.get("PPOMPPU_PROXY_URL") or ""
+).strip()
+FMKOREA_PROXY_SESSION_TTL_SEC = int(
+    (os.environ.get("FMKOREA_PROXY_SESSION_TTL_SEC") or "480").strip() or "480"
+)
 PPOMPPU_ENRICH_INTERVAL_MINUTES = int(
     (os.environ.get("PPOMPPU_ENRICH_INTERVAL_MINUTES") or "5").strip() or "5"
 )

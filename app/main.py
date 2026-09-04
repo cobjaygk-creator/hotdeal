@@ -198,6 +198,12 @@ async def lifespan(app: FastAPI):
         if scheduler is not None:
             scheduler.shutdown(wait=False)
         await state["http"].aclose()
+        try:
+            from app.sources import fm_browser
+
+            await fm_browser.shutdown()
+        except Exception:  # noqa: BLE001
+            pass
         await state["db"].close()
 
 

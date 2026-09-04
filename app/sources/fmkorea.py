@@ -18,7 +18,24 @@ class FmkoreaSource:
     name = "fmkorea"
 
     async def fetch_latest(self, client: PoliteClient) -> list[RawPost]:
-        return await fetch_parsed(client, LIST_URL, parse_list)
+        try:
+            return await fetch_parsed(client, LIST_URL, parse_list)
+        except RuntimeError as exc:
+            msg = str(exc)
+            if "blocked:" not in msg and "parsed 0 posts" not in msg:
+                raise
+            # Akamai + WASM gate: fall back to the headless-browser fetcher.
+            from app.sources import fm_browser
+
+            html = await fm_browser.fetch_html(
+                LIST_URL, want_selector="li.li h3.title a[href]"
+            )
+            if not html:
+                raise
+            posts = parse_list(html)
+            if not posts:
+                raise RuntimeError(f"fmkorea browser parsed 0 posts ({LIST_URL})") from exc
+            return posts
 
 
 def parse_list(html: str) -> list[RawPost]:

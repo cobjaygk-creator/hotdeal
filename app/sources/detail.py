@@ -180,7 +180,33 @@ async def enrich_post(client: PoliteClient, source: str, url: str) -> DetailEnri
             break
     if last_err:
         log.warning("detail enrich exhausted source=%s url=%s", source, url)
+    if blocked and source == "fmkorea":
+        enriched = await _enrich_fmkorea_via_browser(client, url)
+        if enriched is not None:
+            return enriched
     return DetailEnrichment(blocked=blocked)
+
+
+async def _enrich_fmkorea_via_browser(
+    client: PoliteClient, url: str
+) -> DetailEnrichment | None:
+    """FMKorea detail behind the WASM gate: fetch via headless Chromium."""
+    from app.sources import fm_browser
+
+    html = await fm_browser.fetch_html(
+        url, want_selector="#bd_capture, .rd_body", timeout=16.0, max_rounds=2
+    )
+    if not html:
+        return None
+    parsed = parse_detail(html, url)
+    if parsed.mall_url:
+        parsed.mall_url = await canonicalize_mall_url(client, parsed.mall_url)
+        if parsed.mall_url and is_junk_mall_url(parsed.mall_url):
+            parsed.mall_url = None
+    if parsed.mall_url or parsed.title or parsed.thumbnail_url or parsed.body_html:
+        parsed.blocked = False
+        return parsed
+    return None
 
 
 async def canonicalize_mall_url(client: PoliteClient, url: str | None) -> str | None:
