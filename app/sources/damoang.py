@@ -1,59 +1,60 @@
 from __future__ import annotations
 
+import email.utils
 import re
-
-from selectolax.parser import HTMLParser
+from xml.etree import ElementTree as ET
 
 from app.http_client import PoliteClient
 from app.sources import RawPost
 from app.sources.html_fetch import fetch_parsed
-from app.util.timeparse import parse_kr_datetime
 
-# robots.txt Disallow: /*?page=  → first page only
-LIST_URL = "https://damoang.net/economy"
+# The "경제" board = domestic hot-deal board. RSS is ~15 KB vs a ~300 KB list
+# page; damoang.net is Cloudflare-fronted so this still goes proxy-first.
+RSS_URL = "https://damoang.net/rss/economy"
+LIST_URL = RSS_URL  # kept for the debug probe
+_ID_RE = re.compile(r"/economy/(\d+)")
 
 
 class DamoangSource:
     name = "damoang"
 
     async def fetch_latest(self, client: PoliteClient) -> list[RawPost]:
-        return await fetch_parsed(client, LIST_URL, parse_list)
+        return await fetch_parsed(client, RSS_URL, parse_rss)
 
 
-def parse_list(html: str) -> list[RawPost]:
-    tree = HTMLParser(html)
+def parse_rss(xml_text: str) -> list[RawPost]:
+    root = ET.fromstring(xml_text)
     posts: list[RawPost] = []
     seen: set[str] = set()
-    for node in tree.css("a[href^='/economy/']"):
-        href = node.attributes.get("href") or ""
-        m = re.match(r"/economy/(\d+)/?$", href.split("?")[0])
+    for item in root.iter("item"):
+        link = (item.findtext("link") or "").strip()
+        m = _ID_RE.search(link)
         if not m:
             continue
         post_id = m.group(1)
         if post_id in seen:
             continue
-        title_el = node.css_first("span.post-title")
-        title = ""
-        if title_el:
-            title = title_el.attributes.get("title") or title_el.text() or ""
-        title = " ".join(title.split())
+        title = " ".join((item.findtext("title") or "").split())
         if not title:
             continue
         seen.add(post_id)
-        time_el = node.css_first("time") or node.css_first("[datetime]")
+        desc = " ".join((item.findtext("description") or "").split()) or None
+        author = (item.findtext("author") or "").strip() or None
         posted = None
-        if time_el:
-            posted = parse_kr_datetime(
-                time_el.attributes.get("datetime") or time_el.text()
-            )
-        author_el = node.css_first(".post-meta-text")
+        pub = item.findtext("pubDate")
+        if pub:
+            try:
+                posted = email.utils.parsedate_to_datetime(pub)
+            except (TypeError, ValueError):
+                posted = None
         posts.append(
             RawPost(
                 source="damoang",
                 source_post_id=post_id,
                 url=f"https://damoang.net/economy/{post_id}",
                 title=title,
-                author=" ".join((author_el.text() or "").split())[:40] if author_el else None,
+                body=desc,
+                author=author[:40] if author else None,
                 posted_at=posted,
             )
         )

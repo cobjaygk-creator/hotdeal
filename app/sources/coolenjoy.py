@@ -1,76 +1,83 @@
 from __future__ import annotations
 
+import email.utils
 import re
-
-from selectolax.parser import HTMLParser
+from xml.etree import ElementTree as ET
 
 from app.http_client import PoliteClient
 from app.sources import RawPost
 from app.sources.html_fetch import fetch_parsed
-from app.util.timeparse import parse_int, parse_kr_datetime
 
-LIST_URL = "https://coolenjoy.net/bbs/jirum"
+# The board HTML repeatedly ReadTimeout'd from the cloud host; the RSS feed is
+# small, fast, and carries the post body (with images) inline.
+RSS_URL = "https://coolenjoy.net/bbs/rss.php?bo_table=jirum"
+LIST_URL = RSS_URL  # kept for the debug probe
+_ID_RE = re.compile(r"/bbs/jirum/(\d+)")
+_IMG_RE = re.compile(r"""<img[^>]+src\s*=\s*["']([^"']+)["']""", re.I)
 
 
 class CoolenjoySource:
     name = "coolenjoy"
 
     async def fetch_latest(self, client: PoliteClient) -> list[RawPost]:
-        # coolenjoy often stalls on cloud hosts; allow a longer read.
-        return await fetch_parsed(client, LIST_URL, parse_list, timeout=60.0)
+        return await fetch_parsed(client, RSS_URL, parse_rss, timeout=20.0)
 
 
-def parse_list(html: str) -> list[RawPost]:
-    tree = HTMLParser(html)
+def parse_rss(xml_text: str) -> list[RawPost]:
+    root = ET.fromstring(xml_text)
     posts: list[RawPost] = []
     seen: set[str] = set()
-    for row in tree.css("li.d-md-table-row"):
-        title_a = row.css_first("a.na-subject")
-        if not title_a:
-            continue
-        href = title_a.attributes.get("href") or ""
-        m = re.search(r"/bbs/jirum/(\d+)", href)
+    for item in root.iter("item"):
+        link = (item.findtext("link") or "").strip()
+        m = _ID_RE.search(link)
         if not m:
             continue
         post_id = m.group(1)
         if post_id in seen:
             continue
-        title = " ".join((title_a.text() or "").split())
+        title = " ".join((item.findtext("title") or "").split())
         if not title or "공지" in title:
             continue
         seen.add(post_id)
-        price_el = row.css_first("font")
-        price_txt = " ".join((price_el.text() or "").split()) if price_el else ""
-        if price_txt and "(" not in title:
-            title = f"{title} ({price_txt})"
-        author_el = row.css_first("a.sv_member")
-        date_txt = _labeled(row, "등록일")
-        views_txt = _labeled(row, "조회")
-        votes_txt = _labeled(row, "추천")
-        comments_el = row.css_first("span.count-plus")
+        desc = (item.findtext("description") or "").strip() or None
+        author = (item.findtext("author") or "").strip() or None
+        posted = None
+        pub = item.findtext("pubDate")
+        if pub:
+            try:
+                posted = email.utils.parsedate_to_datetime(pub)
+            except (TypeError, ValueError):
+                posted = None
+        extra: dict = {}
+        thumb = _first_thumb(desc)
+        if thumb:
+            extra["thumbnail_url"] = thumb
         posts.append(
             RawPost(
                 source="coolenjoy",
                 source_post_id=post_id,
                 url=f"https://coolenjoy.net/bbs/jirum/{post_id}",
                 title=title,
-                author=" ".join((author_el.text() or "").split()) if author_el else None,
-                posted_at=parse_kr_datetime(date_txt),
-                votes=parse_int(votes_txt),
-                views=parse_int(views_txt),
-                comments=parse_int(comments_el.text() if comments_el else None),
+                body=desc,
+                author=author,
+                posted_at=posted,
+                extra=extra,
             )
         )
     return posts
 
 
-def _labeled(row, label: str) -> str | None:
-    for span in row.css("span.sr-only"):
-        if (span.text() or "").strip() != label:
+def _first_thumb(desc: str | None) -> str | None:
+    if not desc:
+        return None
+    for m in _IMG_RE.finditer(desc):
+        src = (m.group(1) or "").strip()
+        if not src or src.startswith("data:"):
             continue
-        parent = span.parent
-        if not parent:
-            return None
-        text = " ".join((parent.text() or "").split())
-        return text.replace(label, "").strip() or None
+        if src.startswith("//"):
+            return "https:" + src
+        if src.startswith("/"):
+            return "https://coolenjoy.net" + src
+        if src.startswith("http"):
+            return src
     return None

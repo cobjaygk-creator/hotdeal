@@ -2,11 +2,11 @@ from pathlib import Path
 
 from app.sources.arca import parse_list as parse_arca
 from app.sources.clien import parse_list as parse_clien
-from app.sources.damoang import parse_list as parse_damoang
+from app.sources.damoang import parse_rss as parse_damoang_rss
 from app.sources.ppomppu import parse_list_html, parse_rss
 from app.sources.quasarzone import parse_list as parse_quasar
 from app.sources.ruliweb import parse_list as parse_ruliweb
-from app.sources.coolenjoy import parse_list as parse_coolenjoy
+from app.sources.coolenjoy import parse_rss as parse_coolenjoy_rss
 from app.sources.dealbada import parse_list as parse_dealbada
 from app.sources.eomisae import parse_list as parse_eomisae
 from app.sources.fmkorea import parse_list as parse_fmkorea
@@ -89,15 +89,50 @@ def test_other_html_parsers():
     assert len(clien) >= 10
     ruli = parse_ruliweb((SAMPLES / "ruliweb.html").read_text(encoding="utf-8", errors="replace"))
     assert len(ruli) >= 8
-    damo = parse_damoang((SAMPLES / "damoang.html").read_text(encoding="utf-8", errors="replace"))
-    assert len(damo) >= 8
+
+
+def test_damoang_rss_parser():
+    xml = """<?xml version="1.0" encoding="UTF-8"?>
+    <rss version="2.0"><channel>
+      <item>
+        <title>아이즈 5G 150G 무제한 평생 24,900원</title>
+        <link>https://damoang.net/economy/79924</link>
+        <description>최저가 23,900원으로 1,000원 비쌉니다.</description>
+        <author>예지</author>
+        <pubDate>Fri, 04 Sep 2026 03:31:03 GMT</pubDate>
+      </item>
+      <item>
+        <title>공지사항</title><link>https://damoang.net/notice/1</link>
+      </item>
+    </channel></rss>"""
+    posts = parse_damoang_rss(xml)
+    assert [p.source_post_id for p in posts] == ["79924"]
+    p = posts[0]
+    assert p.url == "https://damoang.net/economy/79924"
+    assert "24,900원" in p.title and p.body and p.author == "예지"
+    assert p.posted_at is not None
+
+
+def test_coolenjoy_rss_parser():
+    xml = """<?xml version="1.0" encoding="UTF-8"?>
+    <rss version="2.0"><channel>
+      <item>
+        <title>맥스엘리트 850W 골드 풀모듈러 외 다수</title>
+        <link>https://coolenjoy.net/bbs/jirum/3552053</link>
+        <description><![CDATA[<p>안녕하세요<img src="/data/editor/2609/abc.png" /></p>]]></description>
+        <pubDate>Fri, 04 Sep 2026 02:00:00 GMT</pubDate>
+      </item>
+      <item><title>공지</title><link>https://coolenjoy.net/bbs/jirum/1</link></item>
+    </channel></rss>"""
+    posts = parse_coolenjoy_rss(xml)
+    assert [p.source_post_id for p in posts] == ["3552053"]
+    p = posts[0]
+    assert p.url == "https://coolenjoy.net/bbs/jirum/3552053"
+    assert p.extra["thumbnail_url"] == "https://coolenjoy.net/data/editor/2609/abc.png"
+    assert p.body and p.posted_at is not None
 
 
 def test_new_community_parsers():
-    cool = parse_coolenjoy((SAMPLES / "coolenjoy.html").read_text(encoding="utf-8", errors="replace"))
-    assert len(cool) >= 8
-    assert all(p.source_post_id.isdigit() for p in cool)
-
     eomi = parse_eomisae((SAMPLES / "eomisae_fs.html").read_text(encoding="utf-8", errors="replace"))
     assert len(eomi) >= 5
     assert all("공지" not in (p.title or "") for p in eomi)
