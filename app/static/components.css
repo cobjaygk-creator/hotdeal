@@ -573,7 +573,8 @@ button:disabled,
 }
 .deal-card.hot-fresh { background: var(--surface); }
 .deal-card.is-shifting {
-  will-change: transform, opacity;
+  will-change: opacity;
+  pointer-events: none;
 }
 @keyframes deal-drop-in {
   from { opacity: 0; transform: translateY(-32px); }

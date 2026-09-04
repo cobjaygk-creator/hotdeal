@@ -496,40 +496,36 @@ function flipPrepend(rows, { animate = false } = {}) {
     for (const row of insertRows) bodyEl.prepend(row);
     return;
   }
-  const prev = new Map();
-  bodyEl.querySelectorAll(".deal-card[data-id]").forEach((el) => {
-    prev.set(el.dataset.id, el.getBoundingClientRect());
-  });
-  for (const row of insertRows) bodyEl.prepend(row);
-  requestAnimationFrame(() => {
-    bodyEl.querySelectorAll(".deal-card[data-id]").forEach((el) => {
-      const first = prev.get(el.dataset.id);
-      if (!first) return;
-      const last = el.getBoundingClientRect();
-      const dx = first.left - last.left;
-      const dy = first.top - last.top;
-      if (!dx && !dy) return;
-      el.classList.add("is-shifting");
-      el.style.transition = "none";
-      el.style.transform = `translate(${dx}px, ${dy}px)`;
-      // Fade-out at old spot, then fade-in while settling into the new spot.
-      el.style.opacity = "0.12";
-      requestAnimationFrame(() => {
-        el.style.transition =
-          "transform 780ms cubic-bezier(0.22, 1, 0.36, 1), opacity 560ms ease-in-out";
-        el.style.transform = "";
+  // Existing cards: fade out → jump to new spot → fade in (no slide).
+  // Only new cards keep drop-in motion via .fresh CSS.
+  const existing = [...bodyEl.querySelectorAll(".deal-card[data-id]")];
+  if (!existing.length) {
+    for (const row of insertRows) bodyEl.prepend(row);
+    return;
+  }
+  for (const el of existing) {
+    el.classList.add("is-shifting");
+    el.style.transition = "opacity 200ms ease-out";
+    el.style.opacity = "0";
+  }
+  window.setTimeout(() => {
+    for (const row of insertRows) bodyEl.prepend(row);
+    requestAnimationFrame(() => {
+      for (const el of existing) {
+        if (!el.isConnected) continue;
+        el.style.transition = "opacity 300ms ease-in";
         el.style.opacity = "1";
         const clear = (ev) => {
-          if (ev.propertyName && ev.propertyName !== "transform") return;
+          if (ev.propertyName && ev.propertyName !== "opacity") return;
           el.style.transition = "";
           el.style.opacity = "";
           el.classList.remove("is-shifting");
           el.removeEventListener("transitionend", clear);
         };
         el.addEventListener("transitionend", clear);
-      });
+      }
     });
-  });
+  }, 210);
 }
 
 function patchRowMall(deal) {
