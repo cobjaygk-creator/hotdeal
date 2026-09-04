@@ -37,9 +37,11 @@ ALL_SOURCES = [
 
 # Scheduler tiers: list-only ticks, independent locks so a timeout cannot stall
 # the rest. Fast = cheap list HTML; proxy = CF/residential; slow = flaky hosts.
+# fmkorea runs on the slow tier: each headless-browser hit costs a gate solve
+# and hammering it gets the proxy exit IP escalated to a Turnstile CAPTCHA.
 COLLECT_FAST_SOURCES = ["clien", "ruliweb", "eomisae", "dealbada"]
-COLLECT_PROXY_SOURCES = ["arca", "damoang", "fmkorea", "quasarzone"]
-COLLECT_SLOW_SOURCES = ["coolenjoy"]
+COLLECT_PROXY_SOURCES = ["arca", "damoang", "quasarzone"]
+COLLECT_SLOW_SOURCES = ["coolenjoy", "fmkorea"]
 
 
 def get_sources(names: list[str] | None = None):

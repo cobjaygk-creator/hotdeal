@@ -26,8 +26,11 @@ from app.config import (
 
 log = logging.getLogger(__name__)
 
-# Gate-unique tokens from the "에펨코리아 보안 시스템" challenge page.
+# Tokens unique to FMKorea's auto-solving WASM proof-of-work interstitial.
 _GATE_MARKERS = ("ddosCheckOnly", "window.redirectCheck", "/mc/mc.php")
+# The harder gate FMKorea escalates a flagged IP to: a Cloudflare Turnstile
+# CAPTCHA. A headless browser cannot clear it — bail immediately.
+_CAPTCHA_MARKERS = ("cf-turnstile", "challenges.cloudflare.com/turnstile", "/try_unblock.php")
 
 _lock = asyncio.Lock()
 _pw = None
@@ -66,6 +69,11 @@ def _proxy_config() -> dict | None:
 def _looks_gated(html: str | None) -> bool:
     head = (html or "")[:6000]
     return any(m in head for m in _GATE_MARKERS)
+
+
+def _looks_captcha(html: str | None) -> bool:
+    head = (html or "")[:8000]
+    return any(m in head for m in _CAPTCHA_MARKERS)
 
 
 async def _ensure_context():
@@ -145,6 +153,11 @@ async def fetch_html(
             page = await ctx.new_page()
             await page.goto(url, wait_until="domcontentloaded", timeout=int(timeout * 1000))
             html = await page.content()
+            if _looks_captcha(html):
+                log.warning(
+                    "fmkorea browser hit a Turnstile CAPTCHA (IP flagged): %s", url
+                )
+                return None
             rounds = 0
             while _looks_gated(html) and rounds < max_rounds and time.time() < deadline:
                 rounds += 1
@@ -163,7 +176,7 @@ async def fetch_html(
                 except Exception:  # noqa: BLE001
                     pass
                 html = await page.content()
-            if _looks_gated(html):
+            if _looks_gated(html) or _looks_captcha(html):
                 log.warning("fmkorea browser still gated after %d rounds: %s", rounds, url)
                 return None
             if want_selector:
