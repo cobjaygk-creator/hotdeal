@@ -303,7 +303,14 @@ async def _load_prices(conn, offer) -> list[tuple[str, int]]:
 async def fetch_deal_card(conn, deal_id: int) -> dict | None:
     cur = await conn.execute(
         """
-        SELECT d.*, GROUP_CONCAT(DISTINCT p.source) AS sources
+        SELECT d.*, GROUP_CONCAT(DISTINCT p.source) AS sources,
+               (
+                 SELECT p2.source FROM deal_posts dp2
+                 JOIN posts p2 ON p2.id = dp2.post_id
+                 WHERE dp2.deal_id = d.id
+                 ORDER BY p2.collected_at ASC, p2.id ASC
+                 LIMIT 1
+               ) AS first_source
         FROM deals d
         LEFT JOIN deal_posts dp ON dp.deal_id=d.id
         LEFT JOIN posts p ON p.id=dp.post_id

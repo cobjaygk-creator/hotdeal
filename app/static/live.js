@@ -398,6 +398,15 @@ function labelSources(raw) {
   return toks.map((s) => sourceLabels[s] || s).join(", ");
 }
 
+// List cards show only the source that first picked the deal up.
+function labelFirstSource(deal) {
+  const first =
+    (deal.first_source && String(deal.first_source).trim()) ||
+    sourceTokens(deal.sources)[0];
+  if (!first) return "-";
+  return sourceLabels[first] || first;
+}
+
 function joinMeta(parts) {
   return parts
     .filter(Boolean)
@@ -422,7 +431,7 @@ function tagsHtml(deal) {
 
 function priceRowMeta(deal, ts) {
   const parts = [`<div class="deal-price">${priceHtml(deal.price)}</div>`];
-  const src = labelSources(deal.sources);
+  const src = labelFirstSource(deal);
   if (src && src !== "-") {
     parts.push(`<span class="deal-source">${esc(src)}</span>`);
   }

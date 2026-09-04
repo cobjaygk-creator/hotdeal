@@ -1685,6 +1685,7 @@ async def _attach_sources(db, deals: list[dict]) -> list[dict]:
         FROM deal_posts dp
         JOIN posts p ON p.id=dp.post_id
         WHERE dp.deal_id IN ({placeholders})
+        ORDER BY p.collected_at ASC, p.id ASC
         """,
         ids,
     )
@@ -1696,7 +1697,7 @@ async def _attach_sources(db, deals: list[dict]) -> list[dict]:
         if src:
             bucket = buckets.setdefault(deal_id, [])
             if src not in bucket:
-                bucket.append(src)
+                bucket.append(src)  # ordered oldest-collected first
         try:
             c = int(row["comments"] or 0)
         except (TypeError, ValueError):
@@ -1705,7 +1706,11 @@ async def _attach_sources(db, deals: list[dict]) -> list[dict]:
             comments[deal_id] = c
     user_counts = await deal_comments.comment_counts(db, ids)
     for deal in deals:
-        deal["sources"] = ",".join(buckets.get(deal["id"], []))
+        bucket = buckets.get(deal["id"], [])
+        deal["sources"] = ",".join(bucket)
+        # List cards show only the source that first picked the deal up; the
+        # detail page still shows every source via `sources`.
+        deal["first_source"] = bucket[0] if bucket else ""
         deal["comments"] = comments.get(deal["id"], 0)
         deal["user_comments"] = user_counts.get(deal["id"], 0)
     return deals

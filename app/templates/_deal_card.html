@@ -28,9 +28,10 @@
       <span class="deal-title">{{ d.product_name | clean_title }}</span>
       <div class="deal-price-row">
         <div class="deal-price">{% if d.price %}{{ "{:,}".format(d.price) }}<span class="won">원</span>{% else %}-{% endif %}</div>
-        {% if d.sources is string and d.sources %}
+        {% set list_source = d.first_source or (d.sources.split(",")[0] if d.sources else '') %}
+        {% if list_source %}
         <span class="deal-meta-sep" aria-hidden="true">|</span>
-        <span class="deal-source">{% for s in d.sources.split(",") if s.strip() %}{{ source_labels.get(s.strip(), s.strip()) }}{% if not loop.last %}, {% endif %}{% endfor %}</span>
+        <span class="deal-source">{{ source_labels.get(list_source, list_source) }}</span>
         {% endif %}
         <span class="deal-meta-sep" aria-hidden="true">|</span>
         <time class="time-rel" datetime="{{ d.last_seen_at or '' }}" data-ts="{{ d.last_seen_at or '' }}">{{ d.last_seen_at | reltime }}</time>
