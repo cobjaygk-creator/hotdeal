@@ -23,7 +23,7 @@ def test_curl_argv_omits_proxy_when_unset():
 async def test_get_uses_chrome_tls_when_proxy_set():
     client = PoliteClient()
 
-    async def fake_impersonate(url, encoding, timeout, proxy):
+    async def fake_impersonate(url, encoding, timeout, proxy, cond=None):
         assert proxy == "http://proxy.test:1"
         return FetchResult(url, 200, "<html>ok vrow hybrid</html>", b"ok")
 

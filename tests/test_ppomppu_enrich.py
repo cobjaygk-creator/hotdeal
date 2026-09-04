@@ -2,7 +2,14 @@ import json
 
 import pytest
 
+import app.engine.ppomppu_enrich as _pe
 from app.engine.ppomppu_enrich import enrich_missing_ppomppu_malls
+
+
+@pytest.fixture(autouse=True)
+def _clear_enrich_cooldown():
+    _pe._last_attempt.clear()
+    yield
 
 
 @pytest.mark.asyncio
@@ -117,6 +124,7 @@ class _FetchAll:
 
 def _patch_common(monkeypatch, conn, proxy="http://proxy.example:8080"):
     monkeypatch.setattr("app.engine.ppomppu_enrich.PPOMPPU_PROXY_URL", proxy)
+    monkeypatch.setattr("app.engine.ppomppu_enrich._last_attempt", {})
 
     async def fake_set_meta(c, key, value):
         conn.meta = (key, json.loads(value))

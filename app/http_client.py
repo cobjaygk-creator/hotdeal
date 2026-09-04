@@ -135,12 +135,15 @@ class PoliteClient:
         retries = MAX_RETRIES if max_retries is None else max(1, max_retries)
         http = self._client_for(proxy)
         extra: dict[str, str] = {}
-        # Conditional GETs are only useful for the direct (non-proxy) client.
-        if not proxy:
-            if url in self._etag:
-                extra["If-None-Match"] = self._etag[url]
-            if url in self._modified:
-                extra["If-Modified-Since"] = self._modified[url]
+        # Conditional GET on both direct and proxied fetches — an unchanged
+        # community list returns a tiny 304 instead of the full page, which
+        # matters a lot for residential-proxy GB. Keyed per exit so a direct
+        # ETag never gets replayed to a proxy edge (or vice versa).
+        cc_key = f"{proxy or ''}\n{url}"
+        if cc_key in self._etag:
+            extra["If-None-Match"] = self._etag[cc_key]
+        if cc_key in self._modified:
+            extra["If-Modified-Since"] = self._modified[cc_key]
 
         last_error: Exception | None = None
         for attempt in range(retries):
@@ -154,8 +157,10 @@ class PoliteClient:
                     # Cloudflare even when the exit IP is Korean.
                     if proxy:
                         impersonated = await self._impersonate_get(
-                            url, encoding, timeout=req_timeout, proxy=proxy
+                            url, encoding, timeout=req_timeout, proxy=proxy, cond=extra
                         )
+                        if impersonated is not None and impersonated.not_modified:
+                            return impersonated
                         if impersonated is not None and not _soft_blocked(impersonated.text):
                             return impersonated
                         if impersonated is not None and _soft_blocked(impersonated.text):
@@ -222,8 +227,8 @@ class PoliteClient:
             # Some boards return HTTP 200 with an HTML 403 body to datacenter IPs.
             blocked = _soft_blocked(decoded.text)
             if blocked:
-                self._etag.pop(url, None)
-                self._modified.pop(url, None)
+                self._etag.pop(cc_key, None)
+                self._modified.pop(cc_key, None)
                 if curl_fallback:
                     log.warning("soft-block body on %s, falling back to curl (proxy=%s)", url, bool(proxy))
                     return await self._curl_get(
@@ -231,11 +236,10 @@ class PoliteClient:
                     )
                 log.warning("soft-block body on %s (proxy=%s)", url, bool(proxy))
                 return decoded
-            if not proxy:
-                if etag := resp.headers.get("ETag"):
-                    self._etag[url] = etag
-                if lm := resp.headers.get("Last-Modified"):
-                    self._modified[url] = lm
+            if etag := resp.headers.get("ETag"):
+                self._etag[cc_key] = etag
+            if lm := resp.headers.get("Last-Modified"):
+                self._modified[cc_key] = lm
             return decoded
 
         if last_error:
@@ -274,6 +278,7 @@ class PoliteClient:
         encoding: str | None,
         timeout: float,
         proxy: str | None,
+        cond: dict[str, str] | None = None,
     ) -> FetchResult | None:
         try:
             from curl_cffi.requests import AsyncSession
@@ -285,19 +290,30 @@ class PoliteClient:
         if session is None:
             session = AsyncSession()
             self._impersonate_sessions[key] = session
+        headers = {"Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7"}
+        if cond:
+            headers.update(cond)
         try:
             resp = await session.get(
                 url,
                 impersonate="chrome",
                 proxy=proxy,
                 timeout=timeout,
-                headers={"Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7"},
+                headers=headers,
                 allow_redirects=True,
             )
         except Exception as exc:  # noqa: BLE001
             log.warning("chrome TLS fetch failed %s: %s", url, exc)
             return None
-        return self._decode(url, int(resp.status_code), resp.content, encoding, None)
+        status = int(resp.status_code)
+        if status == 304:
+            return FetchResult(url, 304, "", b"", not_modified=True)
+        result = self._decode(url, status, resp.content, encoding, None)
+        for hk, store in (("etag", self._etag), ("last-modified", self._modified)):
+            val = resp.headers.get(hk)
+            if val:
+                store[f"{proxy or ''}\n{url}"] = val
+        return result
 
     async def _curl_get(
         self,

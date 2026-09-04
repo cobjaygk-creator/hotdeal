@@ -8,6 +8,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import time
 from collections import defaultdict
 
 from app.config import PPOMPPU_ENRICH_BATCH, PPOMPPU_PROXY_URL
@@ -24,6 +25,23 @@ log = logging.getLogger(__name__)
 _ENRICH_TIMEOUT_SEC = 18.0
 # Quasarzone list sometimes attaches this ancient shared placeholder as data-preview.
 _STALE_QZ_THUMB = "%dc9345db51f5b6aa0e363ed2cfbe9358%"
+# Don't re-fetch a deal's detail page (a proxied request) more than once per
+# this window during the background sweep — a deal that can't be enriched was
+# re-tried every tick, which was a big chunk of the residential-proxy GB.
+_ATTEMPT_COOLDOWN_SEC = 45 * 60
+_last_attempt: dict[int, float] = {}
+
+
+def _cooldown_ok(deal_id: int) -> bool:
+    now = time.time()
+    if now - _last_attempt.get(deal_id, 0.0) < _ATTEMPT_COOLDOWN_SEC:
+        return False
+    _last_attempt[deal_id] = now
+    if len(_last_attempt) > 5000:  # prune
+        cutoff = now - _ATTEMPT_COOLDOWN_SEC
+        for k in [k for k, v in _last_attempt.items() if v < cutoff]:
+            _last_attempt.pop(k, None)
+    return True
 
 
 async def enrich_missing_ppomppu_malls(
@@ -135,6 +153,8 @@ async def enrich_missing_ppomppu_malls(
         params,
     )
     rows = [dict(r) for r in await cur.fetchall()]
+    if not deal_ids:  # background sweep: honour the per-deal cooldown
+        rows = [r for r in rows if _cooldown_ok(int(r["deal_id"]))]
     filled = 0
     blocked = 0
     no_link = 0
