@@ -191,3 +191,26 @@ def test_dealbada_list_thumbnail():
     posts = parse_dealbada(html)
     assert len(posts) == 1
     assert posts[0].extra["thumbnail_url"] == "https://cdn.dealbada.com/data/editor/a.jpg"
+
+
+def test_quasar_v2_rows_skip_partner_ads():
+    """Partner rows link to /bbs/qb_partnersaleinfo/... and must not be minted
+    as wrong-board qb_saleinfo URLs (their ids collide with real posts)."""
+    html = """
+    <div class="v2-list-row v2-list-row--hotdeal">
+      <a class="v2-list-row__thumb img-background-wrap lazy" href="/bbs/qb_saleinfo/views/1984069"></a>
+      <span class="v2-badge">PC/하드웨어</span>
+      <a class="subject-link " href="/bbs/qb_saleinfo/views/1984069">[하이마트] MSI PRO B760M-A</a>
+      <span class="v2-list-row__price">￦133,230</span>
+      <span class="v2-list-row__time">39분 전</span>
+    </div>
+    <div class="v2-list-row v2-list-row--hotdeal v2-partner-row">
+      <a class="v2-list-row__thumb img-background-wrap lazy" href="/bbs/qb_partnersaleinfo/views/277164"></a>
+      <span class="v2-badge">파트너 핫딜</span>
+      <a class="subject-link" href="/bbs/qb_partnersaleinfo/views/277164">[지마켓] 빅세일 특가</a>
+      <span class="v2-list-row__price">￦305,396</span>
+    </div>
+    """
+    posts = parse_quasar(html)
+    assert [p.source_post_id for p in posts] == ["1984069"]
+    assert posts[0].url == "https://quasarzone.com/bbs/qb_saleinfo/views/1984069"

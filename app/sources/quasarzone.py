@@ -50,6 +50,13 @@ def _parse_v2_rows(tree: HTMLParser) -> list[RawPost]:
         if not link:
             continue
         href = link.attributes.get("href") or ""
+        # Partner/ad rows (v2-partner-row) reuse this markup but link to another
+        # board (/bbs/qb_partnersaleinfo/views/{id}); their ids collide with real
+        # qb_saleinfo posts, so skip them rather than mint a wrong-board URL.
+        if "v2-partner-row" in (row.attributes.get("class") or ""):
+            continue
+        if "/bbs/qb_saleinfo/views/" not in href:
+            continue
         href_id = _id_from_href(href) or ""
         attr_id = (row.attributes.get("data-qc-id") or "").strip()
         # Title belongs to the subject href. Prefer it when the two ids disagree.
@@ -104,6 +111,10 @@ def _parse_market_cards(tree: HTMLParser) -> list[RawPost]:
         if not link:
             continue
         href = link.attributes.get("href") or ""
+        if "v2-partner-row" in (item.attributes.get("class") or "") or (
+            "/views/" in href and "/bbs/qb_saleinfo/views/" not in href
+        ):
+            continue
         post_id = _id_from_href(href)
         if not post_id or post_id in seen:
             continue
