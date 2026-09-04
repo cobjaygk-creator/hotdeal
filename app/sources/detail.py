@@ -17,6 +17,7 @@ from app.parse.links import (
     is_coupang_partner_gate,
     is_junk_mall_url,
     is_mall_url,
+    is_oliveyoung_short,
 )
 from app.parse.sanitize_html import sanitize_body_html
 from app.http_client import soft_block_reason
@@ -158,25 +159,38 @@ async def enrich_post(client: PoliteClient, source: str, url: str) -> DetailEnri
 
 
 async def canonicalize_mall_url(client: PoliteClient, url: str | None) -> str | None:
-    """Turn Coupang partner short links into a normal product URL users can open."""
+    """Turn Coupang partner / Olive Young short links into a normal product URL."""
     if not url or is_junk_mall_url(url):
         return None
-    if not is_coupang_partner_gate(url):
+    if is_coupang_partner_gate(url):
+        try:
+            result = await client.get(url, timeout=12.0, max_retries=1, curl_fallback=False)
+        except Exception as exc:  # noqa: BLE001
+            log.debug("coupang partner resolve failed %s: %s", url, exc)
+            return url
+        final = (result.url or "").strip()
+        product = coupang_product_url(final)
+        if product:
+            return product
+        if final and is_mall_url(final) and not is_coupang_partner_gate(final):
+            return final
+        nested = extract_shop_url(final, result.text or "")
+        if nested and not is_coupang_partner_gate(nested):
+            return coupang_product_url(nested) or nested
         return url
-    try:
-        result = await client.get(url, timeout=12.0, max_retries=1, curl_fallback=False)
-    except Exception as exc:  # noqa: BLE001
-        log.debug("coupang partner resolve failed %s: %s", url, exc)
+    if is_oliveyoung_short(url):
+        try:
+            result = await client.get(url, timeout=12.0, max_retries=1, curl_fallback=False)
+        except Exception as exc:  # noqa: BLE001
+            log.debug("oliveyoung short resolve failed %s: %s", url, exc)
+            return url
+        final = (result.url or "").strip()
+        if final and is_mall_url(final) and not is_oliveyoung_short(final):
+            return final
+        nested = extract_mall_url(final, result.text or "")
+        if nested and not is_oliveyoung_short(nested):
+            return nested
         return url
-    final = (result.url or "").strip()
-    product = coupang_product_url(final)
-    if product:
-        return product
-    if final and is_mall_url(final) and not is_coupang_partner_gate(final):
-        return final
-    nested = extract_shop_url(final, result.text or "")
-    if nested and not is_coupang_partner_gate(nested):
-        return coupang_product_url(nested) or nested
     return url
 
 

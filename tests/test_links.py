@@ -98,6 +98,31 @@ def test_quasarzone_gotolink_base64():
     assert extract_shop_url(html) == "https://item.gmarket.co.kr/Item?goodscode=4212758930"
 
 
+def test_prefer_oliveyoung_over_dajooda_affiliate():
+    from app.parse.links import extract_shop_url, is_junk_mall_url, prefers_mall
+
+    html = """
+    <a href="https://dajooda.com/s/MbS7q1e">ads</a>
+    <a href="https://oy.run/vo6NAPxoJR5UJt">buy</a>
+    <a href="https://www.oliveyoung.co.kr/store/goods/getGoodsDetail.do?goodsNo=A000000217595">pdp</a>
+    """
+    assert is_junk_mall_url("https://dajooda.com/s/MbS7q1e")
+    assert extract_shop_url(html) == (
+        "https://www.oliveyoung.co.kr/store/goods/getGoodsDetail.do?goodsNo=A000000217595"
+    )
+    assert prefers_mall(
+        "https://www.oliveyoung.co.kr/store/goods/getGoodsDetail.do?goodsNo=A000000217595",
+        "https://dajooda.com/s/MbS7q1e",
+    )
+
+
+def test_oy_run_is_mall_shortener():
+    assert is_mall_url("https://oy.run/vo6NAPxoJR5UJt")
+    assert extract_mall_url(
+        "본문 https://oy.run/vo6NAPxoJR5UJt https://dajooda.com/s/MbS7q1e"
+    ) == "https://oy.run/vo6NAPxoJR5UJt"
+
+
 def test_unwrap_unsafelink_prefix():
     from app.parse.links import extract_shop_url, is_mall_url
 

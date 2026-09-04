@@ -51,6 +51,7 @@ MALL_HOST_PARTS = (
     "gift.kakao.com",
     "shopping.daum.net",
     "oliveyoung.co.kr",
+    "oy.run",
     "hmall.com",
     "gsshop.com",
     "cjmall.com",
@@ -127,6 +128,8 @@ JUNK_HOST_PARTS = (
     "auth.naver.com",
     "apis.naver.com",
     "api.fixer.io",
+    # Ruliweb / community sidebars sometimes inject this affiliate shortener.
+    "dajooda.com",
 )
 COMMUNITY_HOST_PARTS = (
     "ppomppu.co.kr",
@@ -212,7 +215,7 @@ def prefers_mall(candidate: str | None, current: str | None) -> bool:
 
 
 def _mall_pref_key(url: str) -> tuple:
-    """Lower is better. Prefer Coupang PDP over partner short links."""
+    """Lower is better. Prefer known malls (and Coupang PDPs) over loose unknowns."""
     raw = (url or "").strip().lower()
     try:
         host = (urlparse(raw).hostname or "").lower()
@@ -229,7 +232,15 @@ def _mall_pref_key(url: str) -> tuple:
     if host == "coupa.ng" or host.endswith(".coupa.ng") or "link.coupang.com" in host:
         # Partner gates often show "권한이 없습니다" for third-party openers.
         return (5, raw)
-    return (3, raw)
+    # Allow-listed shop hosts beat unknown "loose" product-looking URLs.
+    if is_mall_url(url):
+        # Prefer real Olive Young PDPs over oy.run shorteners.
+        if "oliveyoung.co.kr" in host:
+            return (2, raw)
+        if host == "oy.run" or host.endswith(".oy.run"):
+            return (4, raw)
+        return (3, raw)
+    return (6, raw)
 
 
 def is_coupang_partner_gate(url: str | None) -> bool:
@@ -240,6 +251,16 @@ def is_coupang_partner_gate(url: str | None) -> bool:
     except ValueError:
         return False
     return host == "coupa.ng" or host.endswith(".coupa.ng") or host.endswith("link.coupang.com") or host == "link.coupang.com"
+
+
+def is_oliveyoung_short(url: str | None) -> bool:
+    if not url:
+        return False
+    try:
+        host = (urlparse(url.strip()).hostname or "").lower()
+    except ValueError:
+        return False
+    return host == "oy.run" or host.endswith(".oy.run")
 
 
 def _host_has(host: str, needle: str) -> bool:
