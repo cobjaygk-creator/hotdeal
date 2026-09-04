@@ -237,6 +237,7 @@ const MALL_HOSTS = [
   ["lotteimall.com", "롯데홈쇼핑", "lotte"],
   ["kurly.com", "컬리", "kurly"],
   ["oliveyoung.co.kr", "올리브영", "oliveyoung"],
+  ["compuzone.co.kr", "컴퓨존", "compuzone"],
   ["hmall.com", "현대Hmall", "hmall"],
   ["gsshop.com", "GS샵", "gsshop"],
   ["cjmall.com", "CJ온스타일", "cjmall"],

@@ -79,6 +79,17 @@ MALL_HOST_PARTS = (
     "hiver.co.kr",
     "eqlstore.com",
     "soldout.co.kr",
+    "compuzone.co.kr",
+)
+
+# Naver shopping hosts we accept. Everything else under naver.* is ads/login junk.
+NAVER_SHOP_HOST_PARTS = (
+    "smartstore.naver.com",
+    "brand.naver.com",
+    "shopping.naver.com",
+    "m.shopping.naver.com",
+    "m.site.naver.com",
+    "naver.me",
 )
 
 # Outbound warning pages that prefix the real shop URL.
@@ -108,8 +119,15 @@ JUNK_HOST_PARTS = (
     "news.naver.com",
     "post.naver.com",
     "tv.naver.com",
+    # Naver Search Ads / advertiser portals (often scraped from FMKorea sidebars).
+    "saedu.naver.com",
+    "searchad.naver.com",
+    "adcr.naver.com",
+    "nid.naver.com",
+    "auth.naver.com",
+    "apis.naver.com",
+    "api.fixer.io",
 )
-
 COMMUNITY_HOST_PARTS = (
     "ppomppu.co.kr",
     "clien.net",
@@ -186,26 +204,99 @@ def prefer_mall(urls: list[str] | None) -> str | None:
 
 
 def prefers_mall(candidate: str | None, current: str | None) -> bool:
-    if not candidate:
+    if not candidate or is_junk_mall_url(candidate):
         return False
-    if not current:
+    if not current or is_junk_mall_url(current):
         return True
     return _mall_pref_key(candidate) < _mall_pref_key(current)
 
 
 def _mall_pref_key(url: str) -> tuple:
+    """Lower is better. Prefer Coupang PDP over partner short links."""
     raw = (url or "").strip().lower()
     try:
         host = (urlparse(raw).hostname or "").lower()
     except ValueError:
         host = ""
-    if host == "coupa.ng" or host.endswith(".coupa.ng") or "link.coupang.com" in host:
+    if is_junk_mall_url(url):
+        return (9, raw)
+    if "coupang.com" in host and "/vp/products/" in raw:
         return (0, raw)
     if "coupang.com" in host and "lptag=" in raw:
         return (1, raw)
     if "coupang.com" in host:
-        return (3, raw)
-    return (2, raw)
+        return (2, raw)
+    if host == "coupa.ng" or host.endswith(".coupa.ng") or "link.coupang.com" in host:
+        # Partner gates often show "권한이 없습니다" for third-party openers.
+        return (5, raw)
+    return (3, raw)
+
+
+def is_coupang_partner_gate(url: str | None) -> bool:
+    if not url:
+        return False
+    try:
+        host = (urlparse(url.strip()).hostname or "").lower()
+    except ValueError:
+        return False
+    return host == "coupa.ng" or host.endswith(".coupa.ng") or host.endswith("link.coupang.com") or host == "link.coupang.com"
+
+
+def _host_has(host: str, needle: str) -> bool:
+    """Match full host labels, not accidental substrings (t.co ⊂ gmarket.co.kr)."""
+    host = (host or "").lower()
+    needle = (needle or "").lower()
+    if not host or not needle:
+        return False
+    if needle.endswith("."):
+        return needle in host
+    return host == needle or host.endswith("." + needle)
+
+
+def is_junk_mall_url(url: str | None) -> bool:
+    if not url:
+        return True
+    try:
+        parsed = urlparse(url.strip())
+        host = (parsed.hostname or "").lower()
+    except ValueError:
+        return True
+    if not host:
+        return True
+    if any(_host_has(host, part) for part in JUNK_HOST_PARTS):
+        return True
+    if (_host_has(host, "naver.com") or _host_has(host, "naver.me")) and not any(
+        part in host for part in NAVER_SHOP_HOST_PARTS
+    ):
+        return True
+    path = (parsed.path or "").lower()
+    if any(tok in path for tok in ("/adbiz/", "/oauth", "/nidlogin", "/authorize")):
+        return True
+    return False
+
+
+def coupang_product_url(url: str | None) -> str | None:
+    """Keep product + variant ids; drop noisy tracking when possible."""
+    if not url:
+        return None
+    try:
+        parsed = urlparse(url.strip())
+        host = (parsed.hostname or "").lower()
+    except ValueError:
+        return None
+    if "coupang.com" not in host:
+        return None
+    m = re.search(r"/vp/products/(\d+)", parsed.path or "")
+    if not m:
+        return None
+    qs = parse_qs(parsed.query)
+    keep = []
+    for key in ("itemId", "vendorItemId"):
+        vals = qs.get(key) or qs.get(key.lower())
+        if vals and vals[0]:
+            keep.append(f"{key}={vals[0]}")
+    base = f"https://www.coupang.com/vp/products/{m.group(1)}"
+    return f"{base}?{'&'.join(keep)}" if keep else base
 
 
 def _is_loose_shop_url(url: str | None) -> bool:
@@ -218,7 +309,7 @@ def _is_loose_shop_url(url: str | None) -> bool:
         return False
     if not host or any(part in host for part in COMMUNITY_HOST_PARTS + WRAPPER_HOST_PARTS):
         return False
-    if any(part in host for part in JUNK_HOST_PARTS):
+    if is_junk_mall_url(url):
         return False
     path = (parsed.path or "").rstrip("/")
     return bool(path)
@@ -232,6 +323,8 @@ def is_mall_url(url: str | None) -> bool:
         return False
     # Display-truncated URLs from community pages (… / ...) are never clickable.
     if TRUNCATED_RE.search(raw):
+        return False
+    if is_junk_mall_url(raw):
         return False
     try:
         parsed = urlparse(raw)

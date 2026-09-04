@@ -16,7 +16,7 @@ def test_parse_detail_quasarzone_gotolink():
     assert detail.mall_url == "https://item.gmarket.co.kr/Item?goodscode=4212758930"
 
 
-def test_parse_detail_arca_prefers_coupang_partner():
+def test_parse_detail_arca_prefers_coupang_pdp():
     html = """
     <html><head><meta property="og:title" content="콜라 - 아카라이브"></head>
     <body>
@@ -27,7 +27,9 @@ def test_parse_detail_arca_prefers_coupang_partner():
     </body></html>
     """
     detail = parse_detail(html, "https://arca.live/b/hotdeal/181957622")
-    assert detail.mall_url == "https://link.coupang.com/a/gK5O00F3GC"
+    assert detail.mall_url == (
+        "https://www.coupang.com/vp/products/8174473713?itemId=1&vendorItemId=2"
+    )
 
 
 def test_parse_detail_og_and_mall():

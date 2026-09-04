@@ -63,7 +63,14 @@ async def enrich_missing_ppomppu_malls(
                 OR (
                   lower(d.mall_url) LIKE '%www.coupang.com/%'
                   AND lower(d.mall_url) NOT LIKE '%lptag=%'
+                  AND lower(d.mall_url) NOT LIKE '%/vp/products/%'
                 )
+                OR lower(d.mall_url) LIKE '%link.coupang.com/%'
+                OR lower(d.mall_url) LIKE '%coupa.ng/%'
+                OR lower(d.mall_url) LIKE '%saedu.naver.com%'
+                OR lower(d.mall_url) LIKE '%searchad.naver.com%'
+                OR lower(d.mall_url) LIKE '%nid.naver.com%'
+                OR lower(d.mall_url) LIKE '%api.fixer.io%'
                 OR (
                   p.source = 'quasarzone'
                   AND d.thumbnail_url LIKE '{_STALE_QZ_THUMB}'

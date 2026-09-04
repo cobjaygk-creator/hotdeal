@@ -338,6 +338,23 @@ async def _ensure_columns(conn: aiosqlite.Connection) -> None:
         )
         await set_meta(conn, "cleaned_truncated_mall_urls", "1")
 
+    # Drop Naver ads / oauth / fixer junk that slipped in as "shop" links.
+    junk_malls = await get_meta(conn, "cleaned_junk_mall_urls_v1")
+    if junk_malls != "1":
+        await conn.execute(
+            """
+            UPDATE deals
+            SET mall_url=NULL
+            WHERE lower(mall_url) LIKE '%saedu.naver.com%'
+               OR lower(mall_url) LIKE '%searchad.naver.com%'
+               OR lower(mall_url) LIKE '%adcr.naver.com%'
+               OR lower(mall_url) LIKE '%nid.naver.com%'
+               OR lower(mall_url) LIKE '%auth.naver.com%'
+               OR lower(mall_url) LIKE '%api.fixer.io%'
+            """
+        )
+        await set_meta(conn, "cleaned_junk_mall_urls_v1", "1")
+
     try:
         await _unwrap_wrapper_mall_urls(conn)
     except Exception:

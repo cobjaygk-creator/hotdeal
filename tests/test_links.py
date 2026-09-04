@@ -16,12 +16,22 @@ def test_coupang_ok():
     assert extract_mall_url("링크 https://link.coupang.com/a/AbC") == "https://link.coupang.com/a/AbC"
 
 
-def test_prefer_coupang_partner_over_raw_pdp():
+def test_prefer_coupang_pdp_over_partner_gate():
     html = """
     <a href="https://unsafelink.com/https://www.coupang.com/vp/products/8174473713?itemId=19977722612&amp;vendorItemId=88377301608">링크</a>
     <script>{"el":{"https://link.coupang.com/a/gK5O00F3GC":"x"}}</script>
     """
-    assert extract_mall_url(html) == "https://link.coupang.com/a/gK5O00F3GC"
+    assert extract_mall_url(html) == (
+        "https://www.coupang.com/vp/products/8174473713?itemId=19977722612&vendorItemId=88377301608"
+    )
+
+
+def test_reject_naver_searchad_junk():
+    junk = "http://saedu.naver.com/adbiz/searchad/intro.nhn"
+    assert not is_mall_url(junk)
+    assert extract_mall_url(f'<a href="{junk}">ads</a> https://www.compuzone.co.kr/product/product_detail.htm?ProductNo=123') == (
+        "https://www.compuzone.co.kr/product/product_detail.htm?ProductNo=123"
+    )
 
 
 def test_coupa_ng_short_link():

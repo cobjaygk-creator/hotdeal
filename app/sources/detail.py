@@ -9,7 +9,15 @@ from selectolax.parser import HTMLParser
 
 from app.config import PPOMPPU_PROXY_URL
 from app.http_client import PoliteClient
-from app.parse.links import extract_goto_shop, extract_mall_url, extract_shop_url, is_mall_url
+from app.parse.links import (
+    coupang_product_url,
+    extract_goto_shop,
+    extract_mall_url,
+    extract_shop_url,
+    is_coupang_partner_gate,
+    is_junk_mall_url,
+    is_mall_url,
+)
 from app.sources.html_fetch import PROXY_FIRST_HOSTS
 
 log = logging.getLogger(__name__)
@@ -123,6 +131,10 @@ async def enrich_post(client: PoliteClient, source: str, url: str) -> DetailEnri
                     if resolved:
                         parsed.mall_url = resolved
                 if parsed.mall_url:
+                    parsed.mall_url = await canonicalize_mall_url(client, parsed.mall_url)
+                if parsed.mall_url and is_junk_mall_url(parsed.mall_url):
+                    parsed.mall_url = None
+                if parsed.mall_url:
                     parsed.blocked = False
                     return parsed
                 # Slim/login shells often have og:title but no buy link. Keep trying.
@@ -139,6 +151,29 @@ async def enrich_post(client: PoliteClient, source: str, url: str) -> DetailEnri
     if last_err:
         log.warning("detail enrich exhausted source=%s url=%s", source, url)
     return DetailEnrichment(blocked=blocked)
+
+
+async def canonicalize_mall_url(client: PoliteClient, url: str | None) -> str | None:
+    """Turn Coupang partner short links into a normal product URL users can open."""
+    if not url or is_junk_mall_url(url):
+        return None
+    if not is_coupang_partner_gate(url):
+        return url
+    try:
+        result = await client.get(url, timeout=12.0, max_retries=1, curl_fallback=False)
+    except Exception as exc:  # noqa: BLE001
+        log.debug("coupang partner resolve failed %s: %s", url, exc)
+        return url
+    final = (result.url or "").strip()
+    product = coupang_product_url(final)
+    if product:
+        return product
+    if final and is_mall_url(final) and not is_coupang_partner_gate(final):
+        return final
+    nested = extract_shop_url(final, result.text or "")
+    if nested and not is_coupang_partner_gate(nested):
+        return coupang_product_url(nested) or nested
+    return url
 
 
 async def resolve_outbound_mall(
