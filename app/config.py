@@ -22,8 +22,12 @@ USER_AGENT = (
 )
 
 MIN_REQUEST_INTERVAL_SEC = 2.0
+# Legacy name: unused by the scheduler after source-tier jobs landed.
 COLLECT_INTERVAL_MINUTES = 3
 PPOMPPU_INTERVAL_SECONDS = 60
+COLLECT_FAST_SECONDS = int((os.environ.get("COLLECT_FAST_SECONDS") or "60").strip() or "60")
+COLLECT_PROXY_SECONDS = int((os.environ.get("COLLECT_PROXY_SECONDS") or "75").strip() or "75")
+COLLECT_SLOW_MINUTES = int((os.environ.get("COLLECT_SLOW_MINUTES") or "5").strip() or "5")
 FAMILY_SALE_INTERVAL_MINUTES = 30
 AMAZON_JP_INTERVAL_MINUTES = 30
 AMAZON_JP_ASSOCIATE_TAG = os.environ.get("AMAZON_JP_ASSOCIATE_TAG", "").strip()
@@ -71,12 +75,11 @@ NAVER_SEED_CACHE_DAYS = 7
 NAVER_SEED_MIN_SIMILARITY = 0.35
 # Refresh Naver mall price comparison on deal detail after this many hours.
 MARKET_COMPARE_CACHE_HOURS = int(os.environ.get("MARKET_COMPARE_CACHE_HOURS") or "6")
+# List ticks stay list-only. Buy links / thumbs come from list HTML plus the
+# background enrich worker (PPOMPPU_ENRICH_*).
 DETAIL_ENRICH_ENABLED = True
-# Re-enrich already-seen posts that still lack thumbnail or mall_url.
-DETAIL_BACKFILL_PER_SOURCE = 8
-# Ppomppu detail pages are often blocked from datacenter IPs; keep in-tick attempts tiny
-# so the 60s RSS collect cannot stall. Prefer PPOMPPU_PROXY_URL + background enrich.
-PPOMPPU_DETAIL_PER_TICK = 2
+DETAIL_BACKFILL_PER_SOURCE = 0
+PPOMPPU_DETAIL_PER_TICK = 0
 # Residential / Korea proxy for ppomppu detail HTML (buy-link extraction).
 # Example: http://user:pass@host:port  or  socks5://host:port
 PPOMPPU_PROXY_URL = (os.environ.get("PPOMPPU_PROXY_URL") or "").strip()

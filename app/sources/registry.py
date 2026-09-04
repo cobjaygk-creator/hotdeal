@@ -35,6 +35,12 @@ ALL_SOURCES = [
     DealbadaSource(),
 ]
 
+# Scheduler tiers: list-only ticks, independent locks so a timeout cannot stall
+# the rest. Fast = cheap list HTML; proxy = CF/residential; slow = flaky hosts.
+COLLECT_FAST_SOURCES = ["clien", "ruliweb", "eomisae", "dealbada"]
+COLLECT_PROXY_SOURCES = ["arca", "damoang", "fmkorea", "quasarzone"]
+COLLECT_SLOW_SOURCES = ["coolenjoy"]
+
 
 def get_sources(names: list[str] | None = None):
     if not names:

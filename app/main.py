@@ -25,7 +25,9 @@ from app.config import (
     ADMIN_PASSWORD,
     AMAZON_JP_ENABLED,
     AMAZON_JP_INTERVAL_MINUTES,
-    COLLECT_INTERVAL_MINUTES,
+    COLLECT_FAST_SECONDS,
+    COLLECT_PROXY_SECONDS,
+    COLLECT_SLOW_MINUTES,
     ENABLE_COLLECT,
     FAMILY_SALE_INTERVAL_MINUTES,
     PPOMPPU_ENRICH_INTERVAL_MINUTES,
@@ -46,7 +48,13 @@ from app.family.query import CATEGORIES, get_sale, list_sales, month_grid, parse
 from app.events import EventHub
 from app.http_client import PoliteClient
 from app.pipeline import collect_and_process
-from app.sources.registry import SOURCE_LABELS, get_sources
+from app.sources.registry import (
+    COLLECT_FAST_SOURCES,
+    COLLECT_PROXY_SOURCES,
+    COLLECT_SLOW_SOURCES,
+    SOURCE_LABELS,
+    get_sources,
+)
 from app.util.timeparse import format_clock, format_kst, format_relative
 
 log = logging.getLogger("hotdeal")
@@ -115,13 +123,31 @@ async def lifespan(app: FastAPI):
             next_run_time=datetime.now() + timedelta(seconds=20),
         )
         scheduler.add_job(
-            _scheduled_collect_others,
+            _scheduled_collect_fast,
             "interval",
-            minutes=COLLECT_INTERVAL_MINUTES,
-            id="collect_others",
+            seconds=COLLECT_FAST_SECONDS,
+            id="collect_fast",
             max_instances=1,
             coalesce=True,
-            next_run_time=datetime.now() + timedelta(seconds=15),
+            next_run_time=datetime.now() + timedelta(seconds=25),
+        )
+        scheduler.add_job(
+            _scheduled_collect_proxy,
+            "interval",
+            seconds=COLLECT_PROXY_SECONDS,
+            id="collect_proxy",
+            max_instances=1,
+            coalesce=True,
+            next_run_time=datetime.now() + timedelta(seconds=35),
+        )
+        scheduler.add_job(
+            _scheduled_collect_slow,
+            "interval",
+            minutes=COLLECT_SLOW_MINUTES,
+            id="collect_slow",
+            max_instances=1,
+            coalesce=True,
+            next_run_time=datetime.now() + timedelta(seconds=50),
         )
         scheduler.add_job(
             _scheduled_family,
@@ -188,20 +214,16 @@ async def _scheduled_collect() -> None:
     await _run_collect(["ppomppu"])
 
 
-async def _scheduled_collect_others() -> None:
-    await _run_collect(
-        [
-            "arca",
-            "fmkorea",
-            "quasarzone",
-            "clien",
-            "ruliweb",
-            "damoang",
-            "coolenjoy",
-            "eomisae",
-            "dealbada",
-        ]
-    )
+async def _scheduled_collect_fast() -> None:
+    await _run_collect(COLLECT_FAST_SOURCES)
+
+
+async def _scheduled_collect_proxy() -> None:
+    await _run_collect(COLLECT_PROXY_SOURCES)
+
+
+async def _scheduled_collect_slow() -> None:
+    await _run_collect(COLLECT_SLOW_SOURCES)
 
 
 async def _scheduled_family() -> None:
@@ -232,9 +254,12 @@ async def _scheduled_ppomppu_mall_enrich() -> None:
 
 
 async def _run_collect(names: list[str] | None) -> dict:
-    async with state["collect_lock"]:
+    # Own SQLite connection so fast/proxy/slow ticks can overlap under WAL
+    # without sharing state["db"] with request handlers.
+    conn = await connect()
+    try:
         try:
-            summary = await collect_and_process(state["db"], get_sources(names), state["http"])
+            summary = await collect_and_process(conn, get_sources(names), state["http"])
         except Exception:
             log.exception("scheduled collect failed")
             return {"errors": ["collect failed"], "new_deals": [], "sources": {}}
@@ -249,6 +274,8 @@ async def _run_collect(names: list[str] | None) -> dict:
             }
         )
         return summary
+    finally:
+        await conn.close()
 
 
 def _db():

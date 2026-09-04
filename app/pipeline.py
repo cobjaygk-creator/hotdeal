@@ -1,16 +1,13 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from datetime import datetime, timezone
 
 from app.config import (
     BASELINE_DAYS,
-    DETAIL_BACKFILL_PER_SOURCE,
-    DETAIL_ENRICH_ENABLED,
     NAVER_SEED_ENABLED,
-    PPOMPPU_DETAIL_PER_TICK,
-    PPOMPPU_PROXY_URL,
     RECENT_DEAL_HOURS,
 )
 from app.db import get_meta, set_meta, utcnow_iso
@@ -22,10 +19,11 @@ from app.engine.scoring import score_offer
 from app.parse.links import extract_mall_url
 from app.parse.title import parse_title
 from app.sources import RawPost
-from app.sources.detail import enrich_from_list_body, enrich_post
+from app.sources.detail import enrich_from_list_body
 from app.util.timeparse import to_iso
 
 log = logging.getLogger(__name__)
+_collect_meta_lock = asyncio.Lock()
 
 
 def post_to_row(post: RawPost, *, thumbnail_url: str | None = None) -> dict:
@@ -325,18 +323,6 @@ async def collect_and_process(conn, sources, client) -> dict:
         try:
             posts = await source.fetch_latest(client)
             new_count = 0
-            backfill_left = DETAIL_BACKFILL_PER_SOURCE if DETAIL_ENRICH_ENABLED else 0
-            # When a residential proxy + background enrich worker is configured,
-            # keep the RSS tick free of ppomppu detail fetches.
-            pp_detail_left = (
-                PPOMPPU_DETAIL_PER_TICK
-                if (
-                    DETAIL_ENRICH_ENABLED
-                    and source.name == "ppomppu"
-                    and not PPOMPPU_PROXY_URL
-                )
-                else 0
-            )
             for post in posts:
                 pid, inserted = await upsert_post(conn, post_to_row(post))
                 summary["posts"] += 1
@@ -348,87 +334,23 @@ async def collect_and_process(conn, sources, client) -> dict:
                     or (post.extra or {}).get("thumbnail_url")
                 )
 
-                need_detail = False
-                if DETAIL_ENRICH_ENABLED:
-                    if post.source == "ppomppu":
-                        # RSS tick must stay fast: only a couple short mall attempts.
-                        if pp_detail_left > 0 and not mall_url:
-                            if inserted:
-                                need_detail = True
-                            else:
-                                cur = await conn.execute(
-                                    """
-                                    SELECT d.mall_url AS mall
-                                    FROM deal_posts dp
-                                    JOIN deals d ON d.id=dp.deal_id
-                                    WHERE dp.post_id=?
-                                    LIMIT 1
-                                    """,
-                                    (pid,),
-                                )
-                                prow = await cur.fetchone()
-                                if prow is None or not prow["mall"]:
-                                    need_detail = True
-                    elif inserted:
-                        need_detail = True
-                    elif backfill_left > 0:
-                        cur = await conn.execute(
-                            """
-                            SELECT p.thumbnail_url AS thumb,
-                                   (
-                                     SELECT d.mall_url FROM deal_posts dp
-                                     JOIN deals d ON d.id=dp.deal_id
-                                     WHERE dp.post_id=p.id
-                                     LIMIT 1
-                                   ) AS mall
-                            FROM posts p
-                            WHERE p.id=?
-                            """,
-                            (pid,),
-                        )
-                        prow = await cur.fetchone()
-                        if prow and (not prow["thumb"] or not prow["mall"]):
-                            need_detail = True
-
-                if need_detail:
-                    detail = await enrich_post(client, post.source, post.url)
-                    if detail.title and (
-                        len(detail.title) > len(post.title or "")
-                        or (post.title or "").rstrip().endswith(("...", "…"))
-                    ):
-                        post.title = detail.title
-                    if detail.mall_url:
-                        mall_url = detail.mall_url
-                    if detail.thumbnail_url:
-                        thumbnail_url = detail.thumbnail_url
-                    if post.source == "ppomppu":
-                        pp_detail_left -= 1
-                        # If datacenter is blocked, stop burning the tick.
-                        if not detail.mall_url:
-                            pp_detail_left = 0
-                    elif not inserted:
-                        backfill_left -= 1
-
-                if mall_url or thumbnail_url or (need_detail and post.title):
+                if mall_url or thumbnail_url:
                     await upsert_post(
                         conn,
                         post_to_row(post, thumbnail_url=thumbnail_url),
                     )
-                    if mall_url or thumbnail_url:
-                        # Overwrite mall_url when we have a validated one so
-                        # truncated/bad links saved earlier can be replaced.
-                        await conn.execute(
-                            """
-                            UPDATE deals
-                            SET mall_url=CASE
-                                    WHEN ? IS NOT NULL THEN ?
-                                    ELSE mall_url
-                                END,
-                                thumbnail_url=COALESCE(?, thumbnail_url)
-                            WHERE id IN (SELECT deal_id FROM deal_posts WHERE post_id=?)
-                            """,
-                            (mall_url, mall_url, thumbnail_url, pid),
-                        )
+                    await conn.execute(
+                        """
+                        UPDATE deals
+                        SET mall_url=CASE
+                                WHEN ? IS NOT NULL THEN ?
+                                ELSE mall_url
+                            END,
+                            thumbnail_url=COALESCE(?, thumbnail_url)
+                        WHERE id IN (SELECT deal_id FROM deal_posts WHERE post_id=?)
+                        """,
+                        (mall_url, mall_url, thumbnail_url, pid),
+                    )
 
                 if not inserted:
                     continue
@@ -468,27 +390,28 @@ async def collect_and_process(conn, sources, client) -> dict:
                 "error": detail,
             }
     now = utcnow_iso()
-    await set_meta(conn, "last_collect_at", now)
-    batch = {
-        "at": now,
-        "sources": summary["sources"],
-        "posts": summary["posts"],
-        "new_posts": summary["new_posts"],
-        "errors": summary["errors"],
-        "new_deal_count": len(summary["new_deals"]),
-    }
-    await set_meta(conn, "last_collect_summary", json.dumps(batch, ensure_ascii=False))
-    prev_raw = await get_meta(conn, "last_collect_by_source")
-    by_source: dict = {}
-    if prev_raw:
-        try:
-            by_source = json.loads(prev_raw)
-        except json.JSONDecodeError:
-            by_source = {}
-    for name, info in summary["sources"].items():
-        by_source[name] = {**info, "at": now}
-    await set_meta(conn, "last_collect_by_source", json.dumps(by_source, ensure_ascii=False))
-    await conn.commit()
+    async with _collect_meta_lock:
+        await set_meta(conn, "last_collect_at", now)
+        batch = {
+            "at": now,
+            "sources": summary["sources"],
+            "posts": summary["posts"],
+            "new_posts": summary["new_posts"],
+            "errors": summary["errors"],
+            "new_deal_count": len(summary["new_deals"]),
+        }
+        await set_meta(conn, "last_collect_summary", json.dumps(batch, ensure_ascii=False))
+        prev_raw = await get_meta(conn, "last_collect_by_source")
+        by_source: dict = {}
+        if prev_raw:
+            try:
+                by_source = json.loads(prev_raw)
+            except json.JSONDecodeError:
+                by_source = {}
+        for name, info in summary["sources"].items():
+            by_source[name] = {**info, "at": now}
+        await set_meta(conn, "last_collect_by_source", json.dumps(by_source, ensure_ascii=False))
+        await conn.commit()
     try:
         from app.engine.alerts import dispatch_alerts
 
