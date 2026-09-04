@@ -240,9 +240,10 @@ def utcnow_iso() -> str:
 async def connect(path: Path | None = None) -> aiosqlite.Connection:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     db_path = path or DATABASE_PATH
-    conn = await aiosqlite.connect(db_path)
+    conn = await aiosqlite.connect(db_path, timeout=30.0)
     conn.row_factory = aiosqlite.Row
     await conn.execute("PRAGMA journal_mode=WAL")
+    await conn.execute("PRAGMA busy_timeout=30000")
     await conn.execute("PRAGMA foreign_keys=ON")
     try:
         await conn.executescript(SCHEMA)

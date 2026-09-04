@@ -249,8 +249,12 @@ async def _scheduled_ppomppu_mall_enrich() -> None:
 async def _kick_mall_enrich(deal_ids: list[int]) -> None:
     if not deal_ids:
         return
+    lock = state.get("ppomppu_enrich_lock")
+    # Don't queue behind a long enrich tick; the 30s scheduler will catch up.
+    if lock is None or lock.locked():
+        return
     try:
-        await _run_mall_enrich(deal_ids=deal_ids)
+        await _run_mall_enrich(deal_ids=deal_ids, limit=max(6, len(deal_ids)))
     except Exception:
         log.exception("immediate mall enrich failed")
 
@@ -1021,18 +1025,30 @@ async def sitemap():
 
 @app.get("/api/deals/{deal_id}")
 async def api_deal(deal_id: int):
-    deal = await _get_deal(deal_id)
-    if not deal:
-        raise HTTPException(404, "deal not found")
-    deal["posts"] = await _deal_posts(deal_id)
-    deal["history"] = await _price_history(deal["product_key"])
-    deal["similar"] = await _similar_deals(deal)
-    counts = await deal_comments.comment_counts(_db(), [deal_id])
-    deal["user_comments"] = counts.get(deal_id, 0)
-    deal["comment_count"] = deal["user_comments"]
+    try:
+        deal = await _get_deal(deal_id)
+        if not deal:
+            raise HTTPException(404, "deal not found")
+        deal["posts"] = [
+            {k: _json_safe(v) for k, v in row.items()}
+            for row in await _deal_posts(deal_id)
+        ]
+        deal["history"] = [
+            {k: _json_safe(v) for k, v in row.items()}
+            for row in await _price_history(deal["product_key"])
+        ]
+        deal["similar"] = await _similar_deals(deal)
+        counts = await deal_comments.comment_counts(_db(), [deal_id])
+        deal["user_comments"] = counts.get(deal_id, 0)
+        deal["comment_count"] = deal["user_comments"]
+    except HTTPException:
+        raise
+    except Exception:
+        log.exception("api deal failed id=%s", deal_id)
+        raise HTTPException(503, "deal temporarily unavailable")
     if ENABLE_COLLECT and not (deal.get("mall_url") or "").strip():
         asyncio.create_task(_kick_mall_enrich([deal_id]))
-    return deal
+    return JSONResponse(deal)
 
 
 @app.get("/api/deals/{deal_id}/market")

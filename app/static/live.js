@@ -711,6 +711,28 @@ function closeModal(opts) {
   }
 }
 
+async function fetchDealDetail(id) {
+  let lastErr = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch("/api/deals/" + id, { cache: "no-store" });
+      if (res.status === 404) {
+        throw new Error("not found");
+      }
+      if (!res.ok) {
+        lastErr = new Error("status " + res.status);
+        await new Promise((r) => setTimeout(r, 250 * (attempt + 1)));
+        continue;
+      }
+      return await res.json();
+    } catch (err) {
+      lastErr = err;
+      await new Promise((r) => setTimeout(r, 250 * (attempt + 1)));
+    }
+  }
+  throw lastErr || new Error("deal fetch failed");
+}
+
 async function openModal(id, opts) {
   const fromHistory = opts && opts.fromHistory;
   if (!modal || !modalBody) return;
@@ -724,17 +746,13 @@ async function openModal(id, opts) {
   modalOpenId = Number(id);
   let deal;
   try {
-    const res = await fetch("/api/deals/" + id);
-    if (!res.ok) {
-      modalBody.innerHTML = "<p>상세를 불러오지 못했습니다.</p>";
-      return;
-    }
-    deal = await res.json();
+    deal = await fetchDealDetail(id);
   } catch (err) {
     console.error(err);
     modalBody.innerHTML = "<p>상세를 불러오지 못했습니다.</p>";
     return;
   }
+  if (modalOpenId !== Number(id)) return;
   const posts = deal.posts || [];
   const priceHistory = deal.history || [];
   const similar = deal.similar || [];
