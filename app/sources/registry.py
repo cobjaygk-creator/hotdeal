@@ -4,6 +4,7 @@ from app.sources.coolenjoy import CoolenjoySource
 from app.sources.damoang import DamoangSource
 from app.sources.dealbada import DealbadaSource
 from app.sources.eomisae import EomisaeSource
+from app.sources.fmkorea import FmkoreaSource
 from app.sources.ppomppu import PpomppuSource
 from app.sources.quasarzone import QuasarzoneSource
 from app.sources.ruliweb import RuliwebSource
@@ -18,11 +19,13 @@ SOURCE_LABELS = {
     "coolenjoy": "쿨엔조이",
     "arca": "아카라이브",
     "damoang": "다모앙",
+    "fmkorea": "에펨코리아",
 }
 
 ALL_SOURCES = [
     PpomppuSource(),
     ArcaSource(),
+    FmkoreaSource(),
     QuasarzoneSource(),
     ClienSource(),
     RuliwebSource(),

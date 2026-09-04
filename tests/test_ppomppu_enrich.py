@@ -6,11 +6,14 @@ from app.engine.ppomppu_enrich import enrich_missing_ppomppu_malls
 
 
 @pytest.mark.asyncio
-async def test_enrich_skips_without_proxy(monkeypatch):
+async def test_enrich_runs_without_proxy(monkeypatch):
     monkeypatch.setattr("app.engine.ppomppu_enrich.PPOMPPU_PROXY_URL", "")
-    out = await enrich_missing_ppomppu_malls(None, None)
-    assert out["skipped"] is True
+    conn = _RowsConn(0)
+    _patch_common(monkeypatch, conn, proxy="")
+    out = await enrich_missing_ppomppu_malls(conn, None)
+    assert out["skipped"] is False
     assert out["filled"] == 0
+    assert out["attempted"] == 0
 
 
 @pytest.mark.asyncio
@@ -42,12 +45,13 @@ async def test_enrich_updates_mall(monkeypatch):
             self.meta = None
 
         async def execute(self, sql, params=()):
-            if "SELECT d.id" in sql:
+            if sql.lstrip().upper().startswith("SELECT"):
                 return FakeCur(
                     [
                         {
                             "deal_id": 9,
                             "post_id": 3,
+                            "source": "ppomppu",
                             "post_url": "https://www.ppomppu.co.kr/zboard/view.php?id=ppomppu&no=1",
                         }
                     ]
@@ -79,6 +83,7 @@ class _RowsConn:
             {
                 "deal_id": i,
                 "post_id": 100 + i,
+                "source": "ppomppu",
                 "post_url": f"https://www.ppomppu.co.kr/zboard/view.php?id=ppomppu&no={i}",
             }
             for i in range(count)
@@ -87,7 +92,7 @@ class _RowsConn:
         self.meta = None
 
     async def execute(self, sql, params=()):
-        if "SELECT d.id" in sql:
+        if sql.lstrip().upper().startswith("SELECT"):
             return _FetchAll(self.rows)
         self.updates.append((sql, params))
         return _FetchAll([])
@@ -104,10 +109,8 @@ class _FetchAll:
         return self._rows
 
 
-def _patch_common(monkeypatch, conn):
-    monkeypatch.setattr(
-        "app.engine.ppomppu_enrich.PPOMPPU_PROXY_URL", "http://proxy.example:8080"
-    )
+def _patch_common(monkeypatch, conn, proxy="http://proxy.example:8080"):
+    monkeypatch.setattr("app.engine.ppomppu_enrich.PPOMPPU_PROXY_URL", proxy)
 
     async def fake_set_meta(c, key, value):
         conn.meta = (key, json.loads(value))
@@ -153,3 +156,26 @@ async def test_enrich_stops_batch_after_consecutive_blocks(monkeypatch):
     assert out["no_link"] == 0
     # Bails out after 3 consecutive real blocks instead of burning all 12.
     assert out["blocked"] == 3
+    assert out["attempted"] == 3
+
+
+@pytest.mark.asyncio
+async def test_enrich_fills_clien_without_proxy(monkeypatch):
+    conn = _RowsConn(1)
+    conn.rows[0]["source"] = "clien"
+    conn.rows[0]["post_url"] = "https://www.clien.net/service/board/jirum/1"
+    _patch_common(monkeypatch, conn, proxy="")
+
+    class FakeDetail:
+        mall_url = "https://www.coupang.com/vp/products/9"
+        thumbnail_url = None
+        blocked = False
+
+    async def fake_enrich(client, source, url):
+        assert source == "clien"
+        return FakeDetail()
+
+    monkeypatch.setattr("app.engine.ppomppu_enrich.enrich_post", fake_enrich)
+    out = await enrich_missing_ppomppu_malls(conn, object(), limit=4)
+    assert out["filled"] == 1
+    assert out["by_source"]["clien"]["filled"] == 1

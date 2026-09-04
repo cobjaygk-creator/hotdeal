@@ -9,6 +9,7 @@ from app.sources.ruliweb import parse_list as parse_ruliweb
 from app.sources.coolenjoy import parse_list as parse_coolenjoy
 from app.sources.dealbada import parse_list as parse_dealbada
 from app.sources.eomisae import parse_list as parse_eomisae
+from app.sources.fmkorea import parse_list as parse_fmkorea
 
 SAMPLES = Path(__file__).resolve().parents[1] / "_samples"
 
@@ -104,3 +105,35 @@ def test_new_community_parsers():
     deal = parse_dealbada((SAMPLES / "dealbada.html").read_text(encoding="utf-8", errors="replace"))
     assert len(deal) >= 8
     assert any("원" in p.title for p in deal)
+
+
+def test_fmkorea_parser():
+    html = """
+    <ul>
+      <li class="li">
+        <a href="/10294415447"><img class="thumb" data-original="//image.fmkorea.com/filesn/t.webp" alt=""></a>
+        <h3 class="title"><a href="/10294415447" class="hotdeal_var8">
+          <span class="ellipsis-target">유한락스 욕실청소용 600ml</span>
+        </a></h3>
+        <div class="hotdeal_info">
+          <span>쇼핑몰: <a class="strong">오늘의집</a></span>
+          <span>가격: <a class="strong">11,340원</a></span>
+          <span>배송: <a class="strong">무료</a></span>
+        </div>
+        <span class="regdate">08:54</span>
+        <span class="author"> / 테스터</span>
+      </li>
+      <li class="li">
+        <h3 class="title"><a href="/1"><span class="ellipsis-target">핫딜게시판 이용규칙</span></a></h3>
+      </li>
+    </ul>
+    """
+    posts = parse_fmkorea(html)
+    assert len(posts) == 1
+    assert posts[0].source == "fmkorea"
+    assert posts[0].source_post_id == "10294415447"
+    assert posts[0].url.endswith("/10294415447")
+    assert "오늘의집" in posts[0].title
+    assert "11,340원" in posts[0].title
+    assert posts[0].author == "테스터"
+    assert posts[0].extra["thumbnail_url"].startswith("https://image.fmkorea.com/")

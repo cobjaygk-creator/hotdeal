@@ -61,3 +61,13 @@ def test_unwrap_ppomppu_target_base64():
     assert extract_mall_url(f'<a href="{href}">buy</a>') == (
         "https://smartstore.naver.com/foo/products/1"
     )
+
+
+def test_unwrap_community_to_brand_shop():
+    from app.parse.links import extract_shop_url
+
+    html = (
+        '<a href="https://www.clien.net/service/board/jirum/1?'
+        'url=https%3A%2F%2Fshop.examplebrand.co.kr%2Fproduct%2F99">buy</a>'
+    )
+    assert extract_shop_url(html) == "https://shop.examplebrand.co.kr/product/99"

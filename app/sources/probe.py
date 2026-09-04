@@ -6,11 +6,12 @@ from collections import Counter
 from selectolax.parser import HTMLParser
 
 from app.http_client import PoliteClient
-from app.sources import arca, coolenjoy, damoang, quasarzone
+from app.sources import arca, coolenjoy, damoang, fmkorea, quasarzone
 from app.sources.html_fetch import block_reason
 
 SOURCE_URLS = {
     "arca": arca.LIST_URL,
+    "fmkorea": fmkorea.LIST_URL,
     "quasarzone": quasarzone.LIST_URL,
     "damoang": damoang.LIST_URL,
     "coolenjoy": coolenjoy.LIST_URL,

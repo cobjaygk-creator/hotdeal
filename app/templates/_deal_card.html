@@ -1,4 +1,4 @@
-<li class="deal-card{% if d.status == 'expired' %} is-expired{% endif %}" data-id="{{ d.id }}" data-sources="{{ d.sources or '' }}" data-ts="{{ d.last_seen_at or '' }}" data-category="{{ d.category or '' }}" data-price="{{ d.price or '' }}" data-discount="{{ d.discount_rate if d.discount_rate is defined and d.discount_rate is not none else '' }}" data-comments="{{ (d.user_comments or 0) + (d.comments or 0) }}" data-status="{{ d.status or '' }}">
+<li class="deal-card{% if d.status == 'expired' %} is-expired{% endif %}" data-id="{{ d.id }}" data-sources="{{ d.sources or '' }}" data-ts="{{ d.last_seen_at or '' }}" data-category="{{ d.category or '' }}" data-price="{{ d.price or '' }}" data-discount="{{ d.discount_rate if d.discount_rate is defined and d.discount_rate is not none else '' }}" data-comments="{{ (d.user_comments or 0) + (d.comments or 0) }}" data-status="{{ d.status or '' }}"{% if d.mall_url %} data-mall-url="{{ d.mall_url }}"{% endif %}>
   <a class="deal-row-main" href="/deal/{{ d.id }}" data-deal-id="{{ d.id }}">
     <div class="deal-thumb-wrap">
       {% if d.thumbnail_url %}
@@ -50,6 +50,9 @@
     </div>
   </a>
   <div class="deal-row-side">
+    {% if d.mall_url %}
+    <a class="deal-buy-btn" href="{{ d.mall_url }}" target="_blank" rel="noopener" onclick="event.stopPropagation()">구매하기</a>
+    {% endif %}
     <button type="button" class="bookmark-btn" data-deal-id="{{ d.id }}" aria-label="북마크" title="북마크">☆</button>
     <time class="time-abs" datetime="{{ d.last_seen_at or '' }}" data-ts="{{ d.last_seen_at or '' }}">{{ d.last_seen_at | clock }}</time>
   </div>

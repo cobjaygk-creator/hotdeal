@@ -294,6 +294,7 @@ function renderRow(deal) {
   li.dataset.discount = deal.discount_rate != null ? String(deal.discount_rate) : "";
   li.dataset.comments = String((Number(deal.user_comments) || 0) + (Number(deal.comments) || 0));
   li.dataset.status = deal.status || "";
+  if (deal.mall_url) li.dataset.mallUrl = deal.mall_url;
   const starred = isBookmarked(deal.id);
   const title = deal.product_name || "(제목 없음)";
   const thumb = deal.thumbnail_url
@@ -322,6 +323,9 @@ function renderRow(deal) {
     `<time class="time-rel" datetime="${esc(ts)}" data-ts="${esc(ts)}">${esc(relativeTime(ts))}</time>${comments}${userComments}${soldout}</div>` +
     `</div></a>` +
     `<div class="deal-row-side">` +
+    (isPostUrl(deal.mall_url)
+      ? `<a class="deal-buy-btn" href="${esc(deal.mall_url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">구매하기</a>`
+      : "") +
     `<button type="button" class="bookmark-btn${starred ? " on" : ""}" data-deal-id="${deal.id}" aria-label="북마크">${starred ? "★" : "☆"}</button>` +
     `<time class="time-abs" datetime="${esc(ts)}" data-ts="${esc(ts)}">${esc(clockTime(ts))}</time>` +
     `</div>`;

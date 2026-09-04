@@ -649,6 +649,23 @@ button:disabled,
   padding: 8px 8px 8px 0;
   flex: 0 0 auto;
 }
+.deal-buy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff !important;
+  font-size: var(--text-label);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-decoration: none;
+  white-space: nowrap;
+  line-height: 1;
+}
+.deal-buy-btn:hover { filter: brightness(1.06); color: #fff !important; }
 .deal-tags {
   display: flex;
   flex-wrap: wrap;
@@ -697,6 +714,7 @@ button:disabled,
 .deal-tag-source[data-source="coolenjoy"] .deal-tag-ico { background: #7c3aed; }
 .deal-tag-source[data-source="arca"] .deal-tag-ico { background: #ef4444; }
 .deal-tag-source[data-source="damoang"] .deal-tag-ico { background: #0891b2; }
+.deal-tag-source[data-source="fmkorea"] .deal-tag-ico { background: #ca8a04; }
 .deal-title {
   display: block;
   overflow: hidden;

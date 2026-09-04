@@ -56,6 +56,48 @@ MALL_HOST_PARTS = (
     "yes24.com",
     "kyobobook.co.kr",
     "interpark.com",
+    "29cm.co.kr",
+    "wconcept.co.kr",
+    "kream.co.kr",
+    "mustit.co.kr",
+    "trenbe.com",
+    "iherb.com",
+    "qoo10.com",
+    "qoo10.jp",
+    "lotteimall.com",
+    "thehyundai.com",
+    "himart.co.kr",
+    "e-himart.co.kr",
+    "homeplus.co.kr",
+    "kakaostyle.com",
+    "giftishow.com",
+    "11st.kr",
+    "brandi.co.kr",
+    "hiver.co.kr",
+    "eqlstore.com",
+    "soldout.co.kr",
+)
+
+JUNK_HOST_PARTS = (
+    "youtube.com",
+    "youtu.be",
+    "facebook.com",
+    "instagram.com",
+    "twitter.com",
+    "x.com",
+    "t.co",
+    "google.com",
+    "wikipedia.org",
+    "namu.wiki",
+    "dcinside.com",
+    "imgur.com",
+    "github.com",
+    "blog.naver.com",
+    "m.blog.naver.com",
+    "cafe.naver.com",
+    "news.naver.com",
+    "post.naver.com",
+    "tv.naver.com",
 )
 
 COMMUNITY_HOST_PARTS = (
@@ -84,11 +126,26 @@ def extract_mall_url(*texts: str | None) -> str | None:
             for candidate in expanded:
                 if is_mall_url(candidate):
                     return candidate
-            # Ppomppu shortener may point at brand malls outside the allow-list.
-            if "ppomppu.co.kr" in url.lower():
+            # Community redirectors may unwrap to a brand shop not on the allow-list.
+            if any(part in url.lower() for part in COMMUNITY_HOST_PARTS):
                 for candidate in expanded[1:]:
                     if _is_loose_shop_url(candidate):
                         return candidate
+    return None
+
+
+def extract_shop_url(*texts: str | None) -> str | None:
+    """Allow-listed mall first, then a conservative product-looking shop URL."""
+    found = extract_mall_url(*texts)
+    if found:
+        return found
+    for text in texts:
+        if not text:
+            continue
+        for url in _candidate_urls(text):
+            for candidate in _expand_candidates(url):
+                if _is_loose_shop_url(candidate):
+                    return candidate
     return None
 
 
@@ -101,6 +158,8 @@ def _is_loose_shop_url(url: str | None) -> bool:
     except ValueError:
         return False
     if not host or any(part in host for part in COMMUNITY_HOST_PARTS):
+        return False
+    if any(part in host for part in JUNK_HOST_PARTS):
         return False
     path = (parsed.path or "").rstrip("/")
     return bool(path)

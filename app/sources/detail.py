@@ -9,12 +9,12 @@ from selectolax.parser import HTMLParser
 
 from app.config import PPOMPPU_PROXY_URL
 from app.http_client import PoliteClient
-from app.parse.links import extract_mall_url, is_mall_url
+from app.parse.links import extract_mall_url, extract_shop_url, is_mall_url
 
 log = logging.getLogger(__name__)
 
 OUTBOUND_HREF_RE = re.compile(
-    r"""href\s*=\s*["']([^"']*(?:link\.php|out\.php|/link/|redirect|s\.ppomppu\.co\.kr)[^"']*)["']""",
+    r"""href\s*=\s*["']([^"']*(?:link\.php|out\.php|go\.php|click\.php|/link/|redirect|s\.ppomppu\.co\.kr)[^"']*)["']""",
     re.I,
 )
 
@@ -72,47 +72,56 @@ async def enrich_post(client: PoliteClient, source: str, url: str) -> DetailEnri
     # Prefer https; ppomppu RSS still emits http:// links that bounce via script.
     if url.startswith("http://"):
         url = "https://" + url[len("http://") :]
-    proxy = PPOMPPU_PROXY_URL if is_ppomppu and PPOMPPU_PROXY_URL else None
-    # Without a proxy: one short direct attempt (collect must stay fast).
-    # With residential proxy: allow a fuller fetch like hotdeal.zip-style scrapers.
+    # Ppomppu is blocked from datacenter IPs — use the residential proxy first.
+    # Other communities try direct, then the same proxy if the page is gated.
+    proxy_tries: list[str | None] = []
+    if is_ppomppu:
+        proxy_tries.append(PPOMPPU_PROXY_URL or None)
+    else:
+        proxy_tries.append(None)
+        if PPOMPPU_PROXY_URL:
+            proxy_tries.append(PPOMPPU_PROXY_URL)
     urls = [url]
-    if is_ppomppu and proxy and "www.ppomppu.co.kr" in url:
+    if is_ppomppu and "www.ppomppu.co.kr" in url:
         urls.append(url.replace("www.ppomppu.co.kr", "m.ppomppu.co.kr", 1))
-    timeout = 20.0 if proxy else (5.0 if is_ppomppu else None)
     encoding = "euc-kr" if is_ppomppu else None
     last_err: Exception | None = None
     blocked = False
-    for candidate in urls:
-        try:
-            result = await client.get(
-                candidate,
-                encoding=encoding,
-                timeout=timeout,
-                curl_fallback=(not is_ppomppu) or bool(proxy),
-                max_retries=2 if proxy else (1 if is_ppomppu else None),
-                proxy=proxy,
-            )
-            if result.not_modified or not result.text:
-                if result.status == 403:
+    for proxy in proxy_tries:
+        timeout = 20.0 if proxy else (5.0 if is_ppomppu else None)
+        for candidate in urls:
+            try:
+                result = await client.get(
+                    candidate,
+                    encoding=encoding,
+                    timeout=timeout,
+                    curl_fallback=(not is_ppomppu) or bool(proxy),
+                    max_retries=2 if proxy else (1 if is_ppomppu else None),
+                    proxy=proxy,
+                )
+                if result.not_modified or not result.text:
+                    if result.status == 403:
+                        blocked = True
+                    continue
+                if result.status == 403 or _looks_blocked(result.text):
                     blocked = True
-                continue
-            if result.status == 403 or _looks_blocked(result.text):
-                blocked = True
-                log.warning("detail enrich blocked source=%s url=%s", source, candidate)
-                continue
-            # Tiny redirect shells are not useful article HTML.
-            if len(result.text) < 800 and "document.location" in result.text:
-                continue
-            parsed = parse_detail(result.text, candidate)
-            if not parsed.mall_url:
-                resolved = await resolve_outbound_mall(client, candidate, result.text)
-                if resolved:
-                    parsed.mall_url = resolved
-            if parsed.title or parsed.mall_url or parsed.thumbnail_url:
-                return parsed
-        except Exception as exc:  # noqa: BLE001
-            last_err = exc
-            log.warning("detail enrich failed source=%s url=%s err=%s", source, candidate, exc)
+                    log.warning("detail enrich blocked source=%s url=%s", source, candidate)
+                    continue
+                if len(result.text) < 800 and "document.location" in result.text:
+                    continue
+                parsed = parse_detail(result.text, candidate)
+                if not parsed.mall_url:
+                    resolved = await resolve_outbound_mall(client, candidate, result.text)
+                    if resolved:
+                        parsed.mall_url = resolved
+                if parsed.title or parsed.mall_url or parsed.thumbnail_url:
+                    parsed.blocked = False
+                    return parsed
+            except Exception as exc:  # noqa: BLE001
+                last_err = exc
+                log.warning("detail enrich failed source=%s url=%s err=%s", source, candidate, exc)
+        if not blocked:
+            break
     if last_err:
         log.warning("detail enrich exhausted source=%s url=%s", source, url)
     return DetailEnrichment(blocked=blocked)
@@ -143,28 +152,30 @@ async def resolve_outbound_mall(
                 "ppomppu.co.kr",
                 "coolenjoy.net",
                 "quasarzone.com",
+                "arca.live",
+                "damoang.net",
+                "fmkorea.com",
             )
         ):
             continue
         # s.ppomppu.co.kr?target=<base64> can be decoded without an extra hop.
         if "s.ppomppu.co.kr" in host:
-            nested = extract_mall_url(abs_url)
+            nested = extract_shop_url(abs_url)
             if nested:
                 return nested
             continue
         # Skip non-post helpers like board_link.php?type=best
-        if "wr_id=" not in abs_url and "no=" not in abs_url:
+        if not any(tok in abs_url for tok in ("wr_id=", "no=", "idno=", "target=", "url=")):
             continue
         try:
             use_proxy = PPOMPPU_PROXY_URL if "ppomppu.co.kr" in host else None
             result = await client.get(abs_url, timeout=12.0, proxy=use_proxy)
             final = result.url or ""
-            # Prefer unwrapped item URL inside affiliate gates when present.
-            nested = extract_mall_url(final, result.text or "")
+            nested = extract_shop_url(final, result.text or "")
             if nested:
                 return nested
-            if is_mall_url(final):
-                return final
+            if is_mall_url(final) or extract_shop_url(final):
+                return extract_shop_url(final) or final
         except Exception as exc:  # noqa: BLE001
             log.debug("outbound resolve failed %s: %s", abs_url, exc)
         if len(seen) >= 3:
@@ -183,7 +194,7 @@ def parse_detail(html: str, page_url: str = "") -> DetailEnrichment:
             title = None
         else:
             title = re.sub(
-                r"\s*[-|]\s*(루리웹|뽐뿌|클리앙|퀘이사존|아카라이브|다모앙|쿨엔조이|어미새|딜바다).*$",
+                r"\s*[-|]\s*(루리웹|뽐뿌|클리앙|퀘이사존|아카라이브|다모앙|쿨엔조이|어미새|딜바다|에펨코리아|펨코).*$",
                 "",
                 title,
             )
@@ -191,7 +202,7 @@ def parse_detail(html: str, page_url: str = "") -> DetailEnrichment:
     if thumb and page_url:
         thumb = urljoin(page_url, thumb)
     body_text = _body_blob(tree)
-    mall = extract_mall_url(body_text, html[:50000], title)
+    mall = extract_shop_url(body_text, html[:50000], title)
     return DetailEnrichment(title=title or None, mall_url=mall, thumbnail_url=thumb)
 
 

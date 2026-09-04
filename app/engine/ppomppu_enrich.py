@@ -1,12 +1,13 @@
-"""Background ppomppu mall-url enrich via optional residential proxy.
+"""Background mall-url enrich for every community source.
 
-hotdeal.zip-style flow: fetch community detail HTML → parse buy URL → store.
-Runs outside the 60s RSS tick so collect stays fast.
+Fetch detail HTML → parse buy URL → store. Runs outside the collect tick.
+Ppomppu (and other blocked hosts) use PPOMPPU_PROXY_URL when set.
 """
 from __future__ import annotations
 
 import json
 import logging
+from collections import defaultdict
 
 from app.config import PPOMPPU_ENRICH_BATCH, PPOMPPU_PROXY_URL
 from app.db import set_meta, utcnow_iso
@@ -16,59 +17,76 @@ log = logging.getLogger(__name__)
 
 
 async def enrich_missing_ppomppu_malls(conn, client, *, limit: int | None = None) -> dict:
-    """Fill mall_url for recent ppomppu deals that still lack a buy link."""
-    if not PPOMPPU_PROXY_URL:
-        return {
-            "skipped": True,
-            "reason": "PPOMPPU_PROXY_URL not set",
-            "attempted": 0,
-            "filled": 0,
-            "blocked": 0,
-            "no_link": 0,
-        }
-
+    """Fill mall_url for recent deals (all sources) that still lack a buy link."""
     batch = limit if limit is not None else PPOMPPU_ENRICH_BATCH
     batch = max(1, min(50, batch))
     cur = await conn.execute(
         """
-        SELECT d.id AS deal_id, p.id AS post_id, p.url AS post_url
-        FROM deals d
-        JOIN deal_posts dp ON dp.deal_id = d.id
-        JOIN posts p ON p.id = dp.post_id
-        WHERE p.source = 'ppomppu'
-          AND (d.mall_url IS NULL OR TRIM(d.mall_url) = '')
-          AND p.url IS NOT NULL
-        ORDER BY d.last_seen_at DESC
+        SELECT deal_id, post_id, post_url, source FROM (
+          SELECT d.id AS deal_id,
+                 p.id AS post_id,
+                 p.url AS post_url,
+                 p.source AS source,
+                 ROW_NUMBER() OVER (
+                   PARTITION BY p.source
+                   ORDER BY d.last_seen_at DESC
+                 ) AS rn
+          FROM deals d
+          JOIN deal_posts dp ON dp.deal_id = d.id
+          JOIN posts p ON p.id = dp.post_id
+          WHERE (d.mall_url IS NULL OR TRIM(d.mall_url) = '')
+            AND p.url IS NOT NULL
+            AND p.id = (
+              SELECT p2.id
+              FROM deal_posts dp2
+              JOIN posts p2 ON p2.id = dp2.post_id
+              WHERE dp2.deal_id = d.id
+                AND p2.url IS NOT NULL
+              ORDER BY CASE WHEN p2.source = 'ppomppu' THEN 1 ELSE 0 END, p2.id
+              LIMIT 1
+            )
+        )
+        WHERE rn <= 6
+        ORDER BY source, deal_id DESC
         LIMIT ?
         """,
         (batch,),
     )
     rows = [dict(r) for r in await cur.fetchall()]
     filled = 0
-    blocked = 0  # detail page refused (403 / soft-block) -> exit IP quality
-    no_link = 0  # detail fetched fine but the post has no buy link
+    blocked = 0
+    no_link = 0
     errors = 0
-    consecutive_blocked = 0
+    attempted = 0
+    by_source: dict[str, dict[str, int]] = defaultdict(lambda: {"filled": 0, "blocked": 0, "no_link": 0})
+    consec_blocked: dict[str, int] = defaultdict(int)
+    filled_by_source: dict[str, int] = defaultdict(int)
+    skip_sources: set[str] = set()
+
     for row in rows:
+        source = (row.get("source") or "").strip() or "ppomppu"
+        if source in skip_sources:
+            continue
+        attempted += 1
         try:
-            detail = await enrich_post(client, "ppomppu", row["post_url"])
+            detail = await enrich_post(client, source, row["post_url"])
         except Exception:  # noqa: BLE001
-            log.exception("ppomppu enrich failed deal=%s", row["deal_id"])
+            log.exception("mall enrich failed source=%s deal=%s", source, row["deal_id"])
             errors += 1
             continue
         if not detail.mall_url:
             if getattr(detail, "blocked", False):
                 blocked += 1
-                consecutive_blocked += 1
-                # Exit IP is being soft-blocked: stop burning the batch so the
-                # next tick can retry (rotating proxies may hand us a fresh IP).
-                if consecutive_blocked >= 3 and filled == 0:
-                    break
+                by_source[source]["blocked"] += 1
+                consec_blocked[source] += 1
+                if consec_blocked[source] >= 3 and filled_by_source[source] == 0:
+                    skip_sources.add(source)
             else:
                 no_link += 1
-                consecutive_blocked = 0
+                by_source[source]["no_link"] += 1
+                consec_blocked[source] = 0
             continue
-        consecutive_blocked = 0
+        consec_blocked[source] = 0
         await conn.execute(
             """
             UPDATE deals
@@ -88,25 +106,29 @@ async def enrich_missing_ppomppu_malls(conn, client, *, limit: int | None = None
                 (detail.thumbnail_url, row["post_id"]),
             )
         filled += 1
+        filled_by_source[source] += 1
+        by_source[source]["filled"] += 1
 
     await conn.commit()
     summary = {
         "skipped": False,
-        "proxy": True,
-        "attempted": len(rows),
+        "proxy": bool(PPOMPPU_PROXY_URL),
+        "attempted": attempted,
         "filled": filled,
         "blocked": blocked,
         "no_link": no_link,
         "errors": errors,
+        "by_source": dict(by_source),
         "at": utcnow_iso(),
     }
     await set_meta(conn, "last_ppomppu_mall_enrich", json.dumps(summary, ensure_ascii=False))
     log.info(
-        "ppomppu mall enrich attempted=%s filled=%s blocked=%s no_link=%s errors=%s",
-        len(rows),
+        "mall enrich attempted=%s filled=%s blocked=%s no_link=%s errors=%s sources=%s",
+        attempted,
         filled,
         blocked,
         no_link,
         errors,
+        dict(by_source),
     )
     return summary

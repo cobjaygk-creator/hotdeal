@@ -142,19 +142,19 @@ async def lifespan(app: FastAPI):
                 coalesce=True,
                 next_run_time=datetime.now() + timedelta(seconds=40),
             )
-        if PPOMPPU_PROXY_URL:
-            scheduler.add_job(
-                _scheduled_ppomppu_mall_enrich,
-                "interval",
-                minutes=max(1, PPOMPPU_ENRICH_INTERVAL_MINUTES),
-                id="enrich_ppomppu_malls",
-                max_instances=1,
-                coalesce=True,
-                next_run_time=datetime.now() + timedelta(seconds=45),
-            )
-            log.info("ppomppu mall enrich worker enabled (proxy configured)")
-        else:
-            log.info("ppomppu mall enrich worker idle (set PPOMPPU_PROXY_URL to enable)")
+        scheduler.add_job(
+            _scheduled_ppomppu_mall_enrich,
+            "interval",
+            minutes=max(1, PPOMPPU_ENRICH_INTERVAL_MINUTES),
+            id="enrich_ppomppu_malls",
+            max_instances=1,
+            coalesce=True,
+            next_run_time=datetime.now() + timedelta(seconds=45),
+        )
+        log.info(
+            "mall enrich worker enabled (proxy=%s)",
+            "on" if PPOMPPU_PROXY_URL else "off",
+        )
         scheduler.start()
         log.info("scheduled collect enabled")
     else:
@@ -192,6 +192,7 @@ async def _scheduled_collect_others() -> None:
     await _run_collect(
         [
             "arca",
+            "fmkorea",
             "quasarzone",
             "clien",
             "ruliweb",
@@ -1127,11 +1128,9 @@ async def api_collect(request: Request, source: str | None = None):
 
 @app.post("/api/ppomppu/enrich-malls")
 async def api_ppomppu_enrich_malls(request: Request, limit: int = 12):
-    """Manually run ppomppu buy-link enrich (requires PPOMPPU_PROXY_URL)."""
+    """Manually run buy-link enrich for deals missing mall_url."""
     _require_collect()
     _require_admin(request)
-    if not PPOMPPU_PROXY_URL:
-        raise HTTPException(400, "PPOMPPU_PROXY_URL is not configured")
     lock = state.get("ppomppu_enrich_lock")
     if lock is None:
         raise HTTPException(503, "enrich lock unavailable")

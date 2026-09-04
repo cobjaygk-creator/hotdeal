@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
+from app.config import PPOMPPU_PROXY_URL
 from app.http_client import FetchResult, PoliteClient
 from app.sources import RawPost
 
@@ -42,6 +43,13 @@ async def fetch_parsed(
     if result.not_modified:
         return []
     reason = block_reason(result)
+    if reason and PPOMPPU_PROXY_URL:
+        result = await client.get(
+            url, encoding=encoding, timeout=timeout or 20.0, proxy=PPOMPPU_PROXY_URL
+        )
+        if result.not_modified:
+            return []
+        reason = block_reason(result)
     if reason:
         raise RuntimeError(f"{reason} ({url})")
     posts = parse_fn(result.text)

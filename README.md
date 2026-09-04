@@ -19,14 +19,14 @@ python -m app
 
 일마존(`/amazon-jp`)은 일본 아마존에서 표시 할인이 30% 이상인 상품을 모아 보여줍니다. 목록 사이트(mottoku)를 30분마다 긁으며, 구매 링크는 amazon.co.jp입니다. 선택: `AMAZON_JP_ASSOCIATE_TAG`.
 
-## 뽐뿌 구매링크 (Railway 프록시)
+## 구매링크 (Railway 프록시)
 
-뽐뿌 구매 URL은 상세 HTML에만 있습니다. Railway 데이터센터 IP는 상세가 403이라, 주거용/한국 출구 프록시를 `PPOMPPU_PROXY_URL`로 넣어야 합니다.
+커뮤니티 글 상세에서 쇼핑몰 URL을 뽑아 목록·상세의 **구매하기** 버튼으로 씁니다. 뽐뿌·아카·다모앙처럼 데이터센터 IP가 막히는 사이트는 주거용/한국 출구 프록시(`PPOMPPU_PROXY_URL`)가 필요합니다.
 
 1. HTTP 또는 SOCKS5 프록시 URL을 준비합니다. 예: `http://user:pass@host:port`
 2. Railway Variables에 `PPOMPPU_PROXY_URL`을 넣고 재시작합니다. 선택: `PPOMPPU_ENRICH_INTERVAL_MINUTES`(기본 5), `PPOMPPU_ENRICH_BATCH`(기본 12)
 3. `GET /api/stats`에서 `ppomppu_proxy_configured`가 true인지, `last_ppomppu_mall_enrich.filled`가 0보다 큰지 확인합니다.
-4. 홈 뽐뿌 카드 CTA가 **구매하기**(쇼핑몰)인지 확인합니다. 프록시가 막히면 `blocked`만 늘고 카드는 **상세보기**로 남습니다.
+4. 홈 카드에 **구매하기**가 보이면 쇼핑몰 링크가 채워진 것입니다. 글에 구매링크가 없거나 프록시가 막히면 상세의 **원문에서 확인**만 남습니다.
 
 회사 PC에서는 로컬 collect를 켜지 않습니다. 형식은 [`.env.example`](.env.example)을 참고하세요.
 
@@ -42,5 +42,5 @@ python -m scripts.backfill_ppomppu
 
 - 요청 간격 2초, 소스별 동시성 1
 - Cloudflare 403이 나면 curl로 한 번 더 요청
-- 클리앙·다모앙·어미새는 robots.txt 때문에 1페이지만
-- 에펨코리아·알구몬은 수집하지 않음 (알구몬은 원본 커뮤니티 재수집)
+- 클리앙·다모앙·어미새·에펨코리아는 1페이지만
+- 알구몬은 수집하지 않음 (원본 커뮤니티 재수집)
