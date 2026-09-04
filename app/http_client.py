@@ -17,6 +17,12 @@ from app.config import (
 
 log = logging.getLogger(__name__)
 
+
+def _soft_blocked(text: str) -> bool:
+    head = (text or "")[:800].lower()
+    return "403 forbidden" in head or "just a moment" in head
+
+
 BROWSER_HEADERS = {
     "User-Agent": USER_AGENT,
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -101,6 +107,14 @@ class PoliteClient:
                 if wait > 0:
                     await asyncio.sleep(wait)
                 try:
+                    # Chrome TLS + residential proxy: httpx is challenged by
+                    # Cloudflare even when the exit IP is Korean.
+                    if proxy:
+                        impersonated = await self._impersonate_get(
+                            url, encoding, timeout=req_timeout, proxy=proxy
+                        )
+                        if impersonated is not None and not _soft_blocked(impersonated.text):
+                            return impersonated
                     resp = await http.get(url, headers=extra, timeout=req_timeout)
                 except httpx.HTTPError as exc:
                     last_error = exc
@@ -134,8 +148,7 @@ class PoliteClient:
             final_url = str(resp.url) if resp.url else url
             decoded = self._decode(final_url, resp.status_code, resp.content, encoding, resp.encoding)
             # Some boards return HTTP 200 with an HTML 403 body to datacenter IPs.
-            head = decoded.text[:800].lower()
-            blocked = "403 forbidden" in head or "just a moment" in head
+            blocked = _soft_blocked(decoded.text)
             if blocked:
                 self._etag.pop(url, None)
                 self._modified.pop(url, None)
@@ -182,6 +195,33 @@ class PoliteClient:
             argv.extend(["-x", proxy])
         argv.append(url)
         return argv
+
+    async def _impersonate_get(
+        self,
+        url: str,
+        encoding: str | None,
+        timeout: float,
+        proxy: str | None,
+    ) -> FetchResult | None:
+        try:
+            from curl_cffi.requests import AsyncSession
+        except ImportError:
+            log.warning("curl_cffi not installed; skip Chrome TLS fetch")
+            return None
+        try:
+            async with AsyncSession() as session:
+                resp = await session.get(
+                    url,
+                    impersonate="chrome",
+                    proxy=proxy,
+                    timeout=timeout,
+                    headers={"Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7"},
+                    allow_redirects=True,
+                )
+        except Exception as exc:  # noqa: BLE001
+            log.warning("chrome TLS fetch failed %s: %s", url, exc)
+            return None
+        return self._decode(url, int(resp.status_code), resp.content, encoding, None)
 
     async def _curl_get(
         self,
