@@ -283,9 +283,9 @@ function isPostUrl(url) {
   return typeof url === "string" && /^https?:\/\//i.test(url.trim());
 }
 
-function renderRow(deal) {
+function renderRow(deal, { fresh = false } = {}) {
   const li = document.createElement("li");
-  li.className = "deal-card" + (isHot(deal) ? " fresh hot-fresh" : " fresh");
+  li.className = "deal-card" + (fresh ? (isHot(deal) ? " fresh hot-fresh" : " fresh") : "");
   li.dataset.id = String(deal.id);
   li.dataset.sources = deal.sources || "";
   li.dataset.ts = deal.last_seen_at || "";
@@ -476,9 +476,9 @@ function prefersReducedMotion() {
   }
 }
 
-function flipPrepend(rows) {
+function flipPrepend(rows, { animate = false } = {}) {
   if (!bodyEl || !rows.length) return;
-  if (prefersReducedMotion()) {
+  if (!animate || prefersReducedMotion()) {
     for (const row of rows) bodyEl.prepend(row);
     return;
   }
@@ -533,7 +533,7 @@ function patchRowMall(deal) {
   side.prepend(a);
 }
 
-function ingest(items) {
+function ingest(items, { animate = false } = {}) {
   if (!bodyEl || !items || !items.length) return;
   const empty = bodyEl.querySelector(".empty-row");
   if (empty) empty.remove();
@@ -550,9 +550,9 @@ function ingest(items) {
     if (config.seller && deal.seller !== config.seller) continue;
     if (config.category && deal.category !== config.category) continue;
     seen.add(id);
-    rows.push(renderRow(deal));
+    rows.push(renderRow(deal, { fresh: animate }));
   }
-  if (rows.length) flipPrepend(rows);
+  if (rows.length) flipPrepend(rows, { animate });
   applySourceFilter();
 }
 
@@ -581,7 +581,9 @@ function connect() {
     } else {
       setLive(true, "실시간 수신 중");
     }
-    ingest(data.items || []);
+    // Mall-link enrichment can publish existing cards with new_posts: 0.
+    // Insert those cards without treating them as newly collected deals.
+    ingest(data.items || [], { animate: n > 0 });
   };
   es.onerror = () => {
     setLive(false, "연결 끊김 · 재시도 중");
@@ -612,8 +614,9 @@ document.getElementById("collect-btn")?.addEventListener("click", async (e) => {
   try {
     const res = await fetch("/api/collect", { method: "POST" });
     const data = await res.json();
-    ingest(data.new_deals || []);
-    setLive(true, `수동 수집 완료 · 신규 ${data.new_posts || 0}건`);
+    const newPosts = Number(data.new_posts) || 0;
+    ingest(data.new_deals || [], { animate: newPosts > 0 });
+    setLive(true, `수동 수집 완료 · 신규 ${newPosts}건`);
   } catch (err) {
     setLive(false, "수집 실패");
   } finally {
