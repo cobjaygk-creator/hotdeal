@@ -1317,6 +1317,68 @@ async def api_debug_probe(source: str):
     return await probe_source(state["http"], source.lower())
 
 
+@app.get("/api/debug/raw")
+async def api_debug_raw(url: str, proxy: int = 1, redirect: int = 0):
+    """TEMP: dump a raw proxied fetch (headers + body) for gate analysis."""
+    _require_collect()
+    import httpx as _httpx
+
+    from app.config import PPOMPPU_PROXY_URL
+
+    use_proxy = PPOMPPU_PROXY_URL if (proxy and PPOMPPU_PROXY_URL) else None
+    out: dict = {"url": url, "proxy_used": bool(use_proxy)}
+
+    # 1) plain httpx, no redirect-follow, to expose Location / Set-Cookie.
+    try:
+        async with _httpx.AsyncClient(
+            proxy=use_proxy,
+            follow_redirects=bool(redirect),
+            timeout=20.0,
+            headers={
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                    "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+                ),
+                "Accept-Language": "ko-KR,ko;q=0.9",
+            },
+        ) as c:
+            r = await c.get(url)
+            body = r.text or ""
+            out["httpx"] = {
+                "status": r.status_code,
+                "final_url": str(r.url),
+                "headers": dict(r.headers),
+                "len": len(body),
+                "body": body[:20000],
+            }
+    except Exception as exc:  # noqa: BLE001
+        out["httpx"] = {"error": f"{type(exc).__name__}: {exc}"}
+
+    # 2) curl_cffi Chrome impersonation through the same proxy.
+    try:
+        from curl_cffi.requests import AsyncSession
+
+        async with AsyncSession() as s:
+            r = await s.get(
+                url,
+                impersonate="chrome",
+                proxy=use_proxy,
+                timeout=20.0,
+                allow_redirects=bool(redirect),
+            )
+            body = r.text or ""
+            out["curl_cffi"] = {
+                "status": int(r.status_code),
+                "headers": dict(r.headers),
+                "len": len(body),
+                "body": body[:20000],
+            }
+    except Exception as exc:  # noqa: BLE001
+        out["curl_cffi"] = {"error": f"{type(exc).__name__}: {exc}"}
+
+    return JSONResponse(out)
+
+
 @app.get("/api/debug/enrich/{deal_id}")
 async def api_debug_enrich(deal_id: int, apply: int = 0):
     """Fetch community detail for a deal on the server and show parse result.
