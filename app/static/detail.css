@@ -4,7 +4,7 @@
    기존 파일을 고치지 않고 이 파일만 추가/교체하면 됩니다.
    ============================================================ */
 
-/* ---- 0) 상품상세 / 댓글 각각 독립 프레임 ---- */
+/* ---- 0a) 미리보기 모달(.modal .modal-panel.is-detail) — 뷰포트 고정, 그대로 유지 ---- */
 @media (min-width: 960px) {
   .modal .modal-panel.is-detail,
   .modal-panel.is-detail {
@@ -24,8 +24,7 @@
   .modal-panel.is-detail .modal-close:hover {
     background: var(--surface-hover, #f7f8fa);
   }
-  .modal-panel.is-detail .dd-split,
-  .dd-page.is-detail .dd-split {
+  .modal-panel.is-detail .dd-split {
     gap: 12px;
     grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
     align-items: stretch;
@@ -33,33 +32,70 @@
     padding: 0;
     overflow: hidden;
   }
-  .dd-page.is-detail {
-    background: var(--surface-sunken, #edf0f4);
-    border: 0;
-    padding: 12px;
-    box-shadow: none;
-  }
   .modal-panel.is-detail .dd-main-col,
-  .modal-panel.is-detail .dd-chat,
-  .dd-page.is-detail .dd-main-col,
-  .dd-page.is-detail .dd-chat {
+  .modal-panel.is-detail .dd-chat {
     border: 1px solid var(--border);
     border-radius: 16px;
     background: var(--surface);
     overflow: hidden;
     box-shadow: 0 1px 2px rgba(22, 24, 29, 0.04);
   }
-  .modal-panel.is-detail .dd-chat,
-  .dd-page.is-detail .dd-chat {
+  .modal-panel.is-detail .dd-chat {
     border-left: 1px solid var(--border);
+  }
+}
+@media (max-width: 959px) {
+  .modal-panel.is-detail .dd-main-col,
+  .modal-panel.is-detail .dd-chat {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}
+
+/* ---- 0b) 상세 페이지(/deal/{id}, .dd-page.is-detail) — 감싸는 회색 박스 없이
+   페이지가 그대로 스크롤되고, 댓글 패널만 뷰포트에 붙어 고정(sticky) ---- */
+@media (min-width: 960px) {
+  .dd-page.is-detail {
+    background: transparent;
+    border: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+  .dd-page.is-detail .dd-split {
+    gap: 20px;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
+    align-items: start; /* 오른쪽 댓글 칸이 왼쪽 높이에 맞춰 늘어나지 않게 */
+    background: transparent;
+    padding: 0;
+    overflow: visible;
+  }
+  .dd-page.is-detail .dd-main-col {
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--surface);
+    overflow: visible; /* 내부 스크롤 없이 페이지와 함께 스크롤 */
+    box-shadow: 0 1px 2px rgba(22, 24, 29, 0.04);
+  }
+  .dd-page.is-detail .dd-main-col > .dd-main {
+    overflow: visible;
+  }
+  .dd-page.is-detail .dd-chat {
+    position: sticky;
+    top: calc(var(--header-h) + 16px);
+    align-self: start;
+    max-height: calc(100vh - var(--header-h) - 32px);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--surface);
+    overflow: hidden; /* 내부 chat-log만 스크롤 */
+    box-shadow: 0 1px 2px rgba(22, 24, 29, 0.04);
   }
   .dd-page.is-detail .dd-chat .chat-head {
     padding-right: 16px; /* 상세 페이지에는 모달 닫기 없음 */
   }
 }
 @media (max-width: 959px) {
-  .modal-panel.is-detail .dd-main-col,
-  .modal-panel.is-detail .dd-chat,
   .dd-page.is-detail .dd-main-col,
   .dd-page.is-detail .dd-chat {
     border: 0;
