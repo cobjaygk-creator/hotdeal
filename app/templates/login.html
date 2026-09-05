@@ -13,18 +13,11 @@
 
 {% if error %}<p class="down">{{ error }}</p>{% endif %}
 
-<form class="admin-form" method="post" action="/login" style="margin-bottom:20px">
-  <label>아이디
-    <input type="text" name="username" autocomplete="username" required>
-  </label>
-  <label>비밀번호
-    <input type="password" name="password" autocomplete="current-password" required>
-  </label>
-  <button type="submit">로그인</button>
-</form>
-
-{% if oauth_ready.kakao or oauth_ready.google %}
+{% if oauth_ready.naver or oauth_ready.kakao or oauth_ready.google %}
 <div class="oauth-row">
+  {% if oauth_ready.naver %}
+  <a class="oauth-btn naver" href="/auth/naver">네이버로 계속</a>
+  {% endif %}
   {% if oauth_ready.kakao %}
   <a class="oauth-btn kakao" href="/auth/kakao">카카오로 계속</a>
   {% endif %}
@@ -34,4 +27,17 @@
 </div>
 <p class="muted">소셜 로그인 후 알림 페이지에서 키워드와 텔레그램/디스코드 대상을 넣을 수 있습니다.</p>
 {% endif %}
+
+<details style="margin-top:20px">
+  <summary class="muted" style="cursor:pointer;font-size:13px">관리자 로그인</summary>
+  <form class="admin-form" method="post" action="/login" style="margin-top:12px">
+    <label>아이디
+      <input type="text" name="username" autocomplete="username" required>
+    </label>
+    <label>비밀번호
+      <input type="password" name="password" autocomplete="current-password" required>
+    </label>
+    <button type="submit">로그인</button>
+  </form>
+</details>
 {% endblock %}

@@ -10,6 +10,15 @@
   <meta property="og:site_name" content="핫딜모음">
   <meta property="og:locale" content="ko_KR">
   {% block extra_head %}{% endblock %}
+  {% if ga_measurement_id %}
+  <script async src="https://www.googletagmanager.com/gtag/js?id={{ ga_measurement_id }}"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', '{{ ga_measurement_id }}');
+  </script>
+  {% endif %}
   <script type="application/ld+json">{{ website_jsonld | tojson }}</script>
   {# asset_v는 main.py에서 주입. 없으면 빈 문자열이 되어 아무 영향 없음 #}
   {% set v = asset_v | default('', true) %}
@@ -140,6 +149,11 @@
       <div class="main-inner">
         {% block body %}{% endblock %}
       </div>
+      <footer class="site-footer">
+        <a href="/privacy">개인정보처리방침</a>
+        <span class="site-footer-sep" aria-hidden="true">·</span>
+        <a href="/terms">이용약관</a>
+      </footer>
     </div>
   </div>
   <script>

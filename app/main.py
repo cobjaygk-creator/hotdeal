@@ -11,7 +11,6 @@ import secrets
 import time
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
-from hashlib import sha256
 from pathlib import Path
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -24,7 +23,6 @@ from pydantic import BaseModel, Field
 from app.amazon_jp.pipeline import collect_amazon_jp
 from app.amazon_jp.query import list_amazon_jp_deals
 from app.config import (
-    ADMIN_PASSWORD,
     AMAZON_JP_ENABLED,
     AMAZON_JP_INTERVAL_MINUTES,
     COLLECT_FAST_SECONDS,
@@ -33,6 +31,7 @@ from app.config import (
     MALL_ENRICH_INTERVAL_SECONDS,
     ENABLE_COLLECT,
     FAMILY_SALE_INTERVAL_MINUTES,
+    GA_MEASUREMENT_ID,
     MVNO_ENABLED,
     MVNO_INTERVAL_MINUTES,
     PPOMPPU_INTERVAL_SECONDS,
@@ -82,6 +81,7 @@ TEMPLATES.env.filters["clean_title"] = clean_deal_title
 TEMPLATES.env.globals["site_url"] = SITE_URL
 TEMPLATES.env.globals["amazon_jp_enabled"] = AMAZON_JP_ENABLED
 TEMPLATES.env.globals["mvno_enabled"] = MVNO_ENABLED
+TEMPLATES.env.globals["ga_measurement_id"] = GA_MEASUREMENT_ID
 # Cache-busting query param for /static/*.css|js. base.html actually reads
 # `asset_v` (`{% set v = asset_v | default('', true) %}`) — the global must
 # be named to match, or the template's local `v` always falls back to ''.
@@ -623,7 +623,6 @@ async def family_admin(request: Request):
 async def family_admin_post(
     request: Request,
     action: str = Form(...),
-    password: str | None = Form(None),
     brand_names: str | None = Form(None),
     title: str | None = Form(None),
     sale_type: str | None = Form(None),
@@ -635,24 +634,8 @@ async def family_admin_post(
     discount_label: str | None = Form(None),
     source_url: str | None = Form(None),
 ):
-    if action == "login":
-        if ADMIN_PASSWORD and password == ADMIN_PASSWORD:
-            resp = RedirectResponse("/family/admin", status_code=303)
-            resp.set_cookie("family_admin", _admin_token(), httponly=True, samesite="lax")
-            return resp
-        return TEMPLATES.TemplateResponse(
-            "family_admin.html",
-            {
-                "request": request,
-                "nav": "admin",
-                "authed": False,
-                "all_cats": CATEGORIES,
-                "error": "비밀번호가 없거나 틀립니다.",
-            },
-            status_code=401,
-        )
     if not _is_admin(request):
-        return RedirectResponse("/family/admin", status_code=303)
+        return RedirectResponse("/login", status_code=303)
     brands = [b.strip() for b in (brand_names or "").split(",") if b.strip()]
     label, mx = parse_discount(title or "", discount_label)
     sale = {
@@ -715,7 +698,6 @@ def _public_sub(sub: dict) -> dict:
 async def alerts_post(
     request: Request,
     action: str = Form(...),
-    password: str | None = Form(None),
     keyword: str | None = Form(None),
     min_grade: str | None = Form(None),
     channel: str | None = Form(None),
@@ -749,23 +731,6 @@ async def alerts_post(
         await user_auth.sync_user_alert_subs(_db(), user or {})
         await _db().commit()
         return RedirectResponse("/alerts", status_code=303)
-    if action == "login":
-        if ADMIN_PASSWORD and password == ADMIN_PASSWORD:
-            resp = RedirectResponse("/alerts", status_code=303)
-            resp.set_cookie("family_admin", _admin_token(), httponly=True, samesite="lax")
-            return resp
-        return TEMPLATES.TemplateResponse(
-            "alerts.html",
-            {
-                "request": request,
-                "nav": "alerts",
-                "authed": False,
-                "subs": [],
-                "ready": channels_ready(),
-                "error": "비밀번호가 없거나 틀립니다.",
-            },
-            status_code=401,
-        )
     if not _is_admin(request):
         return RedirectResponse("/alerts", status_code=303)
     if action == "delete" and sub_id:
@@ -888,12 +853,8 @@ async def api_amazon_jp_collect():
     return JSONResponse(summary)
 
 
-def _admin_token() -> str:
-    return sha256(f"family-admin:{ADMIN_PASSWORD}".encode()).hexdigest()
-
-
 def _is_admin(request: Request) -> bool:
-    return bool(ADMIN_PASSWORD) and request.cookies.get("family_admin") == _admin_token()
+    return user_auth.is_admin_user(getattr(request.state, "user", None))
 
 
 def _require_user(request: Request) -> dict:
@@ -948,6 +909,16 @@ async def login_submit(
         return RedirectResponse("/login?error=credentials", status_code=303)
     dest = "/" if user_auth.is_admin_user(user) else "/alerts"
     return _login_redirect(int(user["id"]), dest)
+
+
+@app.get("/privacy", response_class=HTMLResponse)
+async def privacy_page(request: Request):
+    return TEMPLATES.TemplateResponse("privacy.html", {"request": request, "nav": "hotdeal"})
+
+
+@app.get("/terms", response_class=HTMLResponse)
+async def terms_page(request: Request):
+    return TEMPLATES.TemplateResponse("terms.html", {"request": request, "nav": "hotdeal"})
 
 
 @app.get("/logout")

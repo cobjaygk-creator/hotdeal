@@ -190,6 +190,8 @@ td.sel .cal-num:hover { background: transparent; }
 .oauth-btn.kakao { background: #fee500; color: #191919 !important; border-color: #fee500; }
 .oauth-btn.kakao:hover { background: #f2da00; }
 .oauth-btn.google { background: var(--surface); }
+.oauth-btn.naver { background: #03c75a; color: #ffffff !important; border-color: #03c75a; }
+.oauth-btn.naver:hover { background: #02b350; }
 
 @media (min-width: 900px) { .family-layout { grid-template-columns: 300px 1fr; } }
 

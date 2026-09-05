@@ -71,6 +71,7 @@ MOYO_THEME_URLS = [
 AMAZON_JP_ASSOCIATE_TAG = os.environ.get("AMAZON_JP_ASSOCIATE_TAG", "").strip()
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "").strip()
 ADMIN_USERNAME = (os.environ.get("ADMIN_USERNAME") or "admin").strip() or "admin"
+GA_MEASUREMENT_ID = os.environ.get("GA_MEASUREMENT_ID", "").strip()
 SOLDOUT_REPORT_THRESHOLD = int(os.environ.get("SOLDOUT_REPORT_THRESHOLD") or "3")
 
 
@@ -177,3 +178,5 @@ KAKAO_CLIENT_ID = (
     os.environ.get("KAKAO_CLIENT_ID") or os.environ.get("KAKAO_REST_API_KEY") or ""
 ).strip()
 KAKAO_CLIENT_SECRET = os.environ.get("KAKAO_CLIENT_SECRET", "").strip()
+NAVER_OAUTH_CLIENT_ID = os.environ.get("NAVER_OAUTH_CLIENT_ID", "").strip()
+NAVER_OAUTH_CLIENT_SECRET = os.environ.get("NAVER_OAUTH_CLIENT_SECRET", "").strip()

@@ -16,6 +16,8 @@ from app.config import (
     GOOGLE_CLIENT_SECRET,
     KAKAO_CLIENT_ID,
     KAKAO_CLIENT_SECRET,
+    NAVER_OAUTH_CLIENT_ID,
+    NAVER_OAUTH_CLIENT_SECRET,
     SESSION_SECRET,
     SITE_URL,
 )
@@ -27,7 +29,7 @@ log = logging.getLogger("hotdeal.auth")
 SESSION_COOKIE = "hd_session"
 OAUTH_COOKIE = "hd_oauth"
 SESSION_MAX_AGE = 60 * 60 * 24 * 30
-PROVIDERS = ("google", "kakao")
+PROVIDERS = ("google", "kakao", "naver")
 MAX_BOOKMARKS = 200
 MAX_KEYWORDS = 30
 # Used only when ADMIN_PASSWORD env is empty at first admin seed.
@@ -141,12 +143,13 @@ def providers_ready() -> dict[str, bool]:
     return {
         "google": bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET),
         "kakao": bool(KAKAO_CLIENT_ID),
+        "naver": bool(NAVER_OAUTH_CLIENT_ID and NAVER_OAUTH_CLIENT_SECRET),
     }
 
 
 def any_provider() -> bool:
     ready = providers_ready()
-    return ready["google"] or ready["kakao"]
+    return ready["google"] or ready["kakao"] or ready["naver"]
 
 
 def sign_user_id(user_id: int) -> str:
@@ -197,6 +200,15 @@ def authorize_url(provider: str, nonce: str) -> str:
         return "https://kauth.kakao.com/oauth/authorize?" + urlencode(
             {
                 "client_id": KAKAO_CLIENT_ID,
+                "redirect_uri": redirect,
+                "response_type": "code",
+                "state": nonce,
+            }
+        )
+    if provider == "naver":
+        return "https://nid.naver.com/oauth2.0/authorize?" + urlencode(
+            {
+                "client_id": NAVER_OAUTH_CLIENT_ID,
                 "redirect_uri": redirect,
                 "response_type": "code",
                 "state": nonce,
@@ -265,6 +277,30 @@ async def exchange_code(provider: str, code: str) -> dict:
                 "subject": str(data.get("id") or ""),
                 "email": account.get("email"),
                 "display_name": name,
+            }
+        if provider == "naver":
+            token_resp = await client.post(
+                "https://nid.naver.com/oauth2.0/token",
+                data={
+                    "grant_type": "authorization_code",
+                    "client_id": NAVER_OAUTH_CLIENT_ID,
+                    "client_secret": NAVER_OAUTH_CLIENT_SECRET,
+                    "redirect_uri": redirect,
+                    "code": code,
+                },
+            )
+            token_resp.raise_for_status()
+            access = token_resp.json().get("access_token")
+            info = await client.get(
+                "https://openapi.naver.com/v1/nid/me",
+                headers={"Authorization": f"Bearer {access}"},
+            )
+            info.raise_for_status()
+            data = (info.json() or {}).get("response") or {}
+            return {
+                "subject": str(data.get("id") or ""),
+                "email": data.get("email"),
+                "display_name": data.get("name") or data.get("nickname") or "네이버 사용자",
             }
     raise ValueError(provider)
 
