@@ -78,9 +78,10 @@ TEMPLATES.env.filters["clean_title"] = clean_deal_title
 TEMPLATES.env.globals["site_url"] = SITE_URL
 TEMPLATES.env.globals["amazon_jp_enabled"] = AMAZON_JP_ENABLED
 TEMPLATES.env.globals["mvno_enabled"] = MVNO_ENABLED
-# Cache-busting query param for /static/*.css|js — was always empty (never
-# set), so browsers kept serving stale CSS/JS across deploys indefinitely.
-TEMPLATES.env.globals["v"] = str(int(time.time()))
+# Cache-busting query param for /static/*.css|js. base.html actually reads
+# `asset_v` (`{% set v = asset_v | default('', true) %}`) — the global must
+# be named to match, or the template's local `v` always falls back to ''.
+TEMPLATES.env.globals["asset_v"] = str(int(time.time()))
 TEMPLATES.env.globals["website_jsonld"] = {
     "@context": "https://schema.org",
     "@graph": [
