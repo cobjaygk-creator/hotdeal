@@ -4,14 +4,16 @@
    기존 파일을 고치지 않고 이 파일만 추가/교체하면 됩니다.
    ============================================================ */
 
-/* ---- 0a) 미리보기 모달(.modal .modal-panel.is-detail) — 뷰포트 고정, 그대로 유지 ---- */
+/* ---- 0a) 미리보기 모달(.modal .modal-panel.is-detail) — 뷰포트 고정 +
+   내부 스크롤은 유지, 감싸는 회색 박스만 제거해 상세페이지와 톤을 맞춤 ---- */
 @media (min-width: 960px) {
   .modal .modal-panel.is-detail,
   .modal-panel.is-detail {
-    background: var(--surface-sunken, #edf0f4);
-    padding: 12px;
+    background: transparent;
+    padding: 0;
     gap: 0;
     width: min(1120px, 100%);
+    box-shadow: none;
   }
   .modal-panel.is-detail .modal-close {
     top: 20px;
