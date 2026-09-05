@@ -4,15 +4,20 @@
    기존 파일을 고치지 않고 이 파일만 추가/교체하면 됩니다.
    ============================================================ */
 
-/* ---- 0a) 미리보기 모달(.modal .modal-panel.is-detail) — 뷰포트 고정 +
-   내부 스크롤은 유지, 감싸는 회색 박스만 제거해 상세페이지와 톤을 맞춤 ---- */
+/* ---- 0a) 미리보기 모달(.modal .modal-panel.is-detail) — 감싸는 회색 박스 제거.
+   높이는 내용만큼 늘어나고(최대 92vh), 그 안에서 모달 자체가 스크롤 컨테이너가
+   되어 왼쪽 상세 영역과 함께 스크롤되며, 오른쪽 댓글 패널만 상단에 고정(sticky) ---- */
 @media (min-width: 960px) {
   .modal .modal-panel.is-detail,
   .modal-panel.is-detail {
     background: transparent;
-    padding: 0;
+    padding: 16px 0 0;
     gap: 0;
     width: min(1120px, 100%);
+    height: auto;
+    max-height: 92vh;
+    overflow-y: auto;
+    overflow-x: hidden;
     box-shadow: none;
   }
   .modal-panel.is-detail .modal-close {
@@ -27,23 +32,36 @@
     background: var(--surface-hover, #f7f8fa);
   }
   .modal-panel.is-detail .dd-split {
+    flex: 0 0 auto; /* flex:1(기본값)이면 모달의 max-height에 맞춰 줄어들어(flex-shrink)
+                       sticky 범위가 그 안에 갇힌다 — 내용 높이만큼 그대로 커지게 한다 */
     gap: 12px;
     grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
-    align-items: stretch;
+    align-items: start; /* 오른쪽 댓글 칸이 왼쪽 높이에 맞춰 늘어나지 않게 */
     background: transparent;
     padding: 0;
-    overflow: hidden;
+    overflow: visible;
   }
-  .modal-panel.is-detail .dd-main-col,
-  .modal-panel.is-detail .dd-chat {
+  .modal-panel.is-detail .dd-main-col {
     border: 1px solid var(--border);
     border-radius: 16px;
     background: var(--surface);
-    overflow: hidden;
+    overflow: visible; /* 내부 스크롤 없이 모달과 함께 스크롤 */
     box-shadow: 0 1px 2px rgba(22, 24, 29, 0.04);
   }
+  .modal-panel.is-detail .dd-main-col > .dd-main {
+    overflow: visible;
+  }
   .modal-panel.is-detail .dd-chat {
+    position: sticky;
+    top: 0;
+    align-self: start;
+    max-height: calc(92vh - 32px);
+    border: 1px solid var(--border);
     border-left: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--surface);
+    overflow: hidden; /* 내부 chat-log만 스크롤 */
+    box-shadow: 0 1px 2px rgba(22, 24, 29, 0.04);
   }
 }
 @media (max-width: 959px) {
