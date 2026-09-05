@@ -32,7 +32,7 @@
   "sourceLabels": source_labels
 } | tojson | safe }}</script>
 {% include "_deal_modal.html" %}
-<script src="/static/comments.js"></script>
-<script src="/static/chat-pin.js"></script>
-<script src="/static/live.js"></script>
+<script src="/static/comments.js?v={{ asset_v }}"></script>
+<script src="/static/chat-pin.js?v={{ asset_v }}"></script>
+<script src="/static/live.js?v={{ asset_v }}"></script>
 {% endblock %}

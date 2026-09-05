@@ -466,14 +466,13 @@ def _db():
     return state["db"]
 
 
-@app.get("/", response_class=HTMLResponse)
-async def index(
+async def _home_ctx(
     request: Request,
     grade: str | None = None,
     seller: str | None = None,
     source: str | None = None,
     cat: str | None = None,
-):
+) -> dict:
     stats = await _stats()
     category = cat if cat in DEAL_CATEGORIES else ""
     try:
@@ -495,7 +494,7 @@ async def index(
     for name in sources:
         if name not in ordered_sources:
             ordered_sources.append(name)
-    ctx = {
+    return {
         "request": request,
         "stats": stats,
         "deals": deals,
@@ -513,12 +512,23 @@ async def index(
         "has_more": len(deals) >= PAGE_SIZE,
         "nav": "hotdeal",
     }
+
+
+@app.get("/", response_class=HTMLResponse)
+async def index(
+    request: Request,
+    grade: str | None = None,
+    seller: str | None = None,
+    source: str | None = None,
+    cat: str | None = None,
+):
+    ctx = await _home_ctx(request, grade=grade, seller=seller, source=source, cat=cat)
     try:
         return TEMPLATES.TemplateResponse("index.html", ctx)
     except Exception:
         log.exception("index template failed")
         items = []
-        for d in deals:
+        for d in ctx["deals"]:
             name = html.escape(str(d.get("product_name") or "(제목 없음)"))
             items.append(f"<li>{name}</li>")
         nav_links = (
@@ -1061,51 +1071,28 @@ async def api_me_bookmarks_put(request: Request, payload: BookmarkIn):
 
 @app.get("/deal/{deal_id}", response_class=HTMLResponse)
 async def deal_detail(request: Request, deal_id: int):
+    """목록 페이지를 그대로 렌더링하고 해당 딜의 미리보기 팝업을 열어 둔 채로 보여준다
+    (새로고침해도 팝업이 별도 페이지로 바뀌지 않고 그대로 유지되도록)."""
     deal = await _get_deal(deal_id)
     if not deal:
         raise HTTPException(404, "deal not found")
     posts = await _deal_posts(deal_id)
-    body_html, body_source = _pick_body_html(posts)
-    deal["body_html"] = body_html
-    deal["body_source"] = body_source
+    body_html, _ = _pick_body_html(posts)
     if ENABLE_COLLECT and (
         not (deal.get("mall_url") or "").strip()
         or not body_html
         or is_thin_body_html(body_html)
     ):
         asyncio.create_task(_kick_mall_enrich([deal_id]))
-    history = await _price_history(deal["product_key"])
-    similar = await _similar_deals(deal)
-    key = _client_key(request)
-    comments = [
-        deal_comments.public_comment(
-            row,
-            mine=row.get("client_key") == key,
-            admin=user_auth.is_admin_user(getattr(request.state, "user", None)),
-        )
-        for row in await deal_comments.list_comments(_db(), deal_id)
-    ]
-    reactions = await deal_comments.reaction_snapshot(_db(), deal_id, key)
-    counts = await deal_comments.comment_counts(_db(), [deal_id])
-    deal["user_comments"] = counts.get(deal_id, 0)
-    resp = TEMPLATES.TemplateResponse(
-        "deal.html",
+    ctx = await _home_ctx(request)
+    ctx.update(
         {
-            "request": request,
-            "nav": "hotdeal",
-            "deal": deal,
-            "posts": posts,
-            "history": history,
-            "similar": similar,
-            "comments": comments,
-            "reactions": reactions,
-            "comment_count": deal["user_comments"],
-            "source_labels": SOURCE_LABELS,
+            "initial_deal_id": deal_id,
+            "og_deal": deal,
             "jsonld": _deal_jsonld(deal),
-        },
+        }
     )
-    _set_client_cookie(resp, key)
-    return resp
+    return TEMPLATES.TemplateResponse("index.html", ctx)
 
 
 @app.get("/api/deals")

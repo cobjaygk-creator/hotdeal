@@ -1,10 +1,19 @@
 {% extends "base.html" %}
-{% block title %}실시간 핫딜모음{% endblock %}
+{% block title %}{% if og_deal %}{{ og_deal.product_name }} · 핫딜모음{% else %}실시간 핫딜모음{% endif %}{% endblock %}
 {% block extra_head %}
+{% if og_deal %}
+<meta property="og:type" content="product">
+<meta property="og:title" content="{{ og_deal.product_name }}">
+<meta property="og:description" content="{{ og_deal.seller or '핫딜' }}{% if og_deal.price %} · {{ '{:,}'.format(og_deal.price) }}원{% endif %}">
+<meta property="og:url" content="{{ site_url }}/deal/{{ og_deal.id }}">
+{% if og_deal.thumbnail_url %}<meta property="og:image" content="{{ og_deal.thumbnail_url }}">{% endif %}
+{% if jsonld %}<script type="application/ld+json">{{ jsonld | tojson }}</script>{% endif %}
+{% else %}
 <meta property="og:title" content="실시간 핫딜모음">
 <meta property="og:description" content="커뮤니티 핫딜을 모아 가격 기준으로 정리합니다.">
 <meta property="og:url" content="{{ site_url }}/">
 <meta property="og:type" content="website">
+{% endif %}
 {% endblock %}
 {% block body %}
 <div class="page-head">
@@ -84,8 +93,9 @@
   "sources": sources
 } | tojson | safe }}</script>
 {% include "_deal_modal.html" %}
-<script src="/static/comments.js"></script>
-<script src="/static/chat-pin.js"></script>
-<script src="/static/live.js"></script>
-<script src="/static/list-controls.js" defer></script>
+{% if initial_deal_id %}<script>window.__initialDealId = {{ initial_deal_id }};</script>{% endif %}
+<script src="/static/comments.js?v={{ asset_v }}"></script>
+<script src="/static/chat-pin.js?v={{ asset_v }}"></script>
+<script src="/static/live.js?v={{ asset_v }}"></script>
+<script src="/static/list-controls.js?v={{ asset_v }}" defer></script>
 {% endblock %}

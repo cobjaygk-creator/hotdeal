@@ -1282,6 +1282,10 @@ window.addEventListener("popstate", (e) => {
   else if (modalOpenId) closeModal({ fromPop: true });
 });
 
+if (window.__initialDealId) {
+  openModal(window.__initialDealId, { fromHistory: true });
+}
+
 document.addEventListener("click", (e) => {
   const mark = e.target.closest(".bookmark-btn");
   if (mark) {
