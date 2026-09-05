@@ -5,6 +5,7 @@ import html
 import json
 import logging
 import math
+import os
 import re
 import secrets
 import time
@@ -38,6 +39,9 @@ from app.config import (
     QUASARZONE_INTERVAL_MINUTES,
     PPOMPPU_PROXY_URL,
     SITE_URL,
+    WATCHDOG_CHECK_SECONDS,
+    WATCHDOG_ENABLED,
+    WATCHDOG_STALE_MINUTES,
 )
 from app.db import connect, get_meta, upsert_family_sale, utcnow_iso
 from app.engine import auth as user_auth
@@ -126,9 +130,20 @@ async def lifespan(app: FastAPI):
     state["hub"] = EventHub()
     state["collect_lock"] = asyncio.Lock()
     state["ppomppu_enrich_lock"] = asyncio.Lock()
+    state["last_collect_ts"] = time.monotonic()
     scheduler = None
     if ENABLE_COLLECT:
         scheduler = AsyncIOScheduler()
+        if WATCHDOG_ENABLED:
+            scheduler.add_job(
+                _scheduled_watchdog,
+                "interval",
+                seconds=max(30, WATCHDOG_CHECK_SECONDS),
+                id="watchdog",
+                max_instances=1,
+                coalesce=True,
+                next_run_time=datetime.now() + timedelta(minutes=WATCHDOG_STALE_MINUTES),
+            )
         scheduler.add_job(
             _scheduled_collect,
             "interval",
@@ -251,6 +266,31 @@ async def attach_user(request: Request, call_next):
     return await call_next(request)
 
 
+async def _scheduled_watchdog() -> None:
+    """Every collect tier updates state["last_collect_ts"] on success; the
+    fastest tier runs every 30s, so if nothing has succeeded for several
+    minutes the scheduler (or the event loop under it) is stuck even though
+    HTTP may still be answering. Exit non-zero so the platform's restart
+    policy — which a plain hang never triggers on its own — takes over."""
+    last = state.get("last_collect_ts")
+    if last is None:
+        return
+    stale_for = time.monotonic() - last
+    limit = WATCHDOG_STALE_MINUTES * 60
+    if stale_for > limit:
+        log.critical(
+            "watchdog: no collect tick in %.0fs (limit %ds) — exiting for restart",
+            stale_for,
+            limit,
+        )
+        for handler in logging.getLogger().handlers:
+            try:
+                handler.flush()
+            except Exception:  # noqa: BLE001
+                pass
+        os._exit(1)
+
+
 async def _scheduled_collect() -> None:
     await _run_collect(["ppomppu"])
 
@@ -369,6 +409,7 @@ async def _run_collect(names: list[str] | None) -> dict:
         except Exception:
             log.exception("scheduled collect failed")
             return {"errors": ["collect failed"], "new_deals": [], "sources": {}}
+        state["last_collect_ts"] = time.monotonic()
 
         new_deals = summary.get("new_deals") or []
         missing = [
