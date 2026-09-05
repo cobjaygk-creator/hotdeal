@@ -19,6 +19,16 @@ def test_mall_from_url():
     assert mall_from_url(None) == (None, None)
 
 
+def test_mall_kakao_store_labeled_talkdeal():
+    assert mall_from_url("https://store.kakao.com/x/products/1") == ("톡딜", "kakao")
+    assert mall_from_url("https://gift.kakao.com/product/1") == ("카카오톡선물하기", "kakao")
+
+
+def test_mall_toss_and_steam():
+    assert mall_from_url("https://toss.im/shopping/products/1") == ("토스", "toss")
+    assert mall_from_url("https://store.steampowered.com/app/123") == ("스팀", "steam")
+
+
 def test_mall_guess_from_unknown_host():
     label, key = mall_from_url("https://www.seorincomputer.co.kr/shop/system_detail.html?sid=1")
     assert label == "Seorincomputer"

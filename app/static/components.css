@@ -730,7 +730,8 @@ button:disabled,
   font-weight: 700;
   color: var(--ink-muted);
 }
-.deal-tag-mall[data-mall="coupang"] { color: #e31837; }
+.deal-tag-mall[data-mall="coupang"] { color: #0073e6; }
+.deal-tag-mall[data-mall="toss"] { color: #0064ff; }
 .deal-tag-mall[data-mall="naver"] { color: #03c75a; }
 .deal-tag-mall[data-mall="gmarket"] { color: #00a651; }
 .deal-tag-mall[data-mall="auction"] { color: #eb1c24; }
@@ -752,7 +753,7 @@ button:disabled,
 .deal-tag-mall[data-mall="zigzag"] { color: #3c64ff; }
 .deal-tag-mall[data-mall="kream"] { color: #222222; }
 .deal-tag-mall[data-mall="ohouse"] { color: #35c5f0; }
-.deal-tag-mall[data-mall="kakao"] { color: #3c1e1e; }
+.deal-tag-mall[data-mall="kakao"] { color: #e6a700; }
 .deal-tag-mall[data-mall="temu"] { color: #fb7701; }
 .deal-tag-mall[data-mall="ali"] { color: #ff6a00; }
 .deal-tag-mall[data-mall="amazon"] { color: #ff9900; }
