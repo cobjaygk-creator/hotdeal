@@ -26,6 +26,23 @@ log = logging.getLogger(__name__)
 _collect_meta_lock = asyncio.Lock()
 
 
+def _source_category(post_row: dict) -> str | None:
+    """`raw_json` is the RawPost.extra dict when post_row came straight off a
+    fresh fetch, or the JSON text once it's round-tripped through the posts
+    table (e.g. rebuild_recent_deals) — handle both."""
+    raw = post_row.get("raw_json")
+    if isinstance(raw, str):
+        try:
+            raw = json.loads(raw)
+        except (TypeError, ValueError):
+            return None
+    if isinstance(raw, dict):
+        val = raw.get("source_category")
+        if isinstance(val, str) and val.strip():
+            return val
+    return None
+
+
 def post_to_row(post: RawPost, *, thumbnail_url: str | None = None) -> dict:
     return {
         "source": post.source,
@@ -159,7 +176,7 @@ async def upsert_deal_from_post(conn, post_row: dict) -> int | None:
         post_row.get("body"), post_row.get("title"), post_row.get("raw_json")
     )
     thumbnail_url = post_row.get("thumbnail_url")
-    category = classify(offer.product_name, offer.seller)
+    category = classify(offer.product_name, offer.seller, _source_category(post_row))
     if match:
         deal_id = match["id"]
         new_price = offer.price if offer.price is not None else match["price"]

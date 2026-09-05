@@ -638,10 +638,35 @@ async def _unwrap_wrapper_mall_urls(conn: aiosqlite.Connection) -> None:
 async def _backfill_categories(conn: aiosqlite.Connection) -> None:
     from app.engine.category import classify
 
-    cur = await conn.execute("SELECT id, product_name, seller, category FROM deals")
+    cur = await conn.execute(
+        """
+        SELECT d.id, d.product_name, d.seller, d.category,
+               (
+                 SELECT p.raw_json FROM deal_posts dp
+                 JOIN posts p ON p.id = dp.post_id
+                 WHERE dp.deal_id = d.id
+                   AND p.raw_json IS NOT NULL AND p.raw_json != ''
+                 ORDER BY CASE p.source WHEN 'quasarzone' THEN 0 WHEN 'eomisae' THEN 1 ELSE 2 END,
+                          p.id DESC
+                 LIMIT 1
+               ) AS raw_json
+        FROM deals d
+        """
+    )
     rows = await cur.fetchall()
     for row in rows:
-        cat = classify(row["product_name"], row["seller"])
+        source_category = None
+        raw = row["raw_json"]
+        if raw:
+            try:
+                extra = json.loads(raw)
+            except (TypeError, ValueError):
+                extra = None
+            if isinstance(extra, dict):
+                val = extra.get("source_category")
+                if isinstance(val, str) and val.strip():
+                    source_category = val
+        cat = classify(row["product_name"], row["seller"], source_category)
         if cat != (row["category"] or ""):
             await conn.execute(
                 "UPDATE deals SET category=? WHERE id=?",

@@ -209,6 +209,7 @@ def test_eomisae_card_thumbnail():
     assert len(posts) == 1
     assert posts[0].source_post_id == "200123"
     assert posts[0].extra["thumbnail_url"].startswith("https://img.eomisae.co.kr/")
+    assert posts[0].extra["source_category"] == "식품"
 
 
 def test_dealbada_list_thumbnail():
@@ -249,3 +250,4 @@ def test_quasar_v2_rows_skip_partner_ads():
     posts = parse_quasar(html)
     assert [p.source_post_id for p in posts] == ["1984069"]
     assert posts[0].url == "https://quasarzone.com/bbs/qb_saleinfo/views/1984069"
+    assert posts[0].extra["source_category"] == "PC/하드웨어"

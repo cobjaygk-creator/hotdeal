@@ -87,6 +87,8 @@ def _parse_v2_rows(tree: HTMLParser) -> list[RawPost]:
         extra = {}
         if thumb.startswith("http") and not any(m in thumb for m in _DEFAULT_PREVIEW_MARKERS):
             extra["thumbnail_url"] = thumb
+        if badge_txt:
+            extra["source_category"] = badge_txt
         posts.append(
             RawPost(
                 source="quasarzone",

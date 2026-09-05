@@ -27,6 +27,24 @@ def test_classify_live_misc_titles():
     assert classify("cas 카스 가정용 혈압측정기 혈압계 MD2540", "옥션") == "가전"
 
 
+def test_classify_uses_source_category_only_as_fallback():
+    # No keyword/heuristic hit on the product name -> the source's own badge
+    # (quasarzone v2-badge / eomisae span.cate) rescues it from "기타".
+    assert classify("무명브랜드 XZ-100", None, "PC/하드웨어") == "PC"
+    assert classify("무명브랜드 XZ-100", None, "게임/SW") == "게임"
+    assert classify("무명브랜드 XZ-100", None, "패션/의류") == "의류"
+    assert classify("무명브랜드 XZ-100", None, "가전/TV") == "가전"
+    assert classify("무명브랜드 XZ-100", None, "유아동") == "유아"
+    # Ambiguous combined badge (quasarzone bundles life+food under one tag):
+    # no reliable signal, stays 기타 rather than guessing.
+    assert classify("무명브랜드 XZ-100", None, "생활/식품") == "기타"
+    assert classify("무명브랜드 XZ-100", None, "기타") == "기타"
+    assert classify("무명브랜드 XZ-100", None, None) == "기타"
+    # A specific product-name keyword always wins over a coarser source badge.
+    assert classify("삼겹살 1kg", None, "PC/하드웨어") == "식품"
+    assert classify("젠하이저 헤드폰", None, "가전/TV") == "PC"
+
+
 def test_classify_former_misc_buckets():
     assert classify("처음 읽는 한국사1/삼국지5/그리스로마신화 15", "G마켓") == "도서"
     assert classify("아이폰 15 프로 자급제", "쿠팡") == "PC"

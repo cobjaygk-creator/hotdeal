@@ -168,6 +168,36 @@ _KEYWORDS: dict[str, tuple[str, ...]] = {
 
 _PRIORITY = ("게임", "유아", "도서", "PC", "가전", "의류", "식품", "생활")
 
+# Some sources tag each post with their own category badge (quasarzone's
+# v2-badge: "PC/하드웨어", "게임/SW", …; eomisae's span.cate). Normalize those
+# to our taxonomy and use them only as a *fallback* — after product-name
+# keywords/heuristics have had a shot — so a specific keyword match never
+# gets overridden by a coarser source label.
+_AMBIGUOUS_SOURCE_CATEGORY_MARKERS = ("생활/식품", "식품/생활")
+_SOURCE_CATEGORY_RULES: list[tuple[tuple[str, ...], str]] = [
+    (("게임", "sw"), "게임"),
+    (("유아", "아동", "키즈", "베이비"), "유아"),
+    (("도서", "문구"), "도서"),
+    (("노트북", "모바일", "하드웨어", "pc"), "PC"),
+    (("가전", "tv"), "가전"),
+    (("패션", "의류", "신발", "가방", "잡화"), "의류"),
+    (("식품", "푸드", "먹거리"), "식품"),
+    (("생활", "리빙", "뷰티"), "생활"),
+]
+
+
+def _map_source_category(raw: str | None) -> str | None:
+    text = (raw or "").strip()
+    if not text or text in ("기타", "etc", "ETC"):
+        return None
+    if any(m in text for m in _AMBIGUOUS_SOURCE_CATEGORY_MARKERS):
+        return None  # e.g. quasarzone "생활/식품" — let the product name decide
+    low = text.lower()
+    for needles, cat in _SOURCE_CATEGORY_RULES:
+        if any(n in low for n in needles):
+            return cat
+    return None
+
 # 키워드가 없어도 단위·품목 패턴으로 잡는 2차 규칙
 _HEURISTICS: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"유정란|난각|구운란|\d+구"), "식품"),
@@ -184,7 +214,11 @@ _HEURISTICS: list[tuple[re.Pattern[str], str]] = [
 ]
 
 
-def classify(product_name: str | None, seller: str | None = None) -> str:
+def classify(
+    product_name: str | None,
+    seller: str | None = None,
+    source_category: str | None = None,
+) -> str:
     seller_l = (seller or "").lower()
     for needles, cat in _SELLER_RULES:
         if any(n.lower() in seller_l for n in needles):
@@ -198,4 +232,7 @@ def classify(product_name: str | None, seller: str | None = None) -> str:
     for pat, cat in _HEURISTICS:
         if pat.search(text):
             return cat
+    mapped = _map_source_category(source_category)
+    if mapped:
+        return mapped
     return "기타"

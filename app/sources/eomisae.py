@@ -114,7 +114,11 @@ def _post_from_link(link, root) -> RawPost | None:
                     posted_at = parse_kr_datetime(txt)
                     break
     thumb = _thumb(root)
-    extra = {"thumbnail_url": thumb} if thumb else {}
+    extra: dict = {"thumbnail_url": thumb} if thumb else {}
+    cate_el = root.css_first("span.cate") if root is not None else None
+    cate_txt = " ".join((cate_el.text() or "").split()) if cate_el else ""
+    if cate_txt:
+        extra["source_category"] = cate_txt
     return RawPost(
         source="eomisae",
         source_post_id=post_id,
