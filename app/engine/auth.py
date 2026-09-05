@@ -470,9 +470,19 @@ async def delete_account(conn, user_id: int) -> None:
     await conn.execute("UPDATE deal_comments SET user_id=NULL WHERE user_id=?", (user_id,))
     await conn.execute("DELETE FROM user_bookmarks WHERE user_id=?", (user_id,))
     await conn.execute("DELETE FROM user_keywords WHERE user_id=?", (user_id,))
+    await conn.execute("DELETE FROM push_subscriptions WHERE user_id=?", (user_id,))
     await conn.execute("DELETE FROM oauth_identities WHERE user_id=?", (user_id,))
     await conn.execute("DELETE FROM users WHERE id=?", (user_id,))
     await conn.commit()
+
+
+async def list_user_providers(conn, user_id: int) -> str:
+    cur = await conn.execute(
+        "SELECT GROUP_CONCAT(provider) AS p FROM oauth_identities WHERE user_id=?",
+        (user_id,),
+    )
+    row = await cur.fetchone()
+    return (row["p"] if row else "") or ""
 
 
 async def list_users(conn, limit: int = 200) -> list[dict]:
@@ -500,20 +510,13 @@ async def set_user_admin(conn, user_id: int, is_admin: bool) -> None:
 
 
 async def sync_user_alert_subs(conn, user: dict) -> None:
-    from app.engine.alerts import add_user_sub, delete_user_subs
+    from app.engine.alerts import reconcile_user_subs
 
-    await delete_user_subs(conn, int(user["id"]))
-    channel = user.get("notify_channel") or ""
-    target = user.get("notify_target") or ""
-    # Always create a sub per keyword (even with no channel) so the in-app
-    # inbox has something to record against. add_user_sub skips tg/discord
-    # rows that are missing their target.
-    for row in await list_keywords(conn, int(user["id"])):
-        await add_user_sub(
-            conn,
-            user_id=int(user["id"]),
-            keyword=row["keyword"],
-            min_grade=row.get("min_grade") or "핫딜",
-            channel=channel,
-            target=target,
-        )
+    rows = await list_keywords(conn, int(user["id"]))
+    await reconcile_user_subs(
+        conn,
+        user_id=int(user["id"]),
+        keywords=[(r["keyword"], r.get("min_grade") or "핫딜") for r in rows],
+        channel=user.get("notify_channel") or "",
+        target=user.get("notify_target") or "",
+    )

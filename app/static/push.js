@@ -87,7 +87,10 @@
   if (inbox) {
     const badge = inbox.querySelector(".inbox-badge");
     const list = inbox.querySelector(".inbox-list");
+    let inFlight = false;
     async function load() {
+      if (inFlight) return;
+      inFlight = true;
       try {
         const res = await fetch("/api/me/notifications");
         if (!res.ok) return;
@@ -97,26 +100,37 @@
           badge.hidden = !data.unread;
         }
         if (list) {
-          list.innerHTML = (data.items || [])
-            .map(
-              (n) =>
-                '<a href="/deal/' +
-                n.deal_id +
-                '"><strong>' +
-                (n.product_name || "핫딜") +
-                "</strong><span>" +
-                (n.keyword || "") +
-                "</span></a>"
-            )
-            .join("") || '<p class="inbox-empty">알림이 없습니다.</p>';
+          list.textContent = "";
+          const items = data.items || [];
+          if (!items.length) {
+            const p = document.createElement("p");
+            p.className = "inbox-empty";
+            p.textContent = "알림이 없습니다.";
+            list.appendChild(p);
+          }
+          for (const n of items) {
+            const a = document.createElement("a");
+            a.href = "/deal/" + encodeURIComponent(n.deal_id);
+            const s = document.createElement("strong");
+            s.textContent = n.product_name || "핫딜";
+            const k = document.createElement("span");
+            k.textContent = n.keyword || "";
+            a.appendChild(s);
+            a.appendChild(k);
+            list.appendChild(a);
+          }
         }
-      } catch (e) {}
+      } catch (e) {
+      } finally {
+        inFlight = false;
+      }
     }
     inbox.addEventListener("toggle", () => {
-      if (inbox.open) {
-        load();
+      if (!inbox.open) return;
+      load();
+      if (badge && !badge.hidden) {
         fetch("/api/me/notifications/read", { method: "POST" }).then(() => {
-          if (badge) badge.hidden = true;
+          badge.hidden = true;
         });
       }
     });

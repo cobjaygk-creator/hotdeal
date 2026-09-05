@@ -35,6 +35,65 @@ async def test_empty_channel_still_creates_subs_for_inbox(tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_two_users_same_keyword_keep_separate_subs(tmp_path):
+    conn = await _db(tmp_path)
+    ids = []
+    for name in ("A", "B"):
+        cur = await conn.execute(
+            "INSERT INTO users(display_name, created_at, last_login_at) VALUES(?, 'x','x')",
+            (name,),
+        )
+        uid = int(cur.lastrowid)
+        ids.append(uid)
+        await conn.execute(
+            "INSERT INTO user_keywords(user_id, keyword, min_grade, created_at) VALUES(?,'노트북','핫딜','x')",
+            (uid,),
+        )
+    await conn.commit()
+    for uid in ids:
+        await auth.sync_user_alert_subs(conn, {"id": uid})
+    cur = await conn.execute("SELECT user_id FROM alert_subs WHERE keyword='노트북' ORDER BY user_id")
+    got = [r["user_id"] for r in await cur.fetchall()]
+    assert got == ids  # both users keep their own sub, no collision
+    await conn.close()
+
+
+@pytest.mark.asyncio
+async def test_inbox_history_survives_keyword_add(tmp_path):
+    conn = await _db(tmp_path)
+    cur = await conn.execute(
+        "INSERT INTO users(display_name, created_at, last_login_at) VALUES('u','x','x')"
+    )
+    uid = int(cur.lastrowid)
+    await conn.execute(
+        "INSERT INTO user_keywords(user_id, keyword, min_grade, created_at) VALUES(?,'삼겹살','핫딜','x')",
+        (uid,),
+    )
+    await conn.commit()
+    await auth.sync_user_alert_subs(conn, {"id": uid})
+    cur = await conn.execute("SELECT id FROM alert_subs WHERE user_id=?", (uid,))
+    sub_id = int((await cur.fetchone())["id"])
+    await conn.execute(
+        "INSERT INTO alert_sent(sub_id, deal_id, sent_at) VALUES(?, 1, 'x')", (sub_id,)
+    )
+    await conn.commit()
+
+    # user adds a second keyword -> re-sync must NOT wipe the first inbox entry
+    await conn.execute(
+        "INSERT INTO user_keywords(user_id, keyword, min_grade, created_at) VALUES(?,'에어팟','핫딜','x')",
+        (uid,),
+    )
+    await conn.commit()
+    await auth.sync_user_alert_subs(conn, {"id": uid})
+
+    cur = await conn.execute("SELECT COUNT(*) AS c FROM alert_sent")
+    assert (await cur.fetchone())["c"] == 1
+    cur = await conn.execute("SELECT id FROM alert_subs WHERE user_id=? AND keyword='삼겹살'", (uid,))
+    assert int((await cur.fetchone())["id"]) == sub_id  # same row, id preserved
+    await conn.close()
+
+
+@pytest.mark.asyncio
 async def test_dispatch_records_inbox_without_channel(tmp_path):
     conn = await _db(tmp_path)
     cur = await conn.execute(

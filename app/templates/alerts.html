@@ -26,8 +26,9 @@
 {% include "_alert_prefs.html" %}
 {% else %}
 <p class="muted">키워드를 기기에 묶어 두려면 <a href="/login">로그인</a>하세요. 북마크도 같이 동기화됩니다.</p>
-{% if oauth_ready.kakao or oauth_ready.google %}
+{% if oauth_ready.naver or oauth_ready.kakao or oauth_ready.google %}
 <div class="oauth-row">
+  {% if oauth_ready.naver %}<a class="oauth-btn naver" href="/auth/naver">네이버 로그인</a>{% endif %}
   {% if oauth_ready.kakao %}<a class="oauth-btn kakao" href="/auth/kakao">카카오 로그인</a>{% endif %}
   {% if oauth_ready.google %}<a class="oauth-btn google" href="/auth/google">Google 로그인</a>{% endif %}
 </div>

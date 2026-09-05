@@ -145,37 +145,46 @@ async def delete_user_subs(conn, user_id: int) -> None:
     await conn.execute("DELETE FROM alert_subs WHERE user_id=?", (user_id,))
 
 
-async def add_user_sub(
-    conn,
-    *,
-    user_id: int,
-    keyword: str,
-    min_grade: str,
-    channel: str,
-    target: str,
+async def reconcile_user_subs(
+    conn, *, user_id: int, keywords: list[tuple[str, str]], channel: str, target: str
 ) -> None:
-    keyword = keyword.strip()
-    channel = channel.strip().lower()
-    target = target.strip()
-    if not keyword:
-        return
-    # "" channel = inbox-only. webpush needs no target. tg/discord need one.
-    if channel and channel not in CHANNELS:
-        return
+    """Bring a user's alert_subs in line with their keyword list + notify
+    setting WITHOUT churning rows for unchanged (keyword, channel, target)
+    tuples — so alert_sent (which doubles as the in-app inbox) survives a
+    keyword add/remove."""
+    channel = (channel or "").strip().lower()
+    target = (target or "").strip()
+    if channel not in CHANNELS:
+        channel = ""
     if channel in TARGET_CHANNELS and not target:
-        return
-    await conn.execute(
-        """
-        INSERT INTO alert_subs(keyword, min_grade, channel, target, enabled, origin, created_at, user_id)
-        VALUES(?, ?, ?, ?, 1, 'user', ?, ?)
-        ON CONFLICT(keyword, channel, target) DO UPDATE SET
-            min_grade=excluded.min_grade,
-            enabled=1,
-            origin='user',
-            user_id=excluded.user_id
-        """,
-        (keyword, min_grade.strip() or "핫딜", channel, target, utcnow_iso(), user_id),
+        channel, target = "", ""  # unusable target -> inbox-only
+    eff_target = target if channel in TARGET_CHANNELS else f"u{user_id}"
+    desired: dict[tuple[str, str, str], str] = {}
+    for kw, grade in keywords:
+        kw = (kw or "").strip()
+        if kw:
+            desired[(kw, channel, eff_target)] = (grade or "핫딜").strip() or "핫딜"
+
+    cur = await conn.execute(
+        "SELECT id, keyword, channel, target FROM alert_subs WHERE user_id=?",
+        (user_id,),
     )
+    for r in await cur.fetchall():
+        if (r["keyword"], r["channel"] or "", r["target"] or "") not in desired:
+            await conn.execute("DELETE FROM alert_sent WHERE sub_id=?", (r["id"],))
+            await conn.execute("DELETE FROM alert_subs WHERE id=?", (r["id"],))
+
+    now = utcnow_iso()
+    for (kw, ch, tg), grade in desired.items():
+        await conn.execute(
+            """
+            INSERT INTO alert_subs(keyword, min_grade, channel, target, enabled, origin, created_at, user_id)
+            VALUES(?, ?, ?, ?, 1, 'user', ?, ?)
+            ON CONFLICT(keyword, channel, target) DO UPDATE SET
+                min_grade=excluded.min_grade, enabled=1, origin='user', user_id=excluded.user_id
+            """,
+            (kw, grade, ch, tg, now, user_id),
+        )
 
 
 def default_target(channel: str) -> str:
@@ -227,14 +236,21 @@ async def dispatch_alerts(conn, client, deals: list[dict]) -> dict:
                 "INSERT OR IGNORE INTO alert_sent(sub_id, deal_id, sent_at) VALUES(?,?,?)",
                 (sub["id"], did, utcnow_iso()),
             )
-            summary["sent"] += 1
             if not sub.get("channel"):
+                summary["sent"] += 1
                 continue
             try:
                 await _deliver(conn, client, sub, deal)
+                summary["sent"] += 1
             except Exception:
                 log.exception("alert send failed sub=%s deal=%s", sub["id"], did)
                 summary["errors"] += 1
+                # Drop the marker so a transient failure retries next cycle.
+                # (The inbox entry is re-created then too.)
+                await conn.execute(
+                    "DELETE FROM alert_sent WHERE sub_id=? AND deal_id=?",
+                    (sub["id"], did),
+                )
     return summary
 
 

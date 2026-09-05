@@ -1088,13 +1088,8 @@ async def mypage(request: Request):
     cards = await _list_deals(ids=bookmark_ids, limit=user_auth.MAX_BOOKMARKS)
     order = {deal_id: i for i, deal_id in enumerate(bookmark_ids)}
     cards.sort(key=lambda d: order.get(d["id"], 1_000_000))
-    await _attach_sources(db, cards)
-    _attach_user_comments(cards)
-    cur = await db.execute(
-        "SELECT GROUP_CONCAT(provider) AS p FROM oauth_identities WHERE user_id=?",
-        (user["id"],),
-    )
-    providers = (await cur.fetchone())["p"] or ""
+    await _attach_user_comments(cards)
+    providers = await user_auth.list_user_providers(db, int(user["id"]))
     return TEMPLATES.TemplateResponse(
         "mypage.html",
         {
@@ -1155,11 +1150,14 @@ async def api_push_subscribe(request: Request):
 
 @app.post("/api/push/unsubscribe")
 async def api_push_unsubscribe(request: Request):
-    _require_user(request)
+    user = _require_user(request)
     body = await request.json()
     endpoint = (body or {}).get("endpoint")
     if endpoint:
-        await _db().execute("DELETE FROM push_subscriptions WHERE endpoint=?", (endpoint,))
+        await _db().execute(
+            "DELETE FROM push_subscriptions WHERE endpoint=? AND user_id=?",
+            (endpoint, int(user["id"])),
+        )
         await _db().commit()
     return {"ok": True}
 

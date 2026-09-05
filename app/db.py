@@ -112,6 +112,7 @@ CREATE TABLE IF NOT EXISTS alert_subs (
     user_id INTEGER,
     UNIQUE(keyword, channel, target)
 );
+CREATE INDEX IF NOT EXISTS idx_alert_subs_user ON alert_subs(user_id);
 
 CREATE TABLE IF NOT EXISTS alert_sent (
     sub_id INTEGER NOT NULL,
@@ -530,6 +531,9 @@ async def _ensure_auth_tables(conn: aiosqlite.Connection) -> None:
     cols = {row[1] for row in await cur.fetchall()}
     if "user_id" not in cols:
         await conn.execute("ALTER TABLE alert_subs ADD COLUMN user_id INTEGER")
+    await conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_alert_subs_user ON alert_subs(user_id)"
+    )
     cur = await conn.execute("PRAGMA table_info(alert_sent)")
     if "read_at" not in {row[1] for row in await cur.fetchall()}:
         await conn.execute("ALTER TABLE alert_sent ADD COLUMN read_at TEXT")

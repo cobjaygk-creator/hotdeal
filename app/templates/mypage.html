@@ -9,9 +9,41 @@
 
 <h2>찜한 딜 <span class="muted" style="font-weight:400;font-size:13px">{{ bookmarks|length }}건</span></h2>
 {% if bookmarks %}
-<ul class="deal-cards">
+<ul class="deal-cards" id="mypage-bookmarks">
   {% for d in bookmarks %}{% include "_deal_card.html" %}{% endfor %}
 </ul>
+<p class="muted" id="mypage-bookmarks-empty" hidden>찜을 모두 해제했습니다.</p>
+<script>
+(function () {
+  var list = document.getElementById("mypage-bookmarks");
+  if (!list) return;
+  list.addEventListener("click", function (e) {
+    var btn = e.target.closest(".bookmark-btn[data-deal-id]");
+    if (!btn) return;
+    e.preventDefault();
+    var card = btn.closest(".deal-card");
+    var removeId = Number(btn.dataset.dealId);
+    var ids = [...list.querySelectorAll(".deal-card[data-id]")]
+      .map(function (c) { return Number(c.dataset.id); })
+      .filter(function (n) { return n && n !== removeId; });
+    fetch("/api/me/bookmarks", {
+      method: "PUT",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids: ids }),
+    }).catch(function () {});
+    try {
+      localStorage.setItem("hotdeal.bookmarks", JSON.stringify(ids));
+    } catch (err) {}
+    if (card) card.remove();
+    if (!list.querySelector(".deal-card")) {
+      list.hidden = true;
+      var empty = document.getElementById("mypage-bookmarks-empty");
+      if (empty) empty.hidden = false;
+    }
+  });
+})();
+</script>
 {% else %}
 <p class="muted">아직 찜한 딜이 없습니다. 딜 카드의 하트를 눌러 저장하세요.</p>
 {% endif %}
