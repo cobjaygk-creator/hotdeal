@@ -1433,6 +1433,48 @@ async def api_debug_feed(limit: int = 40):
         return {"ok": False, "error": f"{type(exc).__name__}: {exc}"}
 
 
+@app.get("/api/debug/category-candidates")
+async def api_debug_category_candidates(request: Request, min_count: int = 3):
+    """Keyword-candidate mining review tool (admin only).
+
+    Uses each source's own category badge (quasarzone v2-badge, eomisae
+    span.cate) as ground truth — not our own classify() output, which would
+    be circular — to surface product-name words our keyword lists don't
+    cover yet. Read-only: nothing here is auto-applied to category.py.
+    """
+    _require_admin(request)
+    from app.engine.category import _map_source_category, mine_keyword_candidates
+
+    db = _db()
+    cur = await db.execute(
+        """
+        SELECT d.product_name AS product_name, p.raw_json AS raw_json
+        FROM deal_posts dp
+        JOIN posts p ON p.id = dp.post_id
+        JOIN deals d ON d.id = dp.deal_id
+        WHERE p.source IN ('quasarzone', 'eomisae')
+          AND p.raw_json IS NOT NULL AND p.raw_json != ''
+        """
+    )
+    rows = await cur.fetchall()
+    labeled: list[tuple[str, str]] = []
+    for row in rows:
+        try:
+            extra = json.loads(row["raw_json"])
+        except (TypeError, ValueError):
+            continue
+        if not isinstance(extra, dict):
+            continue
+        cat = _map_source_category(extra.get("source_category"))
+        if cat and row["product_name"]:
+            labeled.append((row["product_name"], cat))
+    candidates = mine_keyword_candidates(labeled, min_count=max(1, min_count))
+    return {
+        "labeled_titles_scanned": len(labeled),
+        "candidates": candidates,
+    }
+
+
 @app.get("/api/debug/probe/{source}")
 async def api_debug_probe(source: str):
     """Temporary HTML-structure probe; only when collect is enabled (Render)."""

@@ -252,3 +252,75 @@ def classify(
     if mapped:
         return mapped
     return "기타"
+
+
+# ============================================================
+# Keyword-candidate mining — NOT wired into classify(). A review tool: given
+# titles whose category came from a source's own badge (real ground truth,
+# not our keyword guesses), surface words our keyword lists don't cover yet
+# so a human can decide whether to add them. Mining "already-correctly
+# keyword-classified" titles would be circular — this only works because the
+# label comes from outside our own logic.
+# ============================================================
+from collections import Counter, defaultdict  # noqa: E402
+
+_TOKEN_RE = re.compile(r"[가-힣]{2,}")
+_MINING_STOPWORDS = frozenset(
+    {
+        "무료", "배송", "무료배송", "핫딜", "채널", "특가", "할인", "기타정보",
+        "인기정보", "정보", "이벤트", "행사", "증정", "사은품", "쿠폰", "적립",
+        "네이버", "네이버페이", "쿠팡", "지마켓", "옥션", "티몬", "위메프",
+        "롯데온", "11번가", "카드", "무이자", "출시", "신상", "신제품", "택1",
+        "골라담기", "세트", "모음", "모음전", "구성", "패키지", "옵션",
+        "당일발송", "당일출고", "총구매가", "실구매가", "최종가", "체감가",
+    }
+)
+
+
+def _all_existing_keywords() -> set[str]:
+    out: set[str] = set()
+    for kws in _KEYWORDS.values():
+        out.update(k.strip().lower() for k in kws if k.strip())
+    for needles, _cat in _SELLER_RULES:
+        out.update(n.strip().lower() for n in needles if n.strip())
+    return out
+
+
+def mine_keyword_candidates(
+    labeled_titles: list[tuple[str, str]],
+    *,
+    min_count: int = 3,
+    min_purity: float = 0.7,
+    top_n: int = 25,
+) -> dict[str, list[tuple[str, int]]]:
+    """labeled_titles: (product_name, category) pairs where `category` came
+    from an external ground truth (a source's own badge), not from classify().
+    Returns, per category, tokens that recur there and nowhere else, that no
+    existing keyword already covers — ranked by how often they show up."""
+    existing = _all_existing_keywords()
+    per_cat: dict[str, Counter] = defaultdict(Counter)
+    for name, cat in labeled_titles:
+        if cat not in _KEYWORDS:
+            continue
+        for tok in {t.lower() for t in _TOKEN_RE.findall(name or "")}:
+            if tok in _MINING_STOPWORDS or tok.isdigit():
+                continue
+            if any(tok in kw or kw in tok for kw in existing):
+                continue  # already covered, either direction
+            per_cat[cat][tok] += 1
+
+    total_per_token: Counter = Counter()
+    for counter in per_cat.values():
+        for tok, n in counter.items():
+            total_per_token[tok] += n
+
+    out: dict[str, list[tuple[str, int]]] = {}
+    for cat, counter in per_cat.items():
+        ranked = [
+            (tok, n)
+            for tok, n in counter.most_common()
+            if n >= min_count and (n / total_per_token[tok]) >= min_purity
+        ]
+        if ranked:
+            out[cat] = ranked[:top_n]
+    return out

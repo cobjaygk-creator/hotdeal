@@ -62,6 +62,42 @@ def test_classify_seafood_not_misc():
     assert classify("바지락 손질 1kg", None) == "식품"
 
 
+def test_mine_keyword_candidates_finds_new_but_not_known_words():
+    from app.engine.category import mine_keyword_candidates
+
+    labeled = [
+        ("가리비관자 냉동 300g", "식품"),
+        ("관자 특대 자숙 500g", "식품"),
+        ("관자 구이용 1kg", "식품"),
+        ("레깅스 하이웨스트 요가복", "의류"),
+        ("레깅스 9부 짐웨어", "의류"),
+        ("짐웨어 크롭탑 세트", "의류"),
+        # already-covered words must never surface as "new" candidates
+        ("쭈꾸미볶음 밀키트 300g", "식품"),
+        ("쭈꾸미볶음 매운맛 300g", "식품"),
+    ]
+    candidates = mine_keyword_candidates(labeled, min_count=2)
+    assert ("관자", 2) in candidates.get("식품", [])
+    assert ("짐웨어", 2) in candidates.get("의류", [])
+    food_tokens = {tok for tok, _ in candidates.get("식품", [])}
+    assert "쭈꾸미" not in food_tokens and "쭈꾸미볶음" not in food_tokens
+
+
+def test_mine_keyword_candidates_needs_purity_and_frequency():
+    from app.engine.category import mine_keyword_candidates
+
+    # "온라인" shows up once per category -> not distinctive to either.
+    labeled = [
+        ("온라인 특가 삼겹살 1kg", "식품"),
+        ("온라인 특가 레깅스", "의류"),
+        ("바지락 손질 1kg", "식품"),  # appears only once -> below min_count
+    ]
+    candidates = mine_keyword_candidates(labeled, min_count=2)
+    all_tokens = {tok for toks in candidates.values() for tok, _ in toks}
+    assert "온라인" not in all_tokens
+    assert "바지락" not in all_tokens
+
+
 def test_classify_real_misc_audit_2026_09():
     """Pulled from production's actual 기타 bucket and reviewed by hand —
     each of these is unambiguously one category, just missing a keyword."""
