@@ -53,6 +53,15 @@ def test_classify_ham_products_not_misc():
     assert classify("아침에 베이컨 500g", None) == "식품"
 
 
+def test_classify_seafood_not_misc():
+    # ppomppu (also no source-category badge) — same gap pattern as ham:
+    # common seafood nouns were simply absent from the keyword list.
+    assert classify("홍대쭈꾸미 300g x 6팩", None) == "식품"
+    assert classify("자숙 문어숙회 200g", None) == "식품"
+    assert classify("코다리조림 밀키트", None) == "식품"
+    assert classify("바지락 손질 1kg", None) == "식품"
+
+
 def test_classify_former_misc_buckets():
     assert classify("처음 읽는 한국사1/삼국지5/그리스로마신화 15", "G마켓") == "도서"
     assert classify("아이폰 15 프로 자급제", "쿠팡") == "PC"
