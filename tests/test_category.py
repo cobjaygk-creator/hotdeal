@@ -62,6 +62,32 @@ def test_classify_seafood_not_misc():
     assert classify("바지락 손질 1kg", None) == "식품"
 
 
+def test_classify_real_misc_audit_2026_09():
+    """Pulled from production's actual 기타 bucket and reviewed by hand —
+    each of these is unambiguously one category, just missing a keyword."""
+    assert classify("하이디라오 마라샹궈 소스, 220g, 1개", None) == "식품"
+    assert classify("미트엔조이 목전지 2kg 네이버멤버십", "네이버") == "식품"
+    assert classify("호주산 냉장 치마살 1kg 구이용", None) == "식품"
+    assert classify("소머리곰탕 600g x 6봉 임박", None) == "식품"
+    assert classify("동원샘물 무라벨 2L 30병", "동원") == "식품"
+    assert classify("(농할) 국내산 양파 대 사이즈 5kg", None) == "식품"
+    assert classify("GNC 밀크씨슬 1300mg 120정 1통", None) == "식품"
+    assert classify("탄산워싱소다 3kg x 2개+ 베이킹소다 3kg", None) == "생활"
+    assert classify("닥터클로 곰팡이제거제 500ml 2개", None) == "생활"
+    assert classify("올트라이탄 밀폐용기 350ml 2개+1.2L 1개", None) == "생활"
+    assert classify("스케쳐스 여성 슬립온 아치핏 리파인 3종 택1", "스케쳐스") == "의류"
+    assert classify("크록스 바야밴드 클로그", "크록스") == "의류"
+    assert classify("주니어 챔스 풋살화 축구화", None) == "의류"
+    assert classify("BYC 순면런닝 10개", "BYC") == "의류"
+    assert classify("LG 나노셀 AI TV 75NANO90ABA", "LG") == "가전"
+    assert classify("아이나비 QXD9900mini 64gb 메모리업+외장 GPS", None) == "PC"
+    # Guard against the obvious false-positive traps these additions could
+    # have opened up (luggage/car trunk vs underwear "트렁크"; treadmill vs
+    # the "런닝" in a Korean-style undershirt name).
+    assert classify("SUV 트렁크 정리함 수납박스", None) != "의류"
+    assert classify("휴대용 접이식 런닝머신", None) != "의류"
+
+
 def test_classify_former_misc_buckets():
     assert classify("처음 읽는 한국사1/삼국지5/그리스로마신화 15", "G마켓") == "도서"
     assert classify("아이폰 15 프로 자급제", "쿠팡") == "PC"
