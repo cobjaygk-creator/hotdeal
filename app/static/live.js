@@ -34,8 +34,30 @@ function saveBookmarks(ids) {
   scheduleBookmarkSync(ids);
 }
 
-let meLoggedIn = false;
+let meLoggedIn = !!config.loggedIn;
 let bookmarkTimer = null;
+
+function showLoginNudge() {
+  if (meLoggedIn) return;
+  try {
+    if (sessionStorage.getItem("hotdeal.loginNudge")) return;
+    sessionStorage.setItem("hotdeal.loginNudge", "1");
+  } catch (e) {}
+  let el = document.getElementById("login-nudge");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "login-nudge";
+    el.className = "login-nudge";
+    el.innerHTML =
+      '<span>로그인하면 다른 기기에서도 찜한 딜을 볼 수 있어요.</span>' +
+      '<a href="/login">로그인</a>' +
+      '<button type="button" aria-label="닫기">&times;</button>';
+    document.body.appendChild(el);
+    el.querySelector("button").addEventListener("click", () => el.remove());
+  }
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.remove(), 7000);
+}
 
 function scheduleBookmarkSync(ids) {
   if (!meLoggedIn) return;
@@ -1293,7 +1315,8 @@ document.addEventListener("click", (e) => {
   if (mark) {
     e.preventDefault();
     e.stopPropagation();
-    toggleBookmark(mark.dataset.dealId);
+    const added = toggleBookmark(mark.dataset.dealId);
+    if (added) showLoginNudge();
     return;
   }
   if (e.target.closest("[data-close]")) {

@@ -90,7 +90,8 @@
   "pageSize": page_size,
   "hasMore": has_more,
   "sourceLabels": source_labels,
-  "sources": sources
+  "sources": sources,
+  "loggedIn": user is not none
 } | tojson | safe }}</script>
 {% include "_deal_modal.html" %}
 {% if initial_deal_id %}<script>window.__initialDealId = {{ initial_deal_id }};</script>{% endif %}

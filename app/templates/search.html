@@ -29,7 +29,8 @@
   "source": "",
   "pageSize": 50,
   "hasMore": false,
-  "sourceLabels": source_labels
+  "sourceLabels": source_labels,
+  "loggedIn": user is not none
 } | tojson | safe }}</script>
 {% include "_deal_modal.html" %}
 <script src="/static/comments.js?v={{ asset_v }}"></script>
