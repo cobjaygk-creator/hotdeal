@@ -45,6 +45,14 @@ def test_classify_uses_source_category_only_as_fallback():
     assert classify("젠하이저 헤드폰", None, "가전/TV") == "PC"
 
 
+def test_classify_ham_products_not_misc():
+    # fmkorea has no source-category badge, so this relied purely on keyword
+    # coverage — "햄" itself was missing and it fell into "기타".
+    assert classify("목우촌 주부9단 살코기햄 1kg 2개", "네이버") == "식품"
+    assert classify("오뚜기 리챔 런천미트 340g 3캔", "쿠팡") == "식품"
+    assert classify("아침에 베이컨 500g", None) == "식품"
+
+
 def test_classify_former_misc_buckets():
     assert classify("처음 읽는 한국사1/삼국지5/그리스로마신화 15", "G마켓") == "도서"
     assert classify("아이폰 15 프로 자급제", "쿠팡") == "PC"
