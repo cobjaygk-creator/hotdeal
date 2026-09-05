@@ -1,0 +1,36 @@
+{% extends "admin_base.html" %}
+{% block title %}회원관리 · 핫딜모음{% endblock %}
+{% block admin_body %}
+<div class="page-head"><h1>회원관리</h1><div class="page-meta">{{ users|length }}명</div></div>
+
+<table class="admin-table">
+  <thead>
+    <tr><th>이름</th><th>로그인</th><th>가입일</th><th>최근 로그인</th><th>권한</th></tr>
+  </thead>
+  <tbody>
+    {% for u in users %}
+    <tr>
+      <td>{{ u.display_name or u.username or u.email or ("#" ~ u.id) }}</td>
+      <td>{{ u.providers or (u.username and "로컬") or "-" }}</td>
+      <td>{{ u.created_at | kst }}</td>
+      <td>{{ u.last_login_at | kst }}</td>
+      <td>
+        {% if u.id == me_id %}
+        <span class="muted">본인</span>
+        {% elif u.username == bootstrap_username %}
+        <span class="muted">기본 관리자</span>
+        {% else %}
+        <form method="post" action="/admin/users" style="display:inline">
+          <input type="hidden" name="action" value="toggle_admin">
+          <input type="hidden" name="user_id" value="{{ u.id }}">
+          <button type="submit" class="btn-secondary">
+            {% if u.is_admin %}관리자 해제{% else %}관리자 지정{% endif %}
+          </button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

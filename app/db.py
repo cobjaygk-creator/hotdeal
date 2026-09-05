@@ -109,6 +109,7 @@ CREATE TABLE IF NOT EXISTS alert_subs (
     enabled INTEGER NOT NULL DEFAULT 1,
     origin TEXT NOT NULL DEFAULT 'admin',
     created_at TEXT NOT NULL,
+    user_id INTEGER,
     UNIQUE(keyword, channel, target)
 );
 
@@ -202,6 +203,7 @@ CREATE TABLE IF NOT EXISTS market_listings (
 );
 
 CREATE INDEX IF NOT EXISTS idx_deal_comments_deal ON deal_comments(deal_id, id);
+CREATE INDEX IF NOT EXISTS idx_deal_comments_user ON deal_comments(user_id, id);
 CREATE INDEX IF NOT EXISTS idx_deal_reactions_deal ON deal_reactions(deal_id, kind);
 CREATE INDEX IF NOT EXISTS idx_deal_reports_created ON deal_reports(created_at);
 CREATE INDEX IF NOT EXISTS idx_market_listings_key ON market_listings(product_key, fetched_at);
@@ -575,6 +577,7 @@ async def _ensure_comment_tables(conn: aiosqlite.Connection) -> None:
             created_at TEXT NOT NULL
         );
         CREATE INDEX IF NOT EXISTS idx_deal_comments_deal ON deal_comments(deal_id, id);
+        CREATE INDEX IF NOT EXISTS idx_deal_comments_user ON deal_comments(user_id, id);
         CREATE INDEX IF NOT EXISTS idx_deal_reactions_deal ON deal_reactions(deal_id, kind);
         CREATE INDEX IF NOT EXISTS idx_deal_reports_created ON deal_reports(created_at);
         """

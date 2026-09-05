@@ -1459,6 +1459,36 @@ body.modal-open { overflow: hidden; }
   vertical-align: top;
 }
 .admin-table th { color: var(--ink-muted); font-size: var(--text-label); font-weight: 700; }
+.table-scroll { overflow-x: auto; }
+
+/* ---------------- Admin dashboard ---------------- */
+.admin-layout { display: grid; grid-template-columns: 168px minmax(0, 1fr); gap: 24px; }
+@media (max-width: 640px) {
+  .admin-layout { grid-template-columns: 1fr; }
+  .admin-side { display: flex; flex-wrap: wrap; gap: 6px; }
+}
+.admin-side { display: flex; flex-direction: column; gap: 2px; }
+.admin-side a {
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-body-sm);
+  font-weight: 600;
+  color: var(--ink-muted);
+  text-decoration: none;
+}
+.admin-side a:hover { background: var(--surface-hover); color: var(--ink); }
+.admin-side a.on { background: var(--surface-sunken); color: var(--ink); }
+.admin-content { min-width: 0; }
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+.metric-tile { background: var(--surface-sunken); border-radius: var(--radius-lg); padding: 14px 16px; }
+.metric-label { font-size: var(--text-label); color: var(--ink-muted); margin-bottom: 6px; }
+.metric-value { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.admin-collect-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 
 /* ---------------- Badges ---------------- */
 .badge {

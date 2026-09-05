@@ -32,6 +32,7 @@ from app.config import (
     COLLECT_SLOW_MINUTES,
     MALL_ENRICH_INTERVAL_SECONDS,
     ENABLE_COLLECT,
+    ADMIN_USERNAME,
     ADSENSE_PUBLISHER_ID,
     ADSENSE_SIDEBAR_SLOT_ID,
     COUPANG_ENABLED,
@@ -1075,6 +1076,46 @@ async def api_me_bookmarks_put(request: Request, payload: BookmarkIn):
     return {"ids": ids}
 
 
+@app.get("/mypage", response_class=HTMLResponse)
+async def mypage(request: Request):
+    user = _require_user(request)
+    db = _db()
+    bookmark_ids = await user_auth.list_bookmark_ids(db, user["id"])
+    cards = await _list_deals(ids=bookmark_ids, limit=user_auth.MAX_BOOKMARKS)
+    order = {deal_id: i for i, deal_id in enumerate(bookmark_ids)}
+    cards.sort(key=lambda d: order.get(d["id"], 1_000_000))
+    await _attach_sources(db, cards)
+    _attach_user_comments(cards)
+    cur = await db.execute(
+        "SELECT GROUP_CONCAT(provider) AS p FROM oauth_identities WHERE user_id=?",
+        (user["id"],),
+    )
+    providers = (await cur.fetchone())["p"] or ""
+    return TEMPLATES.TemplateResponse(
+        "mypage.html",
+        {
+            "request": request,
+            "nav": "mypage",
+            "bookmarks": cards,
+            "user_keywords": await user_auth.list_keywords(db, user["id"]),
+            "comments": await deal_comments.list_user_comments(db, user["id"]),
+            "providers": providers,
+            "source_labels": SOURCE_LABELS,
+        },
+    )
+
+
+@app.post("/mypage")
+async def mypage_post(request: Request, action: str = Form(...)):
+    user = _require_user(request)
+    if action == "delete_account":
+        await user_auth.delete_account(_db(), int(user["id"]))
+        resp = RedirectResponse("/", status_code=303)
+        resp.delete_cookie(user_auth.SESSION_COOKIE, path="/")
+        return resp
+    return RedirectResponse("/mypage", status_code=303)
+
+
 @app.get("/deal/{deal_id}", response_class=HTMLResponse)
 async def deal_detail(request: Request, deal_id: int):
     """목록 페이지를 그대로 렌더링하고 해당 딜의 미리보기 팝업을 열어 둔 채로 보여준다
@@ -1348,14 +1389,57 @@ async def api_deal_report(request: Request, deal_id: int, payload: ReportIn):
     return resp
 
 
+@app.get("/admin", response_class=HTMLResponse)
+async def admin_dashboard(request: Request):
+    _require_admin(request)
+    stats = await _stats()
+    return TEMPLATES.TemplateResponse(
+        "admin_dashboard.html",
+        {"request": request, "nav": "admin", "admin_section": "stats", "stats": stats},
+    )
+
+
 @app.get("/admin/reports", response_class=HTMLResponse)
 async def admin_reports(request: Request):
     _require_admin(request)
     rows = await deal_comments.list_reports(_db())
     return TEMPLATES.TemplateResponse(
         "admin_reports.html",
-        {"request": request, "nav": "admin", "reports": rows},
+        {"request": request, "nav": "admin", "admin_section": "reports", "reports": rows},
     )
+
+
+@app.get("/admin/users", response_class=HTMLResponse)
+async def admin_users(request: Request):
+    me = _require_admin(request)
+    users = await user_auth.list_users(_db())
+    return TEMPLATES.TemplateResponse(
+        "admin_users.html",
+        {
+            "request": request,
+            "nav": "admin",
+            "admin_section": "users",
+            "users": users,
+            "me_id": int(me["id"]),
+            "bootstrap_username": ADMIN_USERNAME,
+        },
+    )
+
+
+@app.post("/admin/users")
+async def admin_users_post(
+    request: Request,
+    action: str = Form(...),
+    user_id: int = Form(...),
+):
+    me = _require_admin(request)
+    if action == "toggle_admin" and user_id != int(me["id"]):
+        target = await user_auth.get_user(_db(), user_id)
+        if target and (target.get("username") or "") != ADMIN_USERNAME:
+            await user_auth.set_user_admin(
+                _db(), user_id, not user_auth.is_admin_user(target)
+            )
+    return RedirectResponse("/admin/users", status_code=303)
 
 
 @app.get("/api/stats")

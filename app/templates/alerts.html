@@ -23,50 +23,7 @@
 
 {% if user %}
 <h2>내 알림</h2>
-<p class="muted">키워드는 계정에 저장됩니다. 메시지를 받으려면 본인 텔레그램 채팅 ID나 디스코드 웹훅을 넣으세요. 사이트 기본 채널로는 보내지 않습니다.</p>
-<form method="post" action="/alerts" class="admin-form">
-  <input type="hidden" name="action" value="user_notify">
-  <label>채널
-    <select name="channel">
-      <option value="">저장만 (알림 안 보냄)</option>
-      <option value="telegram" {% if user.notify_channel == "telegram" %}selected{% endif %}>텔레그램</option>
-      <option value="discord" {% if user.notify_channel == "discord" %}selected{% endif %}>디스코드</option>
-    </select>
-  </label>
-  <label>대상<input name="target" placeholder="채팅 ID 또는 웹훅 URL" value=""></label>
-  <p class="muted">{% if user.notify_target %}대상이 저장되어 있습니다. 바꾸려면 다시 입력하세요.{% else %}아직 전송 대상이 없습니다.{% endif %}</p>
-  <button type="submit">알림 대상 저장</button>
-</form>
-
-<form method="post" action="/alerts" class="admin-form" style="margin-top:12px">
-  <input type="hidden" name="action" value="user_keyword">
-  <label>키워드<input name="keyword" required placeholder="카누"></label>
-  <label>최소 등급
-    <select name="min_grade">
-      <option selected>핫딜</option>
-      <option>특가</option>
-      <option>초특가</option>
-      <option>관심</option>
-    </select>
-  </label>
-  <button type="submit">키워드 저장</button>
-</form>
-
-<ul class="sale-list">
-  {% for s in user_keywords|default([]) %}
-  <li>
-    <strong>{{ s.keyword }}</strong>
-    <div class="muted" style="margin-top:4px;font-size:12px">{{ s.min_grade }} 이상</div>
-    <form method="post" action="/alerts" style="margin-top:8px">
-      <input type="hidden" name="action" value="user_keyword_delete">
-      <input type="hidden" name="keyword_id" value="{{ s.id }}">
-      <button type="submit" class="btn-secondary">삭제</button>
-    </form>
-  </li>
-  {% else %}
-  <li class="muted">저장한 키워드가 없습니다.</li>
-  {% endfor %}
-</ul>
+{% include "_alert_prefs.html" %}
 {% else %}
 <p class="muted">키워드를 기기에 묶어 두려면 <a href="/login">로그인</a>하세요. 북마크도 같이 동기화됩니다.</p>
 {% if oauth_ready.kakao or oauth_ready.google %}

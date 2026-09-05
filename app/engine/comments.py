@@ -140,6 +140,22 @@ async def list_comments(conn, deal_id: int, after_id: int = 0) -> list[dict]:
     return [dict(r) for r in await cur.fetchall()]
 
 
+async def list_user_comments(conn, user_id: int, limit: int = 50) -> list[dict]:
+    cur = await conn.execute(
+        """
+        SELECT c.id, c.deal_id, c.body, c.created_at,
+               d.product_name
+        FROM deal_comments c
+        JOIN deals d ON d.id = c.deal_id
+        WHERE c.user_id=? AND c.deleted_at IS NULL
+        ORDER BY c.id DESC
+        LIMIT ?
+        """,
+        (user_id, limit),
+    )
+    return [dict(r) for r in await cur.fetchall()]
+
+
 async def add_comment(
     conn,
     *,

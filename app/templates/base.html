@@ -92,8 +92,9 @@
         </summary>
         <div class="account-dropdown" role="menu">
           {% if user %}
+          <a href="/mypage" role="menuitem">마이페이지</a>
           <a href="/alerts" role="menuitem">알림 설정</a>
-          {% if is_admin %}<a href="/admin/reports" role="menuitem">신고 내역</a>{% endif %}
+          {% if is_admin %}<a href="/admin" role="menuitem">관리자</a>{% endif %}
           <a href="/logout" role="menuitem">로그아웃</a>
           {% else %}
           <a href="/login" role="menuitem">로그인</a>
@@ -149,9 +150,9 @@
           세일 등록
         </a>
         {% if is_admin %}
-        <a href="/admin/reports" class="{% if current_nav == 'reports' %}on{% endif %}">
+        <a href="/admin" class="{% if current_nav == 'admin' %}on{% endif %}">
           <span class="nav-ico" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3.5 2v12M3.5 3h8l-1.4 3L11.5 9h-8"></path></svg></span>
-          신고 내역
+          관리자
         </a>
         {% endif %}
       </nav>

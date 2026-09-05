@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block extra_head %}<meta name="robots" content="noindex">{% endblock %}
+{% block body %}
+<div class="admin-layout">
+  <nav class="admin-side" aria-label="관리자 메뉴">
+    <a href="/admin" class="{% if admin_section == 'stats' %}on{% endif %}">통계</a>
+    <a href="/admin/users" class="{% if admin_section == 'users' %}on{% endif %}">회원관리</a>
+    <a href="/admin/reports" class="{% if admin_section == 'reports' %}on{% endif %}">신고관리</a>
+    <a href="/admin#collect" class="{% if admin_section == 'collect' %}on{% endif %}">수집관리</a>
+  </nav>
+  <div class="admin-content">
+    {% block admin_body %}{% endblock %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends "admin_base.html" %}
+{% block title %}관리자 · 핫딜모음{% endblock %}
+{% block admin_body %}
+<div class="page-head"><h1>통계</h1></div>
+
+<div class="metric-grid">
+  <div class="metric-tile"><div class="metric-label">오늘 초특가</div><div class="metric-value">{{ stats.strong }}</div></div>
+  <div class="metric-tile"><div class="metric-label">오늘 핫딜+</div><div class="metric-value">{{ stats.today_hot }}</div></div>
+  <div class="metric-tile"><div class="metric-label">전체 딜</div><div class="metric-value">{{ "{:,}".format(stats.deals) }}</div></div>
+  <div class="metric-tile"><div class="metric-label">전체 게시글</div><div class="metric-value">{{ "{:,}".format(stats.posts) }}</div></div>
+</div>
+<p class="muted" style="margin-top:10px">마지막 수집 {{ stats.last_collect_at | kst }}</p>
+
+<h2 id="collect" style="margin-top:28px">수집관리</h2>
+<p class="muted">각 버튼은 해당 수집 파이프라인을 즉시 1회 실행합니다.</p>
+<div class="admin-collect-buttons">
+  <button type="button" class="btn-secondary" data-collect="/api/collect">전체 수집</button>
+  <button type="button" class="btn-secondary" data-collect="/api/ppomppu/enrich-malls">구매링크 보강</button>
+  <button type="button" class="btn-secondary" data-collect="/api/coupang/collect">쿠팡최저가 수집</button>
+  <button type="button" class="btn-secondary" data-collect="/api/amazon-jp/collect">일마존 수집</button>
+</div>
+<p class="muted" id="admin-collect-status" style="margin-top:8px"></p>
+<script>
+document.querySelectorAll("[data-collect]").forEach((btn) => {
+  btn.addEventListener("click", async () => {
+    const status = document.getElementById("admin-collect-status");
+    btn.disabled = true;
+    status.textContent = "실행 중…";
+    try {
+      const res = await fetch(btn.dataset.collect, { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      status.textContent = res.ok ? "완료: " + JSON.stringify(data) : (data.detail || "실패");
+    } catch (e) {
+      status.textContent = "요청 실패";
+    } finally {
+      btn.disabled = false;
+    }
+  });
+});
+</script>
+{% endblock %}

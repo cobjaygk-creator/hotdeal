@@ -461,6 +461,44 @@ async def set_notify(conn, user_id: int, channel: str, target: str) -> None:
     )
 
 
+async def delete_account(conn, user_id: int) -> None:
+    """Remove a user and their personal data. Comments are kept but
+    de-linked from the account (user_id -> NULL) so threads stay intact."""
+    from app.engine.alerts import delete_user_subs
+
+    await delete_user_subs(conn, user_id)
+    await conn.execute("UPDATE deal_comments SET user_id=NULL WHERE user_id=?", (user_id,))
+    await conn.execute("DELETE FROM user_bookmarks WHERE user_id=?", (user_id,))
+    await conn.execute("DELETE FROM user_keywords WHERE user_id=?", (user_id,))
+    await conn.execute("DELETE FROM oauth_identities WHERE user_id=?", (user_id,))
+    await conn.execute("DELETE FROM users WHERE id=?", (user_id,))
+    await conn.commit()
+
+
+async def list_users(conn, limit: int = 200) -> list[dict]:
+    cur = await conn.execute(
+        """
+        SELECT u.id, u.display_name, u.email, u.username, u.is_admin,
+               u.created_at, u.last_login_at,
+               (SELECT GROUP_CONCAT(oi.provider)
+                  FROM oauth_identities oi WHERE oi.user_id = u.id) AS providers
+        FROM users u
+        ORDER BY u.id DESC
+        LIMIT ?
+        """,
+        (limit,),
+    )
+    return [dict(r) for r in await cur.fetchall()]
+
+
+async def set_user_admin(conn, user_id: int, is_admin: bool) -> None:
+    await conn.execute(
+        "UPDATE users SET is_admin=? WHERE id=?",
+        (1 if is_admin else 0, user_id),
+    )
+    await conn.commit()
+
+
 async def sync_user_alert_subs(conn, user: dict) -> None:
     from app.engine.alerts import add_user_sub, delete_user_subs
 

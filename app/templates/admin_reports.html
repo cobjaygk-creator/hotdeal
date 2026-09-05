@@ -1,11 +1,8 @@
-{% extends "base.html" %}
-{% block title %}신고 내역 · 핫딜모음{% endblock %}
-{% block extra_head %}
-<meta name="robots" content="noindex">
-{% endblock %}
-{% block body %}
+{% extends "admin_base.html" %}
+{% block title %}신고관리 · 핫딜모음{% endblock %}
+{% block admin_body %}
 <div class="page-head">
-  <h1>신고 내역</h1>
+  <h1>신고관리</h1>
   <div class="page-meta">최근 {{ reports|length }}건</div>
 </div>
 {% if reports %}

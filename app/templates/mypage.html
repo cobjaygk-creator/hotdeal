@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}마이페이지 · 핫딜모음{% endblock %}
+{% block extra_head %}<meta name="robots" content="noindex">{% endblock %}
+{% block body %}
+<div class="page-head">
+  <h1>마이페이지</h1>
+  <div class="page-meta">{{ user.display_name }}{% if providers %} · {{ providers }} 로그인{% endif %}</div>
+</div>
+
+<h2>찜한 딜 <span class="muted" style="font-weight:400;font-size:13px">{{ bookmarks|length }}건</span></h2>
+{% if bookmarks %}
+<ul class="deal-cards">
+  {% for d in bookmarks %}{% include "_deal_card.html" %}{% endfor %}
+</ul>
+{% else %}
+<p class="muted">아직 찜한 딜이 없습니다. 딜 카드의 하트를 눌러 저장하세요.</p>
+{% endif %}
+
+<h2 style="margin-top:28px">키워드 알림</h2>
+{% include "_alert_prefs.html" %}
+
+<h2 style="margin-top:28px">내가 쓴 댓글 <span class="muted" style="font-weight:400;font-size:13px">{{ comments|length }}건</span></h2>
+<ul class="sale-list">
+  {% for c in comments %}
+  <li>
+    <a href="/deal/{{ c.deal_id }}" style="text-decoration:none">{{ c.body }}</a>
+    <div class="muted" style="margin-top:4px;font-size:12px">{{ c.product_name }} · {{ c.created_at | reltime }}</div>
+  </li>
+  {% else %}
+  <li class="muted">작성한 댓글이 없습니다.</li>
+  {% endfor %}
+</ul>
+
+<h2 style="margin-top:28px">계정</h2>
+<form method="post" action="/mypage" onsubmit="return confirm('정말 탈퇴하시겠습니까? 찜목록과 키워드 알림이 삭제됩니다. (댓글은 익명으로 남습니다)')">
+  <input type="hidden" name="action" value="delete_account">
+  <button type="submit" class="btn-secondary" style="color:var(--danger)">회원탈퇴</button>
+</form>
+{% endblock %}
