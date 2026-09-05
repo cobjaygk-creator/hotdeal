@@ -142,6 +142,7 @@ CREATE TABLE IF NOT EXISTS users (
     is_admin INTEGER NOT NULL DEFAULT 0,
     notify_channel TEXT,
     notify_target TEXT,
+    digest_opt_in INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL,
     last_login_at TEXT NOT NULL
 );
@@ -564,6 +565,7 @@ async def _ensure_auth_tables(conn: aiosqlite.Connection) -> None:
         ("username", "TEXT"),
         ("password_hash", "TEXT"),
         ("is_admin", "INTEGER NOT NULL DEFAULT 0"),
+        ("digest_opt_in", "INTEGER NOT NULL DEFAULT 0"),
     ):
         if name not in user_cols:
             await conn.execute(f"ALTER TABLE users ADD COLUMN {name} {decl}")

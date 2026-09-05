@@ -191,3 +191,13 @@ VAPID_PUBLIC_KEY = os.environ.get("VAPID_PUBLIC_KEY", "").strip()
 VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY", "").strip()
 VAPID_SUBJECT = (os.environ.get("VAPID_SUBJECT") or "mailto:admin@example.com").strip()
 WEBPUSH_ENABLED = bool(VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY)
+
+SMTP_HOST = os.environ.get("SMTP_HOST", "").strip()
+SMTP_PORT = int((os.environ.get("SMTP_PORT") or "587").strip() or "587")
+SMTP_USER = os.environ.get("SMTP_USER", "").strip()
+SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
+SMTP_FROM = (os.environ.get("SMTP_FROM") or SMTP_USER).strip()
+SMTP_STARTTLS = (os.environ.get("SMTP_STARTTLS") or "1").strip().lower() not in ("", "0", "false", "no")
+# Local KST hour (0-23) the daily digest goes out.
+EMAIL_DIGEST_HOUR = int((os.environ.get("EMAIL_DIGEST_HOUR") or "8").strip() or "8")
+EMAIL_DIGEST_ENABLED = bool(SMTP_HOST and SMTP_FROM)

@@ -1,4 +1,14 @@
 <p class="muted">키워드는 계정에 저장됩니다. 메시지를 받으려면 본인 텔레그램 채팅 ID나 디스코드 웹훅을 넣으세요. 사이트 기본 채널로는 보내지 않습니다.</p>
+
+{% if email_digest_enabled and user.email %}
+<form method="post" action="/alerts" class="admin-form" style="margin-bottom:12px">
+  <input type="hidden" name="action" value="user_digest">
+  <label style="flex-direction:row;align-items:center;gap:8px">
+    <input type="checkbox" name="digest" value="on" onchange="this.form.submit()" {% if user.digest_opt_in %}checked{% endif %}>
+    매일 아침 "오늘의 초특가" 메일 받기 ({{ user.email }})
+  </label>
+</form>
+{% endif %}
 <form method="post" action="/alerts" class="admin-form">
   <input type="hidden" name="action" value="user_notify">
   <label>채널

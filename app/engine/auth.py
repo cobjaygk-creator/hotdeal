@@ -370,6 +370,8 @@ def public_user(user: dict | None) -> dict | None:
         "is_admin": is_admin_user(user),
         "notify_channel": user.get("notify_channel") or "",
         "has_notify_target": bool(user.get("notify_target")),
+        "email": user.get("email") or "",
+        "digest_opt_in": bool(user.get("digest_opt_in")),
     }
 
 
@@ -505,6 +507,14 @@ async def set_user_admin(conn, user_id: int, is_admin: bool) -> None:
     await conn.execute(
         "UPDATE users SET is_admin=? WHERE id=?",
         (1 if is_admin else 0, user_id),
+    )
+    await conn.commit()
+
+
+async def set_digest(conn, user_id: int, opt_in: bool) -> None:
+    await conn.execute(
+        "UPDATE users SET digest_opt_in=? WHERE id=?",
+        (1 if opt_in else 0, user_id),
     )
     await conn.commit()
 

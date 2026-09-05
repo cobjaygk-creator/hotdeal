@@ -36,6 +36,8 @@ from app.config import (
     ADSENSE_PUBLISHER_ID,
     ADSENSE_SIDEBAR_SLOT_ID,
     COUPANG_ENABLED,
+    EMAIL_DIGEST_ENABLED,
+    EMAIL_DIGEST_HOUR,
     FAMILY_SALE_INTERVAL_MINUTES,
     GA_MEASUREMENT_ID,
     MVNO_ENABLED,
@@ -95,6 +97,7 @@ TEMPLATES.env.globals["adsense_sidebar_slot_id"] = ADSENSE_SIDEBAR_SLOT_ID
 TEMPLATES.env.globals["coupang_enabled"] = COUPANG_ENABLED
 TEMPLATES.env.globals["webpush_enabled"] = WEBPUSH_ENABLED
 TEMPLATES.env.globals["webpush_public_key"] = VAPID_PUBLIC_KEY
+TEMPLATES.env.globals["email_digest_enabled"] = EMAIL_DIGEST_ENABLED
 # Cache-busting query param for /static/*.css|js. base.html actually reads
 # `asset_v` (`{% set v = asset_v | default('', true) %}`) — the global must
 # be named to match, or the template's local `v` always falls back to ''.
@@ -240,6 +243,16 @@ async def lifespan(app: FastAPI):
             coalesce=True,
             next_run_time=datetime.now() + timedelta(seconds=20),
         )
+        if EMAIL_DIGEST_ENABLED:
+            scheduler.add_job(
+                _scheduled_email_digest,
+                "interval",
+                minutes=30,
+                id="email_digest",
+                max_instances=1,
+                coalesce=True,
+                next_run_time=datetime.now() + timedelta(minutes=2),
+            )
         log.info(
             "mall enrich worker enabled (proxy=%s)",
             "on" if PPOMPPU_PROXY_URL else "off",
@@ -277,6 +290,21 @@ async def attach_user(request: Request, call_next):
         except Exception:
             log.exception("auth load failed")
     return await call_next(request)
+
+
+async def _scheduled_email_digest() -> None:
+    from datetime import datetime as _dt
+
+    from app.engine.email_digest import run_digest
+    from app.util.timeparse import KST
+
+    if _dt.now(KST).hour != EMAIL_DIGEST_HOUR:
+        return
+    try:
+        summary = await run_digest(state["db"])
+        log.info("email digest %s", summary)
+    except Exception:
+        log.exception("email digest failed")
 
 
 async def _scheduled_watchdog() -> None:
@@ -717,8 +745,12 @@ async def alerts_post(
     target: str | None = Form(None),
     sub_id: int | None = Form(None),
     keyword_id: int | None = Form(None),
+    digest: str | None = Form(None),
 ):
     user = getattr(request.state, "user", None)
+    if action == "user_digest" and user:
+        await user_auth.set_digest(_db(), user["id"], digest == "on")
+        return RedirectResponse("/alerts", status_code=303)
     if action == "user_notify" and user:
         try:
             await user_auth.set_notify(_db(), user["id"], channel or "", target or "")
@@ -838,6 +870,16 @@ async def api_coupang_collect(request: Request):
     async with state["collect_lock"]:
         summary = await collect_coupang(state["db"])
     return JSONResponse(summary)
+
+
+@app.post("/api/admin/digest/send")
+async def api_admin_digest_send(request: Request):
+    _require_admin(request)
+    if not EMAIL_DIGEST_ENABLED:
+        raise HTTPException(404, "SMTP가 설정되지 않았습니다")
+    from app.engine.email_digest import run_digest
+
+    return JSONResponse(await run_digest(state["db"], force=True))
 
 
 @app.get("/mvno", response_class=HTMLResponse)

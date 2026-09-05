@@ -18,6 +18,7 @@
   <button type="button" class="btn-secondary" data-collect="/api/ppomppu/enrich-malls">구매링크 보강</button>
   <button type="button" class="btn-secondary" data-collect="/api/coupang/collect">쿠팡최저가 수집</button>
   <button type="button" class="btn-secondary" data-collect="/api/amazon-jp/collect">일마존 수집</button>
+  {% if email_digest_enabled %}<button type="button" class="btn-secondary" data-collect="/api/admin/digest/send">이메일 다이제스트 발송</button>{% endif %}
 </div>
 <p class="muted" id="admin-collect-status" style="margin-top:8px"></p>
 <script>
