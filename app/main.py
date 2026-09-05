@@ -22,6 +22,8 @@ from pydantic import BaseModel, Field
 
 from app.amazon_jp.pipeline import collect_amazon_jp
 from app.amazon_jp.query import list_amazon_jp_deals
+from app.coupang.pipeline import collect_coupang
+from app.coupang.query import list_coupang_deals
 from app.config import (
     AMAZON_JP_ENABLED,
     AMAZON_JP_INTERVAL_MINUTES,
@@ -30,6 +32,9 @@ from app.config import (
     COLLECT_SLOW_MINUTES,
     MALL_ENRICH_INTERVAL_SECONDS,
     ENABLE_COLLECT,
+    ADSENSE_PUBLISHER_ID,
+    ADSENSE_SIDEBAR_SLOT_ID,
+    COUPANG_ENABLED,
     FAMILY_SALE_INTERVAL_MINUTES,
     GA_MEASUREMENT_ID,
     MVNO_ENABLED,
@@ -82,6 +87,9 @@ TEMPLATES.env.globals["site_url"] = SITE_URL
 TEMPLATES.env.globals["amazon_jp_enabled"] = AMAZON_JP_ENABLED
 TEMPLATES.env.globals["mvno_enabled"] = MVNO_ENABLED
 TEMPLATES.env.globals["ga_measurement_id"] = GA_MEASUREMENT_ID
+TEMPLATES.env.globals["adsense_publisher_id"] = ADSENSE_PUBLISHER_ID
+TEMPLATES.env.globals["adsense_sidebar_slot_id"] = ADSENSE_SIDEBAR_SLOT_ID
+TEMPLATES.env.globals["coupang_enabled"] = COUPANG_ENABLED
 # Cache-busting query param for /static/*.css|js. base.html actually reads
 # `asset_v` (`{% set v = asset_v | default('', true) %}`) — the global must
 # be named to match, or the template's local `v` always falls back to ''.
@@ -800,6 +808,33 @@ async def amazon_jp_index(request: Request):
     )
 
 
+@app.get("/coupang", response_class=HTMLResponse)
+async def coupang_index(request: Request):
+    if not COUPANG_ENABLED:
+        raise HTTPException(404, "쿠팡최저가 메뉴가 비활성화되어 있습니다")
+    deals = await list_coupang_deals(_db())
+    last = await get_meta(_db(), "last_coupang_collect_at")
+    return TEMPLATES.TemplateResponse(
+        "coupang.html",
+        {
+            "request": request,
+            "nav": "coupang",
+            "deals": deals,
+            "last": last,
+        },
+    )
+
+
+@app.post("/api/coupang/collect")
+async def api_coupang_collect(request: Request):
+    _require_admin(request)
+    if not COUPANG_ENABLED:
+        raise HTTPException(404, "쿠팡 파트너스 키가 설정되지 않았습니다")
+    async with state["collect_lock"]:
+        summary = await collect_coupang(state["db"])
+    return JSONResponse(summary)
+
+
 @app.get("/mvno", response_class=HTMLResponse)
 async def mvno_index(request: Request, sort: str = "fee", mno: str | None = None):
     if not MVNO_ENABLED:
@@ -1127,6 +1162,14 @@ async def robots():
         f"Sitemap: {SITE_URL}/sitemap.xml\n"
     )
     return PlainTextResponse(body)
+
+
+@app.get("/ads.txt")
+async def ads_txt():
+    if not ADSENSE_PUBLISHER_ID:
+        raise HTTPException(404, "not configured")
+    pub = ADSENSE_PUBLISHER_ID.replace("ca-", "", 1)
+    return PlainTextResponse(f"google.com, {pub}, DIRECT, f08c47fec0942fa0\n")
 
 
 @app.get("/sitemap.xml")

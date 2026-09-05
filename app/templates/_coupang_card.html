@@ -1,0 +1,27 @@
+<li class="deal-card" data-product-id="{{ d.product_id }}">
+  <div class="deal-thumb-wrap">
+    {% if d.image_url %}
+    <img class="deal-thumb" src="{{ d.image_url }}" alt="" loading="lazy" referrerpolicy="no-referrer">
+    {% else %}
+    <div class="deal-thumb placeholder" aria-hidden="true"></div>
+    {% endif %}
+  </div>
+  <div class="deal-body">
+    <div class="deal-tags">
+      <span class="deal-tag deal-tag-mall" data-mall="coupang">쿠팡</span>
+    </div>
+    <a class="deal-title" href="{{ d.buy_url }}" target="_blank" rel="noopener nofollow sponsored">{{ d.title }}</a>
+    <div class="deal-price-row">
+      <div class="deal-price">{% if d.price %}{{ "{:,}".format(d.price) }}<span class="won">원</span>{% else %}-{% endif %}</div>
+      {% if d.original_price %}
+      <span class="muted" style="text-decoration:line-through">{{ "{:,}".format(d.original_price) }}원</span>
+      {% endif %}
+      {% if d.discount_rate is number and d.discount_rate > 0 %}
+      <span class="down">{{ "%.0f"|format(-d.discount_rate * 100) }}%</span>
+      {% endif %}
+    </div>
+    <div class="deal-foot">
+      <a class="deal-cta-btn" href="{{ d.buy_url }}" target="_blank" rel="noopener nofollow sponsored">쿠팡에서 보기</a>
+    </div>
+  </div>
+</li>

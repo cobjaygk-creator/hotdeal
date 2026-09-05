@@ -257,6 +257,21 @@ CREATE TABLE IF NOT EXISTS mvno_plans (
 CREATE INDEX IF NOT EXISTS idx_family_dates ON family_sales(start_date, end_date);
 CREATE INDEX IF NOT EXISTS idx_family_group ON family_sales(group_id);
 CREATE INDEX IF NOT EXISTS idx_amazon_jp_active ON amazon_jp_deals(active, discount_rate);
+CREATE TABLE IF NOT EXISTS coupang_deals (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    product_id TEXT NOT NULL UNIQUE,
+    title TEXT NOT NULL,
+    price INTEGER NOT NULL,
+    original_price INTEGER,
+    discount_rate REAL NOT NULL DEFAULT 0,
+    image_url TEXT,
+    buy_url TEXT NOT NULL,
+    category_id TEXT,
+    first_seen_at TEXT NOT NULL,
+    last_seen_at TEXT NOT NULL,
+    active INTEGER NOT NULL DEFAULT 1
+);
+CREATE INDEX IF NOT EXISTS idx_coupang_active ON coupang_deals(active, discount_rate);
 CREATE INDEX IF NOT EXISTS idx_mvno_active ON mvno_plans(active, discount_fee);
 """
 
@@ -447,6 +462,10 @@ async def _ensure_columns(conn: aiosqlite.Connection) -> None:
     except Exception:
         logging.getLogger("hotdeal").exception("amazon jp table failed")
     try:
+        await _ensure_coupang_table(conn)
+    except Exception:
+        logging.getLogger("hotdeal").exception("coupang table failed")
+    try:
         await _ensure_comment_tables(conn)
     except Exception:
         logging.getLogger("hotdeal").exception("comment tables failed")
@@ -606,6 +625,30 @@ async def _ensure_amazon_jp_table(conn: aiosqlite.Connection) -> None:
     )
     await conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_amazon_jp_active ON amazon_jp_deals(active, discount_rate)"
+    )
+
+
+async def _ensure_coupang_table(conn: aiosqlite.Connection) -> None:
+    await conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS coupang_deals (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            product_id TEXT NOT NULL UNIQUE,
+            title TEXT NOT NULL,
+            price INTEGER NOT NULL,
+            original_price INTEGER,
+            discount_rate REAL NOT NULL DEFAULT 0,
+            image_url TEXT,
+            buy_url TEXT NOT NULL,
+            category_id TEXT,
+            first_seen_at TEXT NOT NULL,
+            last_seen_at TEXT NOT NULL,
+            active INTEGER NOT NULL DEFAULT 1
+        )
+        """
+    )
+    await conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_coupang_active ON coupang_deals(active, discount_rate)"
     )
 
 
@@ -918,6 +961,53 @@ async def upsert_amazon_jp_deal(conn: aiosqlite.Connection, deal: dict) -> tuple
         },
     )
     cur = await conn.execute("SELECT id FROM amazon_jp_deals WHERE asin=?", (deal["asin"],))
+    row = await cur.fetchone()
+    return int(row["id"]), inserted
+
+
+async def upsert_coupang_deal(conn: aiosqlite.Connection, deal: dict) -> tuple[int, bool]:
+    now = utcnow_iso()
+    cur = await conn.execute(
+        "SELECT id FROM coupang_deals WHERE product_id=?",
+        (deal["product_id"],),
+    )
+    existing = await cur.fetchone()
+    inserted = existing is None
+    await conn.execute(
+        """
+        INSERT INTO coupang_deals(
+            product_id, title, price, original_price, discount_rate, image_url,
+            buy_url, category_id, first_seen_at, last_seen_at, active
+        ) VALUES(
+            :product_id, :title, :price, :original_price, :discount_rate, :image_url,
+            :buy_url, :category_id, :first_seen_at, :last_seen_at, :active
+        )
+        ON CONFLICT(product_id) DO UPDATE SET
+            title=excluded.title,
+            price=excluded.price,
+            original_price=COALESCE(excluded.original_price, coupang_deals.original_price),
+            discount_rate=excluded.discount_rate,
+            image_url=COALESCE(excluded.image_url, coupang_deals.image_url),
+            buy_url=excluded.buy_url,
+            category_id=excluded.category_id,
+            last_seen_at=excluded.last_seen_at,
+            active=1
+        """,
+        {
+            "product_id": deal["product_id"],
+            "title": deal["title"],
+            "price": int(deal["price"]),
+            "original_price": deal.get("original_price"),
+            "discount_rate": float(deal.get("discount_rate") or 0.0),
+            "image_url": deal.get("image_url"),
+            "buy_url": deal["buy_url"],
+            "category_id": deal.get("category_id"),
+            "first_seen_at": deal.get("first_seen_at") or now,
+            "last_seen_at": deal.get("last_seen_at") or now,
+            "active": 1 if deal.get("active", 1) else 0,
+        },
+    )
+    cur = await conn.execute("SELECT id FROM coupang_deals WHERE product_id=?", (deal["product_id"],))
     row = await cur.fetchone()
     return int(row["id"]), inserted
 

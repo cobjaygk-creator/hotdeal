@@ -19,6 +19,9 @@
     gtag('config', '{{ ga_measurement_id }}');
   </script>
   {% endif %}
+  {% if adsense_publisher_id %}
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ adsense_publisher_id }}" crossorigin="anonymous"></script>
+  {% endif %}
   <script type="application/ld+json">{{ website_jsonld | tojson }}</script>
   {# asset_v는 main.py에서 주입. 없으면 빈 문자열이 되어 아무 영향 없음 #}
   {% set v = asset_v | default('', true) %}
@@ -59,6 +62,9 @@
       <nav class="topbar-nav" aria-label="주요 메뉴">
         <a href="/" class="{% if current_nav == 'hotdeal' %}on{% endif %}">핫딜</a>
         <a href="/family" class="{% if current_nav == 'family' %}on{% endif %}">패밀리세일</a>
+        {% if coupang_enabled %}
+        <a href="/coupang" class="{% if current_nav == 'coupang' %}on{% endif %}">쿠팡최저가</a>
+        {% endif %}
         {% if amazon_jp_enabled %}
         <a href="/amazon-jp" class="{% if current_nav == 'amazon_jp' %}on{% endif %}">일마존</a>
         {% endif %}
@@ -105,6 +111,12 @@
           <span class="nav-ico" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8.6 1.5 3.5 9h3.4l-1 5.5L13 6.8H9.5l.9-5.3Z"></path></svg></span>
           핫딜
         </a>
+        {% if coupang_enabled %}
+        <a href="/coupang" class="{% if current_nav == 'coupang' %}on{% endif %}">
+          <span class="nav-ico" aria-hidden="true">C</span>
+          쿠팡최저가
+        </a>
+        {% endif %}
         {% if amazon_jp_enabled %}
         <a href="/amazon-jp" class="{% if current_nav == 'amazon_jp' %}on{% endif %}">
           <span class="nav-ico" aria-hidden="true">JP</span>
@@ -143,6 +155,12 @@
         </a>
         {% endif %}
       </nav>
+      {% if adsense_publisher_id and adsense_sidebar_slot_id %}
+      <div class="sidebar-ad">
+        <ins class="adsbygoogle" style="display:block" data-ad-client="{{ adsense_publisher_id }}" data-ad-slot="{{ adsense_sidebar_slot_id }}" data-ad-format="auto" data-full-width-responsive="true"></ins>
+        <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+      </div>
+      {% endif %}
     </aside>
 
     <div class="app-main">

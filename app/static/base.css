@@ -315,6 +315,7 @@ h2 {
 .site-footer a { color: var(--ink-faint) !important; text-decoration: none; }
 .site-footer a:hover { color: var(--ink-muted) !important; text-decoration: underline; }
 .site-footer-sep { margin: 0 8px; }
+.sidebar-ad { margin-top: 20px; padding: 0 4px; }
 
 /* ---------------- Page head ---------------- */
 .page-head {
