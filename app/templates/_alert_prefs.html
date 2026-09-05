@@ -3,15 +3,21 @@
   <input type="hidden" name="action" value="user_notify">
   <label>채널
     <select name="channel">
-      <option value="">저장만 (알림 안 보냄)</option>
+      <option value="">저장만 (알림함에만 쌓임)</option>
+      {% if webpush_enabled %}<option value="webpush" {% if user.notify_channel == "webpush" %}selected{% endif %}>웹 푸시 (브라우저 알림)</option>{% endif %}
       <option value="telegram" {% if user.notify_channel == "telegram" %}selected{% endif %}>텔레그램</option>
       <option value="discord" {% if user.notify_channel == "discord" %}selected{% endif %}>디스코드</option>
     </select>
   </label>
-  <label>대상<input name="target" placeholder="채팅 ID 또는 웹훅 URL" value=""></label>
-  <p class="muted">{% if user.notify_target %}대상이 저장되어 있습니다. 바꾸려면 다시 입력하세요.{% else %}아직 전송 대상이 없습니다.{% endif %}</p>
-  <button type="submit">알림 대상 저장</button>
+  <label>대상 (텔레그램/디스코드만)<input name="target" placeholder="채팅 ID 또는 웹훅 URL" value=""></label>
+  <p class="muted">{% if user.notify_target %}대상이 저장되어 있습니다. 바꾸려면 다시 입력하세요.{% else %}웹 푸시는 대상이 필요 없습니다.{% endif %}</p>
+  <button type="submit">알림 설정 저장</button>
 </form>
+{% if webpush_enabled %}
+<p style="margin:10px 0">
+  <button type="button" id="push-toggle" class="btn-secondary">이 기기에서 알림 받기</button>
+</p>
+{% endif %}
 
 <form method="post" action="/alerts" class="admin-form" style="margin-top:12px">
   <input type="hidden" name="action" value="user_keyword">

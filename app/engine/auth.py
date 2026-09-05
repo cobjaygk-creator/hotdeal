@@ -22,7 +22,7 @@ from app.config import (
     SITE_URL,
 )
 from app.db import utcnow_iso
-from app.engine.alerts import CHANNELS
+from app.engine.alerts import CHANNELS, TARGET_CHANNELS
 
 log = logging.getLogger("hotdeal.auth")
 
@@ -451,7 +451,7 @@ async def set_notify(conn, user_id: int, channel: str, target: str) -> None:
     target = (target or "").strip()
     if channel and channel not in CHANNELS:
         raise ValueError("channel")
-    if channel and not target:
+    if channel in TARGET_CHANNELS and not target:
         raise ValueError("target")
     if not channel:
         channel, target = None, None
@@ -503,10 +503,11 @@ async def sync_user_alert_subs(conn, user: dict) -> None:
     from app.engine.alerts import add_user_sub, delete_user_subs
 
     await delete_user_subs(conn, int(user["id"]))
-    channel = user.get("notify_channel")
-    target = user.get("notify_target")
-    if not channel or not target:
-        return
+    channel = user.get("notify_channel") or ""
+    target = user.get("notify_target") or ""
+    # Always create a sub per keyword (even with no channel) so the in-app
+    # inbox has something to record against. add_user_sub skips tg/discord
+    # rows that are missing their target.
     for row in await list_keywords(conn, int(user["id"])):
         await add_user_sub(
             conn,

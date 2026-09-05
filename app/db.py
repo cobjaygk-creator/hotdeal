@@ -117,9 +117,20 @@ CREATE TABLE IF NOT EXISTS alert_sent (
     sub_id INTEGER NOT NULL,
     deal_id INTEGER NOT NULL,
     sent_at TEXT NOT NULL,
+    read_at TEXT,
     PRIMARY KEY (sub_id, deal_id),
     FOREIGN KEY (sub_id) REFERENCES alert_subs(id)
 );
+
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    endpoint TEXT NOT NULL UNIQUE,
+    p256dh TEXT NOT NULL,
+    auth TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_push_subs_user ON push_subscriptions(user_id);
 
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -519,6 +530,24 @@ async def _ensure_auth_tables(conn: aiosqlite.Connection) -> None:
     cols = {row[1] for row in await cur.fetchall()}
     if "user_id" not in cols:
         await conn.execute("ALTER TABLE alert_subs ADD COLUMN user_id INTEGER")
+    cur = await conn.execute("PRAGMA table_info(alert_sent)")
+    if "read_at" not in {row[1] for row in await cur.fetchall()}:
+        await conn.execute("ALTER TABLE alert_sent ADD COLUMN read_at TEXT")
+    await conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS push_subscriptions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            endpoint TEXT NOT NULL UNIQUE,
+            p256dh TEXT NOT NULL,
+            auth TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        )
+        """
+    )
+    await conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_push_subs_user ON push_subscriptions(user_id)"
+    )
     cur = await conn.execute("PRAGMA table_info(users)")
     user_cols = {row[1] for row in await cur.fetchall()}
     for name, decl in (

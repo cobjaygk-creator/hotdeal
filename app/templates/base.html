@@ -78,9 +78,22 @@
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true" style="color:var(--ink-faint);flex:none"><circle cx="7" cy="7" r="4.5"></circle><path d="M10.5 10.5 14 14"></path></svg>
         <input type="search" name="q" placeholder="상품·판매처 검색" aria-label="검색어" value="{{ q|default('') }}">
       </form>
+      {% if user %}
+      <details class="account-menu inbox-menu" id="inbox-menu">
+        <summary class="icon-btn" aria-label="알림함">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M4 6.5a4 4 0 0 1 8 0c0 3 1 4 1 4H3s1-1 1-4Z"></path><path d="M6.6 13a1.6 1.6 0 0 0 2.8 0"></path></svg>
+          <span class="inbox-badge" hidden></span>
+        </summary>
+        <div class="account-dropdown inbox-dropdown" role="menu">
+          <div class="inbox-head">알림함 <a href="/alerts">설정</a></div>
+          <div class="inbox-list"></div>
+        </div>
+      </details>
+      {% else %}
       <a class="icon-btn" href="/alerts" aria-label="키워드 알림" title="키워드 알림">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M4 6.5a4 4 0 0 1 8 0c0 3 1 4 1 4H3s1-1 1-4Z"></path><path d="M6.6 13a1.6 1.6 0 0 0 2.8 0"></path></svg>
       </a>
+      {% endif %}
       <button type="button" class="theme-toggle" id="theme-toggle" aria-label="테마 전환" title="테마 전환">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="3.6"></circle><path d="M8 1v1.6M8 13.4V15M1 8h1.6M13.4 8H15M3.2 3.2l1.1 1.1M11.7 11.7l1.1 1.1M12.8 3.2l-1.1 1.1M4.3 11.7l-1.1 1.1"></path></svg>
       </button>
@@ -217,10 +230,15 @@
         });
       }
       document.addEventListener("click", function (e) {
-        var menu = document.querySelector(".account-menu");
-        if (menu && menu.open && !menu.contains(e.target)) menu.open = false;
+        document.querySelectorAll(".account-menu").forEach(function (menu) {
+          if (menu.open && !menu.contains(e.target)) menu.open = false;
+        });
       });
     })();
   </script>
+  {% if user %}
+  {% if webpush_enabled %}<span id="push-config" data-key="{{ webpush_public_key }}" hidden></span>{% endif %}
+  <script src="/static/push.js?v={{ asset_v }}" defer></script>
+  {% endif %}
 </body>
 </html>

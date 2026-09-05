@@ -15,7 +15,7 @@ from pathlib import Path
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI, Form, HTTPException, Query, Request
-from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse, Response, StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
@@ -39,6 +39,8 @@ from app.config import (
     FAMILY_SALE_INTERVAL_MINUTES,
     GA_MEASUREMENT_ID,
     MVNO_ENABLED,
+    VAPID_PUBLIC_KEY,
+    WEBPUSH_ENABLED,
     MVNO_INTERVAL_MINUTES,
     PPOMPPU_INTERVAL_SECONDS,
     QUASARZONE_INTERVAL_MINUTES,
@@ -91,6 +93,8 @@ TEMPLATES.env.globals["ga_measurement_id"] = GA_MEASUREMENT_ID
 TEMPLATES.env.globals["adsense_publisher_id"] = ADSENSE_PUBLISHER_ID
 TEMPLATES.env.globals["adsense_sidebar_slot_id"] = ADSENSE_SIDEBAR_SLOT_ID
 TEMPLATES.env.globals["coupang_enabled"] = COUPANG_ENABLED
+TEMPLATES.env.globals["webpush_enabled"] = WEBPUSH_ENABLED
+TEMPLATES.env.globals["webpush_public_key"] = VAPID_PUBLIC_KEY
 # Cache-busting query param for /static/*.css|js. base.html actually reads
 # `asset_v` (`{% set v = asset_v | default('', true) %}`) — the global must
 # be named to match, or the template's local `v` always falls back to ''.
@@ -1114,6 +1118,96 @@ async def mypage_post(request: Request, action: str = Form(...)):
         resp.delete_cookie(user_auth.SESSION_COOKIE, path="/")
         return resp
     return RedirectResponse("/mypage", status_code=303)
+
+
+@app.get("/sw.js")
+async def service_worker():
+    return FileResponse(
+        str(Path(__file__).parent / "static" / "sw.js"),
+        media_type="application/javascript",
+        headers={"Service-Worker-Allowed": "/", "Cache-Control": "no-cache"},
+    )
+
+
+@app.post("/api/push/subscribe")
+async def api_push_subscribe(request: Request):
+    user = _require_user(request)
+    if not WEBPUSH_ENABLED:
+        raise HTTPException(404, "web push not configured")
+    body = await request.json()
+    endpoint = (body or {}).get("endpoint")
+    keys = (body or {}).get("keys") or {}
+    p256dh, auth = keys.get("p256dh"), keys.get("auth")
+    if not (endpoint and p256dh and auth):
+        raise HTTPException(400, "bad subscription")
+    await _db().execute(
+        """
+        INSERT INTO push_subscriptions(user_id, endpoint, p256dh, auth, created_at)
+        VALUES(?,?,?,?,?)
+        ON CONFLICT(endpoint) DO UPDATE SET
+            user_id=excluded.user_id, p256dh=excluded.p256dh, auth=excluded.auth
+        """,
+        (int(user["id"]), endpoint, p256dh, auth, utcnow_iso()),
+    )
+    await _db().commit()
+    return {"ok": True}
+
+
+@app.post("/api/push/unsubscribe")
+async def api_push_unsubscribe(request: Request):
+    _require_user(request)
+    body = await request.json()
+    endpoint = (body or {}).get("endpoint")
+    if endpoint:
+        await _db().execute("DELETE FROM push_subscriptions WHERE endpoint=?", (endpoint,))
+        await _db().commit()
+    return {"ok": True}
+
+
+@app.get("/api/me/notifications")
+async def api_me_notifications(request: Request):
+    user = _require_user(request)
+    db = _db()
+    cur = await db.execute(
+        """
+        SELECT s.deal_id, s.sent_at, s.read_at, sub.keyword,
+               d.product_name, d.price
+        FROM alert_sent s
+        JOIN alert_subs sub ON sub.id = s.sub_id
+        JOIN deals d ON d.id = s.deal_id
+        WHERE sub.user_id = ?
+        ORDER BY s.sent_at DESC
+        LIMIT 30
+        """,
+        (int(user["id"]),),
+    )
+    items = [dict(r) for r in await cur.fetchall()]
+    cur = await db.execute(
+        """
+        SELECT COUNT(*) AS c FROM alert_sent s
+        JOIN alert_subs sub ON sub.id = s.sub_id
+        WHERE sub.user_id = ? AND s.read_at IS NULL
+        """,
+        (int(user["id"]),),
+    )
+    unread = int((await cur.fetchone())["c"])
+    return {"items": items, "unread": unread}
+
+
+@app.post("/api/me/notifications/read")
+async def api_me_notifications_read(request: Request):
+    user = _require_user(request)
+    await _db().execute(
+        """
+        UPDATE alert_sent SET read_at = ?
+        WHERE read_at IS NULL AND sub_id IN (
+            SELECT id FROM alert_subs WHERE user_id = ?
+        )
+        """,
+        (utcnow_iso(), int(user["id"])),
+    )
+    await _db().commit()
+    return {"ok": True}
 
 
 @app.get("/deal/{deal_id}", response_class=HTMLResponse)

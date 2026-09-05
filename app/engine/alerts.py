@@ -15,7 +15,9 @@ from app.db import utcnow_iso
 log = logging.getLogger("hotdeal.alerts")
 
 GRADE_ORDER = ("일반", "관심", "핫딜", "특가", "초특가")
-CHANNELS = ("telegram", "discord")
+CHANNELS = ("telegram", "discord", "webpush")
+# Channels that need a per-user target string (chat id / webhook url).
+TARGET_CHANNELS = ("telegram", "discord")
 
 
 def grade_rank(grade: str | None) -> int:
@@ -155,7 +157,12 @@ async def add_user_sub(
     keyword = keyword.strip()
     channel = channel.strip().lower()
     target = target.strip()
-    if not keyword or channel not in CHANNELS or not target:
+    if not keyword:
+        return
+    # "" channel = inbox-only. webpush needs no target. tg/discord need one.
+    if channel and channel not in CHANNELS:
+        return
+    if channel in TARGET_CHANNELS and not target:
         return
     await conn.execute(
         """
@@ -214,21 +221,24 @@ async def dispatch_alerts(conn, client, deals: list[dict]) -> dict:
             if await sent.fetchone():
                 summary["skipped"] += 1
                 continue
-            try:
-                await _deliver(client, sub, deal)
-            except Exception:
-                log.exception("alert send failed sub=%s deal=%s", sub["id"], did)
-                summary["errors"] += 1
-                continue
+            # Record it first so the in-app inbox shows every match even if
+            # the outbound channel (telegram/discord/webpush) fails.
             await conn.execute(
                 "INSERT OR IGNORE INTO alert_sent(sub_id, deal_id, sent_at) VALUES(?,?,?)",
                 (sub["id"], did, utcnow_iso()),
             )
             summary["sent"] += 1
+            if not sub.get("channel"):
+                continue
+            try:
+                await _deliver(conn, client, sub, deal)
+            except Exception:
+                log.exception("alert send failed sub=%s deal=%s", sub["id"], did)
+                summary["errors"] += 1
     return summary
 
 
-async def _deliver(client, sub: dict, deal: dict) -> None:
+async def _deliver(conn, client, sub: dict, deal: dict) -> None:
     text = format_alert(deal, sub["keyword"])
     channel = sub["channel"]
     target = sub["target"]
@@ -242,4 +252,37 @@ async def _deliver(client, sub: dict, deal: dict) -> None:
     if channel == "discord":
         await client.post_json(target, {"content": text[:1900]})
         return
+    if channel == "webpush":
+        await _deliver_webpush(conn, sub, deal)
+        return
     raise RuntimeError(f"unknown channel {channel}")
+
+
+async def _deliver_webpush(conn, sub: dict, deal: dict) -> None:
+    from app.engine.push import send_web_push
+
+    user_id = sub.get("user_id")
+    if not user_id:
+        return
+    cur = await conn.execute(
+        "SELECT id, endpoint, p256dh, auth FROM push_subscriptions WHERE user_id=?",
+        (user_id,),
+    )
+    rows = [dict(r) for r in await cur.fetchall()]
+    if not rows:
+        return
+    payload = {
+        "title": (deal.get("product_name") or "핫딜").strip(),
+        "body": format_alert(deal, sub["keyword"]).split("\n", 1)[-1][:180],
+        "url": f"{SITE_URL}/deal/{deal.get('id')}",
+    }
+    for row in rows:
+        info = {
+            "endpoint": row["endpoint"],
+            "keys": {"p256dh": row["p256dh"], "auth": row["auth"]},
+        }
+        status = await send_web_push(info, payload)
+        if status in (404, 410):
+            await conn.execute(
+                "DELETE FROM push_subscriptions WHERE id=?", (row["id"],)
+            )

@@ -220,6 +220,46 @@ h2 {
 }
 .account-dropdown a:hover { background: var(--surface-sunken); color: var(--ink); opacity: 1; }
 
+.inbox-menu { position: relative; }
+.inbox-menu > summary { position: relative; list-style: none; }
+.inbox-menu > summary::-webkit-details-marker { display: none; }
+.inbox-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: var(--price);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 15px;
+  text-align: center;
+}
+.inbox-dropdown { width: 280px; max-height: 380px; overflow-y: auto; }
+.inbox-head {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 10px 8px;
+  font-size: var(--text-label);
+  font-weight: 700;
+  color: var(--ink-muted);
+}
+.inbox-head a { color: var(--accent); text-decoration: none; }
+.inbox-list a {
+  display: block;
+  padding: 9px 10px;
+  border-radius: 7px;
+  text-decoration: none;
+  color: var(--ink);
+}
+.inbox-list a:hover { background: var(--surface-sunken); }
+.inbox-list strong { display: block; font-size: var(--text-body-sm); font-weight: 600; }
+.inbox-list span { font-size: var(--text-caption); color: var(--ink-faint); }
+.inbox-empty { padding: 16px 10px; text-align: center; color: var(--ink-faint); font-size: var(--text-body-sm); }
+
 .app-shell { display: flex; flex: 1; min-height: 0; min-width: 0; }
 
 /* ---------------- LNB ---------------- */
