@@ -576,13 +576,14 @@ button:disabled,
   position: relative;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
-.deal-card:hover { border-color: var(--border-strong); box-shadow: 0 2px 8px rgba(74,50,30,0.10); }
+.deal-card:hover { border-color: var(--border-strong); box-shadow: 0 2px 8px rgba(74,50,30,0.10); background: var(--surface-hover); }
 .deal-card.fresh {
   animation:
     deal-drop-in 700ms cubic-bezier(0.22, 1, 0.36, 1) var(--fresh-delay, 0ms) both,
     deal-new-pulse 5s ease-in-out var(--fresh-delay, 0ms) both;
 }
 .deal-card.hot-fresh { background: var(--surface); }
+.deal-card.hot-fresh:hover { background: var(--surface-hover); }
 .deal-card.is-shifting {
   will-change: opacity;
   pointer-events: none;
@@ -610,7 +611,7 @@ button:disabled,
   text-decoration: none;
   color: inherit;
 }
-.deal-row-main:hover { opacity: 1; background: var(--surface-hover); }
+.deal-row-main:hover { opacity: 1; }
 .deal-thumb-wrap {
   position: relative;
   display: flex;
