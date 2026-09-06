@@ -8,7 +8,8 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 14px;
+  box-shadow: var(--shadow);
+  padding: 16px;
 }
 .cal-nav {
   display: flex;
@@ -87,8 +88,9 @@ td.sel .cal-num:hover { background: transparent; }
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
   padding: 14px 16px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 .sale-list li.has-code { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
 .sale-list a { color: var(--ink); text-decoration: none; font-weight: 700; }
@@ -101,10 +103,11 @@ td.sel .cal-num:hover { background: transparent; }
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
   overflow: hidden;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
-.sale-card:hover { border-color: var(--border-strong); box-shadow: 0 2px 8px rgba(74,50,30,0.10); }
+.sale-card:hover { border-color: var(--border-strong); box-shadow: var(--shadow-lg); transform: translateY(-2px); }
 .sale-card.has-code { border-color: color-mix(in srgb, var(--accent) 40%, var(--border)); }
 .sale-card-body { display: flex; flex-direction: column; gap: 8px; padding: 16px; min-height: 140px; }
 .sale-card .deal-topline {
@@ -137,6 +140,7 @@ td.sel .cal-num:hover { background: transparent; }
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
   padding: 20px 18px;
   margin-bottom: 18px;
 }
@@ -263,6 +267,9 @@ td.sel .cal-num:hover { background: transparent; }
 .mp-card .admin-form + .admin-form { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
 .panel .sale-list,
 .mp-card .sale-list { margin-top: 12px; }
+/* 패널 안의 키워드 리스트는 카드 안이므로 그림자 없이 가볍게 */
+.panel .sale-list li,
+.mp-card .sale-list li { box-shadow: none; }
 
 /* ---------------- 약관·정책 (prose 카드) ---------------- */
 .prose-card {
