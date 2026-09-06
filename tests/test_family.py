@@ -21,6 +21,36 @@ def test_dealink_list():
     assert "패션의류" in n["categories"]
 
 
+def test_dealink_card_thumbnail():
+    html = """
+    <div class="swiper-slide-familysale">
+      <ul class="gallery-item-img">
+        <a href="https://dealink.co.kr/familysale/1200">
+          <img src="https://dealink.co.kr/data/file/familysale/thumb-abc_202x150.jpg" alt="">
+        </a>
+      </ul>
+      <ul class="gallery-item-info">패션↑</ul>
+      <ul class="gallery-item-tit"><a href="https://dealink.co.kr/familysale/1200">엘무드 패밀리세일 (~80%)</a></ul>
+      <ul class="gallery-item-date">2026-08-27 ~ 2026-09-04</ul>
+    </div>
+    """
+    sales = parse_list(html)
+    assert len(sales) == 1
+    assert sales[0].thumbnail_url == "https://dealink.co.kr/data/file/familysale/thumb-abc_202x150.jpg"
+    n = normalize_sale(sales[0])
+    assert n["thumbnail_url"] == sales[0].thumbnail_url
+
+
+def test_normalize_sale_thumbnail_passthrough():
+    raw = RawSale(
+        source_name="x", source_post_id="1", title="브랜드 패밀리세일 ~50%",
+        source_url="https://x/1", thumbnail_url="  https://img/x.jpg  ",
+    )
+    assert normalize_sale(raw)["thumbnail_url"] == "https://img/x.jpg"
+    raw2 = RawSale(source_name="x", source_post_id="2", title="t", source_url="https://x/2")
+    assert normalize_sale(raw2)["thumbnail_url"] is None
+
+
 def test_parse_helpers():
     assert parse_discount("네이밍 페스타 세일 ~89%", "최대 89%") == ("~89%", 89)
     brands = extract_brands("리바트 / 허레이 / 던스트", "브랜드데이")

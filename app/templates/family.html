@@ -29,13 +29,18 @@
   {% for s in sales %}
   <li class="fam-card{% if s.has_entry_code %} has-code{% endif %}">
     <a class="fam-card-link" href="/family/{{ s.id }}">
-      <div class="fam-cover">
+      <div class="fam-cover{% if s.thumbnail_url %} has-img{% endif %}">
         <div class="fam-badges">
           <span class="fam-badge status {% if s.status == '진행중' %}live{% endif %}">{{ s.status }}</span>
           {% if s.has_entry_code %}<span class="fam-badge code">입장코드</span>{% endif %}
         </div>
+        {% if s.thumbnail_url %}
+        <img class="fam-cover-img" src="{{ s.thumbnail_url }}" alt="" loading="lazy" referrerpolicy="no-referrer">
+        {% if s.discount_label %}<span class="fam-cover-badge">{{ s.discount_label }}</span>{% endif %}
+        {% else %}
         <span class="fam-cover-num">{{ s.discount_label or s.sale_type }}</span>
         {% if s.discount_label %}<span class="fam-cover-type">{{ s.sale_type }}</span>{% endif %}
+        {% endif %}
       </div>
       <div class="fam-body">
         <span class="fam-title">{{ s.title }}</span>

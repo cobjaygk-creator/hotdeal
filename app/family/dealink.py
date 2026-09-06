@@ -51,6 +51,12 @@ def parse_list(html: str) -> list[RawSale]:
         date_el = card.css_first("ul.gallery-item-date")
         hint_el = card.css_first("ul.gallery-item-con")
         labels = [ " ".join((s.text() or "").split()) for s in card.css(".bbs_list_label, .main_rb_bg") ]
+        img_el = card.css_first("ul.gallery-item-img img[src]")
+        thumb = (img_el.attributes.get("src") or "").strip() if img_el else None
+        if thumb and thumb.startswith("/"):
+            thumb = "https://dealink.co.kr" + thumb
+        if thumb and not thumb.startswith("http"):
+            thumb = None
         seen.add(post_id)
         sales.append(
             RawSale(
@@ -62,6 +68,7 @@ def parse_list(html: str) -> list[RawSale]:
                 date_range=" ".join((date_el.text() or "").split()) if date_el else None,
                 discount_hint=" ".join((hint_el.text() or "").split()) if hint_el else None,
                 labels=[x for x in labels if x],
+                thumbnail_url=thumb,
             )
         )
     return sales

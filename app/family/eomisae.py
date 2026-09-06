@@ -22,6 +22,7 @@ class EomisaeFamilySource:
                 title=post.title,
                 source_url=post.url,
                 date_range=post.title,
+                thumbnail_url=(post.extra or {}).get("thumbnail_url"),
             )
             try:
                 detail = await client.get(post.url)
@@ -42,6 +43,13 @@ async def _board_posts(client: PoliteClient):
 
 def enrich_from_detail(sale: RawSale, html: str) -> None:
     tree = HTMLParser(html)
+    if not sale.thumbnail_url:
+        og = tree.css_first('meta[property="og:image"]') or tree.css_first("meta[name='og:image']")
+        src = (og.attributes.get("content") or "").strip() if og else ""
+        if src.startswith("//"):
+            src = "https:" + src
+        if src.startswith("http"):
+            sale.thumbnail_url = src
     body = tree.css_first(".xe_content") or tree.css_first("#content") or tree.body
     text = body.text() if body else ""
     sale.body = " ".join(text.split())[:4000]

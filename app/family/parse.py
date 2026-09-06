@@ -124,6 +124,7 @@ def normalize_sale(raw: RawSale) -> dict:
         "discount_max": mx,
         "source_url": raw.source_url,
         "deal_url": raw.deal_url,
+        "thumbnail_url": (raw.thumbnail_url or "").strip() or None,
     }
 
 

@@ -34,6 +34,24 @@
   gap: 3px;
   text-align: center;
 }
+.fam-cover.has-img {
+  padding: 0;
+  aspect-ratio: 16 / 10;
+  min-height: 0;
+  background: var(--surface-sunken);
+}
+.fam-cover-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.fam-cover-badge {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  font-size: var(--text-label);
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--accent-ink);
+}
 .fam-cover-num {
   font-size: 22px;
   font-weight: 800;

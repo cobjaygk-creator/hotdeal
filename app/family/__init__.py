@@ -20,6 +20,7 @@ class RawSale:
     location: str | None = None
     entry_code: str | None = None
     body: str | None = None
+    thumbnail_url: str | None = None
 
 
 class FamilySource(Protocol):

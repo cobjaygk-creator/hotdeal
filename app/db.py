@@ -89,6 +89,7 @@ CREATE TABLE IF NOT EXISTS family_sales (
     discount_max INTEGER,
     source_url TEXT NOT NULL,
     deal_url TEXT,
+    thumbnail_url TEXT,
     collected_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     group_id INTEGER,
@@ -368,6 +369,11 @@ async def _ensure_columns(conn: aiosqlite.Connection) -> None:
         await conn.execute("ALTER TABLE posts ADD COLUMN thumbnail_url TEXT")
     if "body_html" not in post_cols:
         await conn.execute("ALTER TABLE posts ADD COLUMN body_html TEXT")
+
+    cur = await conn.execute("PRAGMA table_info(family_sales)")
+    fam_cols = {row[1] for row in await cur.fetchall()}
+    if fam_cols and "thumbnail_url" not in fam_cols:
+        await conn.execute("ALTER TABLE family_sales ADD COLUMN thumbnail_url TEXT")
 
     try:
         cleaned = await get_meta(conn, "cleaned_sub1000_prices")
@@ -897,11 +903,13 @@ async def upsert_family_sale(conn: aiosqlite.Connection, sale: dict) -> tuple[in
         INSERT INTO family_sales(
             source_name, source_post_id, title, brand_names, sale_type, sale_kind,
             start_date, end_date, location, has_entry_code, entry_code, categories,
-            discount_label, discount_max, source_url, deal_url, collected_at, updated_at, group_id
+            discount_label, discount_max, source_url, deal_url, thumbnail_url,
+            collected_at, updated_at, group_id
         ) VALUES(
             :source_name, :source_post_id, :title, :brand_names, :sale_type, :sale_kind,
             :start_date, :end_date, :location, :has_entry_code, :entry_code, :categories,
-            :discount_label, :discount_max, :source_url, :deal_url, :collected_at, :updated_at, :group_id
+            :discount_label, :discount_max, :source_url, :deal_url, :thumbnail_url,
+            :collected_at, :updated_at, :group_id
         )
         ON CONFLICT(source_name, source_post_id) DO UPDATE SET
             title=excluded.title,
@@ -918,6 +926,7 @@ async def upsert_family_sale(conn: aiosqlite.Connection, sale: dict) -> tuple[in
             discount_max=COALESCE(excluded.discount_max, family_sales.discount_max),
             source_url=excluded.source_url,
             deal_url=COALESCE(excluded.deal_url, family_sales.deal_url),
+            thumbnail_url=COALESCE(excluded.thumbnail_url, family_sales.thumbnail_url),
             updated_at=excluded.updated_at
         """,
         {
@@ -937,6 +946,7 @@ async def upsert_family_sale(conn: aiosqlite.Connection, sale: dict) -> tuple[in
             "discount_max": sale.get("discount_max"),
             "source_url": sale["source_url"],
             "deal_url": sale.get("deal_url"),
+            "thumbnail_url": sale.get("thumbnail_url"),
             "collected_at": sale.get("collected_at") or now,
             "updated_at": now,
             "group_id": sale.get("group_id"),
