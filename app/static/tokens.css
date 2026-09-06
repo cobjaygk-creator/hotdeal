@@ -45,11 +45,11 @@
   --border: #e9e3dc;
   --border-strong: #d3cbc1;
 
-  /* ---- 프라이머리: 브랜드 퍼플 ---- */
-  --accent: #5c0282;
-  --accent-hover: #470166;
+  /* ---- 프라이머리: 브랜드 오렌지 ---- */
+  --accent: #f26522;
+  --accent-hover: #d64f10;
   --accent-ink: #ffffff;
-  --accent-soft: #f3e8fb;
+  --accent-soft: #fdeee3;
 
   /* ---- 의미색 ---- */
   --success: #167c4a;        /* 최저가 갱신·라이브 정상 */
@@ -130,10 +130,10 @@
     --ink-faint: #6b7382;
     --border: #2f2a24;
     --border-strong: #403a30;
-    --accent: #c084fc;
-    --accent-hover: #d8b4fe;
-    --accent-ink: #2e1065;
-    --accent-soft: #2a1838;
+    --accent: #ff8a4c;
+    --accent-hover: #ffa570;
+    --accent-ink: #4a1c05;
+    --accent-soft: #3a1e0c;
     --success: #4caf7d;
     --warning: #e0a940;
     --danger: #e0685f;
@@ -171,10 +171,10 @@
   --ink-faint: #6b7382;
   --border: #2f2a24;
   --border-strong: #403a30;
-  --accent: #c084fc;
-  --accent-hover: #d8b4fe;
-  --accent-ink: #2e1065;
-  --accent-soft: #2a1838;
+  --accent: #ff8a4c;
+  --accent-hover: #ffa570;
+  --accent-ink: #4a1c05;
+  --accent-soft: #3a1e0c;
   --success: #4caf7d;
   --warning: #e0a940;
   --danger: #e0685f;

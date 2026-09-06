@@ -62,7 +62,7 @@
 
     var ink = cssVar("--ink", "#16181d");
     var faint = cssVar("--ink-faint", "#8b94a3");
-    var accent = cssVar("--accent", "#5c0282");
+    var accent = cssVar("--accent", "#f26522");
     var border = cssVar("--border", "#e4e7ec");
     var borderStrong = cssVar("--border-strong", "#cdd2da");
     var danger = cssVar("--danger", "#c81e1e");

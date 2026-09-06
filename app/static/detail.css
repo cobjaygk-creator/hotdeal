@@ -474,7 +474,7 @@
   background: var(--surface-sunken, #f3f5f8);
 }
 .dd-body-html a {
-  color: var(--accent, #5c0282);
+  color: var(--accent, #f26522);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
