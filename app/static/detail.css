@@ -26,7 +26,7 @@
     z-index: 6;
     background: var(--surface);
     border: 1px solid var(--border);
-    box-shadow: 0 1px 3px rgba(22, 24, 29, 0.08);
+    box-shadow: 0 1px 3px rgba(74, 50, 30, 0.08);
   }
   .modal-panel.is-detail .modal-close:hover {
     background: var(--surface-hover, #f7f8fa);
@@ -46,7 +46,7 @@
     border-radius: 16px;
     background: var(--surface);
     overflow: visible; /* 내부 스크롤 없이 모달과 함께 스크롤 */
-    box-shadow: 0 1px 2px rgba(22, 24, 29, 0.04);
+    box-shadow: 0 1px 2px rgba(74, 50, 30, 0.04);
   }
   .modal-panel.is-detail .dd-main-col > .dd-main {
     overflow: visible;
@@ -61,7 +61,7 @@
     border-radius: 16px;
     background: var(--surface);
     overflow: hidden; /* 내부 chat-log만 스크롤 */
-    box-shadow: 0 1px 2px rgba(22, 24, 29, 0.04);
+    box-shadow: 0 1px 2px rgba(74, 50, 30, 0.04);
   }
 }
 @media (max-width: 959px) {
@@ -95,7 +95,7 @@
     border-radius: 16px;
     background: var(--surface);
     overflow: visible; /* 내부 스크롤 없이 페이지와 함께 스크롤 */
-    box-shadow: 0 1px 2px rgba(22, 24, 29, 0.04);
+    box-shadow: 0 1px 2px rgba(74, 50, 30, 0.04);
   }
   .dd-page.is-detail .dd-main-col > .dd-main {
     overflow: visible;
@@ -109,7 +109,7 @@
     border-radius: 16px;
     background: var(--surface);
     overflow: hidden; /* 내부 chat-log만 스크롤 */
-    box-shadow: 0 1px 2px rgba(22, 24, 29, 0.04);
+    box-shadow: 0 1px 2px rgba(74, 50, 30, 0.04);
   }
   .dd-page.is-detail .dd-chat .chat-head {
     padding-right: 16px; /* 상세 페이지에는 모달 닫기 없음 */
@@ -153,7 +153,7 @@
   padding: 12px 16px 14px;
   background: var(--surface);
   border-top: 1px solid var(--border);
-  box-shadow: 0 -8px 20px -14px rgba(22, 24, 29, 0.28);
+  box-shadow: 0 -8px 20px -14px rgba(74, 50, 30, 0.28);
 }
 .dd-cta[hidden],
 .dd-cta:empty { display: none !important; }
@@ -613,7 +613,7 @@
   border: 1px solid var(--border);
   border-radius: 16px;
   background: var(--surface);
-  box-shadow: 0 12px 36px rgba(22, 24, 29, 0.18);
+  box-shadow: 0 12px 36px rgba(74, 50, 30, 0.18);
   pointer-events: none;
   box-sizing: border-box;
   opacity: 1;
