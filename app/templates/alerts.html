@@ -21,64 +21,71 @@
 {% elif error == "notify" %}<p class="down">채널을 고르면 대상(채팅 ID/웹훅)도 넣어 주세요.</p>
 {% elif error %}<p class="down">{{ error }}</p>{% endif %}
 
-{% if user %}
-<h2>내 알림</h2>
-{% include "_alert_prefs.html" %}
-{% else %}
-<p class="muted">키워드를 기기에 묶어 두려면 <a href="/login">로그인</a>하세요. 북마크도 같이 동기화됩니다.</p>
-{% if oauth_ready.naver or oauth_ready.kakao or oauth_ready.google %}
-<div class="oauth-row">
-  {% if oauth_ready.naver %}<a class="oauth-btn naver" href="/auth/naver">네이버 로그인</a>{% endif %}
-  {% if oauth_ready.kakao %}<a class="oauth-btn kakao" href="/auth/kakao">카카오 로그인</a>{% endif %}
-  {% if oauth_ready.google %}<a class="oauth-btn google" href="/auth/google">Google 로그인</a>{% endif %}
-</div>
-{% endif %}
-{% endif %}
+<div class="panel-stack">
 
-<h2>사이트 채널</h2>
-<p class="muted">운영자가 쓰는 텔레그램/디스코드입니다. Railway Variables: <code>TELEGRAM_BOT_TOKEN</code>, <code>TELEGRAM_CHAT_ID</code>, <code>DISCORD_WEBHOOK_URL</code>, 선택 <code>ALERT_KEYWORDS</code>.</p>
-
-{% if not authed %}
-<p class="muted">관리자 키워드 관리는 로그인이 필요합니다. <a href="/login">로그인하기</a></p>
-{% else %}
-<form method="post" action="/alerts" class="admin-form">
-  <input type="hidden" name="action" value="create">
-  <label>키워드<input name="keyword" required placeholder="카누"></label>
-  <label>최소 등급
-    <select name="min_grade">
-      <option selected>핫딜</option>
-      <option>특가</option>
-      <option>초특가</option>
-      <option>관심</option>
-    </select>
-  </label>
-  <label>채널
-    <select name="channel">
-      <option value="telegram">텔레그램</option>
-      <option value="discord">디스코드</option>
-    </select>
-  </label>
-  <label>대상 (비우면 환경변수 기본값)<input name="target" placeholder="채팅 ID 또는 웹훅 URL"></label>
-  <button type="submit">구독 추가</button>
-</form>
-
-<h2>등록된 키워드</h2>
-<ul class="sale-list">
-  {% for s in subs %}
-  <li>
-    <strong>{{ s.keyword }}</strong>
-    <div class="muted" style="margin-top:4px;font-size:12px">
-      {{ s.channel }} · {{ s.min_grade }} 이상 · {{ s.target_label }}{% if not s.enabled %} · 중지{% endif %}
+  <section class="panel">
+    <h2>내 알림</h2>
+    {% if user %}
+    {% include "_alert_prefs.html" %}
+    {% else %}
+    <p class="muted">키워드를 기기에 묶어 두려면 <a href="/login">로그인</a>하세요. 북마크도 같이 동기화됩니다.</p>
+    {% if oauth_ready.naver or oauth_ready.kakao or oauth_ready.google %}
+    <div class="oauth-row">
+      {% if oauth_ready.naver %}<a class="oauth-btn naver" href="/auth/naver">네이버 로그인</a>{% endif %}
+      {% if oauth_ready.kakao %}<a class="oauth-btn kakao" href="/auth/kakao">카카오 로그인</a>{% endif %}
+      {% if oauth_ready.google %}<a class="oauth-btn google" href="/auth/google">Google 로그인</a>{% endif %}
     </div>
-    <form method="post" action="/alerts" style="margin-top:8px">
-      <input type="hidden" name="action" value="delete">
-      <input type="hidden" name="sub_id" value="{{ s.id }}">
-      <button type="submit" class="btn-secondary">삭제</button>
+    {% endif %}
+    {% endif %}
+  </section>
+
+  <section class="panel">
+    <h2>사이트 채널 (운영자)</h2>
+    <p class="muted">운영자가 쓰는 텔레그램/디스코드입니다. Railway Variables: <code>TELEGRAM_BOT_TOKEN</code>, <code>TELEGRAM_CHAT_ID</code>, <code>DISCORD_WEBHOOK_URL</code>, 선택 <code>ALERT_KEYWORDS</code>.</p>
+
+    {% if not authed %}
+    <p class="muted">관리자 키워드 관리는 로그인이 필요합니다. <a href="/login">로그인하기</a></p>
+    {% else %}
+    <form method="post" action="/alerts" class="admin-form">
+      <input type="hidden" name="action" value="create">
+      <label>키워드<input name="keyword" required placeholder="카누"></label>
+      <label>최소 등급
+        <select name="min_grade">
+          <option selected>핫딜</option>
+          <option>특가</option>
+          <option>초특가</option>
+          <option>관심</option>
+        </select>
+      </label>
+      <label>채널
+        <select name="channel">
+          <option value="telegram">텔레그램</option>
+          <option value="discord">디스코드</option>
+        </select>
+      </label>
+      <label>대상 (비우면 환경변수 기본값)<input name="target" placeholder="채팅 ID 또는 웹훅 URL"></label>
+      <button type="submit">구독 추가</button>
     </form>
-  </li>
-  {% else %}
-  <li class="muted">아직 구독이 없습니다.</li>
-  {% endfor %}
-</ul>
-{% endif %}
+
+    <ul class="sale-list">
+      {% for s in subs %}
+      <li>
+        <strong>{{ s.keyword }}</strong>
+        <div class="muted" style="margin-top:4px;font-size:12px">
+          {{ s.channel }} · {{ s.min_grade }} 이상 · {{ s.target_label }}{% if not s.enabled %} · 중지{% endif %}
+        </div>
+        <form method="post" action="/alerts" style="margin-top:8px">
+          <input type="hidden" name="action" value="delete">
+          <input type="hidden" name="sub_id" value="{{ s.id }}">
+          <button type="submit" class="btn-secondary">삭제</button>
+        </form>
+      </li>
+      {% else %}
+      <li class="muted">아직 구독이 없습니다.</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </section>
+
+</div>
 {% endblock %}

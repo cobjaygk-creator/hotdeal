@@ -230,6 +230,40 @@ td.sel .cal-num:hover { background: transparent; }
 .auth-admin > summary::-webkit-details-marker { display: none; }
 .auth-admin .admin-form { max-width: none; margin-top: 14px; }
 
+/* ---------------- 공용 패널 카드 + 키워드 알림 ---------------- */
+.panel-stack { display: flex; flex-direction: column; gap: 16px; max-width: 760px; }
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: 20px 22px;
+}
+.panel > h2 {
+  margin: 0 0 14px;
+  font-size: var(--text-card-title);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.panel > p:first-child,
+.panel > .muted:first-child { margin-top: 0; }
+.panel > :last-child { margin-bottom: 0; }
+
+/* 패널·마이페이지 카드 안의 admin-form 은 테두리 없는 그리드로 평탄화 */
+.panel .admin-form,
+.mp-card .admin-form {
+  max-width: none;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+}
+.panel .admin-form + .admin-form,
+.mp-card .admin-form + .admin-form { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+.panel .sale-list,
+.mp-card .sale-list { margin-top: 12px; }
+
 @media (min-width: 900px) { .family-layout { grid-template-columns: 300px 1fr; } }
 
 /* ---------------- Deal SSR page ---------------- */
