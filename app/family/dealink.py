@@ -12,15 +12,33 @@ from app.family.parse import CAT_MAP
 LIST_URL = "https://dealink.co.kr/familysale"
 ID_RE = re.compile(r"/familysale/(\d+)")
 
+# 앞쪽 페이지일수록 진행중·예정 세일. 뒤로 갈수록 종료분이라 3페이지면 충분.
+PAGES = 3
+
 
 class DealinkSource:
     name = "dealink"
 
     async def fetch_latest(self, client: PoliteClient) -> list[RawSale]:
-        result = await client.get(LIST_URL)
-        if result.not_modified:
-            return []
-        return parse_list(result.text)
+        out: list[RawSale] = []
+        seen: set[str] = set()
+        for page in range(1, PAGES + 1):
+            url = LIST_URL if page == 1 else f"{LIST_URL}?page={page}"
+            try:
+                result = await client.get(url)
+            except Exception:
+                break
+            if result.not_modified:
+                continue
+            page_sales = parse_list(result.text)
+            if not page_sales:
+                break
+            for sale in page_sales:
+                if sale.source_post_id in seen:
+                    continue
+                seen.add(sale.source_post_id)
+                out.append(sale)
+        return out
 
 
 def parse_list(html: str) -> list[RawSale]:

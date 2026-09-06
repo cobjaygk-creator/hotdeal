@@ -34,6 +34,10 @@ async def collect_family_sales(conn, client: PoliteClient) -> dict:
         summary["sources"][source.name] = {"count": len(raws), "new": inserted, "updated": updated}
         summary["new"] += inserted
         summary["updated"] += updated
+    # 종료된 지 30일 넘은 세일은 정리 (그룹 병합 히스토리는 한 달치 유지)
+    await conn.execute(
+        "DELETE FROM family_sales WHERE end_date IS NOT NULL AND end_date < date('now', '-30 days')"
+    )
     await merge_family_groups(conn)
     await set_meta(conn, "last_family_collect_at", utcnow_iso())
     await conn.commit()
