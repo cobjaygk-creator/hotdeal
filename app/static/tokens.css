@@ -35,10 +35,10 @@
   --text-2xl: var(--text-display);
 
   /* ---- 표면 / 잉크 ---- */
-  --bg: #faf7f3;
+  --bg: #fafafa;
   --surface: #ffffff;
-  --surface-sunken: #f3eee8;
-  --surface-hover: #f8f4ef;
+  --surface-sunken: #f1f1f2;
+  --surface-hover: #f6f6f7;
   --ink: #16181d;
   --ink-muted: #5b6472;
   --ink-faint: #8b94a3;
