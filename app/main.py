@@ -828,11 +828,11 @@ def _require_admin(request: Request) -> dict:
     return user
 
 
-async def _ranking_deals(days: int = 7, limit: int = 50) -> list[dict]:
+async def _ranking_deals(hours: int = 12, limit: int = 50) -> list[dict]:
     from app.engine.ranking import rank_deals
 
     db = _db()
-    rows = await rank_deals(db, days=days, limit=limit)
+    rows = await rank_deals(db, hours=hours, limit=limit)
     deals = [_clean_deal(r) for r in rows]
     await _attach_sources(db, deals)
     await _attach_user_comments(deals)

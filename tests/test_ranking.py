@@ -62,14 +62,14 @@ async def test_rank_deals_orders_by_blended_popularity(tmp_path):
 async def test_rank_deals_excludes_old_and_deleted_comments(tmp_path):
     conn = await connect(tmp_path / "r2.db")
     try:
-        await _deal(conn, 1, "오래된 딜", seen="datetime('now','-30 days')")
+        await _deal(conn, 1, "오래된 딜", seen="datetime('now','-2 days')")
         await _deal(conn, 2, "최근 딜")
         await conn.execute(
             "INSERT INTO deal_comments(deal_id, nickname, body, created_at, deleted_at) "
             "VALUES(2,'n','b','x','2026-01-01')"  # soft-deleted -> not counted
         )
         await conn.commit()
-        ranked = await rank_deals(conn, days=7)
+        ranked = await rank_deals(conn, hours=12)
         assert [r["id"] for r in ranked] == [2]
         assert ranked[0]["site_comment_count"] == 0
     finally:

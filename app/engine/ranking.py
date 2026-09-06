@@ -19,7 +19,7 @@ VIEWS_CAP = 2000
 VOTES_CAP = 400
 
 
-async def rank_deals(conn, *, days: int = 7, limit: int = 50) -> list[dict]:
+async def rank_deals(conn, *, hours: int = 12, limit: int = 50) -> list[dict]:
     cur = await conn.execute(
         f"""
         SELECT d.*,
@@ -52,6 +52,6 @@ async def rank_deals(conn, *, days: int = 7, limit: int = 50) -> list[dict]:
         ORDER BY popularity DESC, d.last_seen_at DESC, d.id DESC
         LIMIT ?
         """,
-        (f"-{int(days)} days", int(limit)),
+        (f"-{int(hours)} hours", int(limit)),
     )
     return [dict(r) for r in await cur.fetchall()]
