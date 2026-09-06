@@ -35,15 +35,15 @@
   --text-2xl: var(--text-display);
 
   /* ---- 표면 / 잉크 ---- */
-  --bg: #f4f6f8;
+  --bg: #faf7f3;
   --surface: #ffffff;
-  --surface-sunken: #edf0f4;
-  --surface-hover: #f7f8fa;
+  --surface-sunken: #f3eee8;
+  --surface-hover: #f8f4ef;
   --ink: #16181d;
   --ink-muted: #5b6472;
   --ink-faint: #8b94a3;
-  --border: #e4e7ec;
-  --border-strong: #cdd2da;
+  --border: #e9e3dc;
+  --border-strong: #d3cbc1;
 
   /* ---- 프라이머리: 브랜드 퍼플 ---- */
   --accent: #5c0282;
@@ -81,13 +81,13 @@
   /* ---- 라운드 3종 ---- */
   --radius-sm: 8px;          /* 칩·인풋·버튼 */
   --radius: 8px;
-  --radius-lg: 12px;         /* 카드·패널 */
+  --radius-lg: 16px;         /* 카드·패널 (소프트 커머스) */
   --radius-pill: 999px;      /* 배지·아바타 */
 
-  /* ---- 그림자: 떠 있는 것에만 ---- */
+  /* ---- 그림자: 떠 있는 것에만 (따뜻한 틴트) ---- */
   --shadow-sm: none;
-  --shadow: 0 4px 16px #171b2314, 0 1px 3px #171b230f;
-  --shadow-lg: 0 12px 32px #171b2326;
+  --shadow: 0 6px 24px rgba(74,50,30,0.07), 0 1px 3px rgba(74,50,30,0.05);
+  --shadow-lg: 0 12px 32px rgba(74,50,30,0.14);
 
   /* ---- 간격 ---- */
   --space-1: 4px;
@@ -121,15 +121,15 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --bg: #12151b;
-    --surface: #1b1f27;
-    --surface-sunken: #20242d;
-    --surface-hover: #232833;
+    --bg: #16130f;
+    --surface: #1e1a16;
+    --surface-sunken: #241f19;
+    --surface-hover: #282219;
     --ink: #edeff3;
     --ink-muted: #97a1b0;
     --ink-faint: #6b7382;
-    --border: #2a2f3a;
-    --border-strong: #3a4150;
+    --border: #2f2a24;
+    --border-strong: #403a30;
     --accent: #c084fc;
     --accent-hover: #d8b4fe;
     --accent-ink: #2e1065;
@@ -162,15 +162,15 @@
 
 [data-theme="dark"] {
   color-scheme: dark;
-  --bg: #12151b;
-  --surface: #1b1f27;
-  --surface-sunken: #20242d;
-  --surface-hover: #232833;
+  --bg: #16130f;
+  --surface: #1e1a16;
+  --surface-sunken: #241f19;
+  --surface-hover: #282219;
   --ink: #edeff3;
   --ink-muted: #97a1b0;
   --ink-faint: #6b7382;
-  --border: #2a2f3a;
-  --border-strong: #3a4150;
+  --border: #2f2a24;
+  --border-strong: #403a30;
   --accent: #c084fc;
   --accent-hover: #d8b4fe;
   --accent-ink: #2e1065;
