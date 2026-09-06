@@ -6,6 +6,7 @@
   <div class="page-meta">최근 {{ reports|length }}건</div>
 </div>
 {% if reports %}
+<div class="table-card"><div class="table-scroll">
 <table class="admin-table">
   <thead>
     <tr><th>시각</th><th>딜</th><th>사유</th><th>내용</th></tr>
@@ -21,6 +22,7 @@
     {% endfor %}
   </tbody>
 </table>
+</div></div>
 {% else %}
 <p class="muted">아직 신고가 없습니다.</p>
 {% endif %}

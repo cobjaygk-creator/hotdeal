@@ -3,6 +3,7 @@
 {% block admin_body %}
 <div class="page-head"><h1>회원관리</h1><div class="page-meta">{{ users|length }}명</div></div>
 
+<div class="table-card"><div class="table-scroll">
 <table class="admin-table">
   <thead>
     <tr><th>이름</th><th>로그인</th><th>가입일</th><th>최근 로그인</th><th>권한</th></tr>
@@ -33,4 +34,5 @@
     {% endfor %}
   </tbody>
 </table>
+</div></div>
 {% endblock %}

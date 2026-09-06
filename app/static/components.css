@@ -1450,15 +1450,33 @@ body.modal-open { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) { .chat-row { animation: none; } }
 
 /* ---------------- Admin table ---------------- */
+.table-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.table-card .admin-table th:first-child,
+.table-card .admin-table td:first-child { padding-left: 20px; }
+.table-card .admin-table th:last-child,
+.table-card .admin-table td:last-child { padding-right: 20px; }
+.table-card .admin-table tr:last-child td { border-bottom: 0; }
 .admin-table { width: 100%; border-collapse: collapse; font-size: var(--text-body-sm); }
 .admin-table th,
 .admin-table td {
   text-align: left;
-  padding: 10px 8px;
+  padding: 12px 8px;
   border-bottom: 1px solid var(--border);
-  vertical-align: top;
+  vertical-align: middle;
 }
-.admin-table th { color: var(--ink-muted); font-size: var(--text-label); font-weight: 700; }
+.admin-table th {
+  color: var(--ink-faint);
+  font-size: var(--text-label);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  background: var(--surface-sunken);
+}
 .table-scroll { overflow-x: auto; }
 
 /* ---------------- Admin dashboard ---------------- */
@@ -1477,17 +1495,29 @@ body.modal-open { overflow: hidden; }
   text-decoration: none;
 }
 .admin-side a:hover { background: var(--surface-hover); color: var(--ink); }
-.admin-side a.on { background: var(--surface-sunken); color: var(--ink); }
+.admin-side a.on {
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 800;
+  box-shadow: var(--shadow);
+}
 .admin-content { min-width: 0; }
 .metric-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 12px;
+  gap: 14px;
   margin-top: 12px;
 }
-.metric-tile { background: var(--surface-sunken); border-radius: var(--radius-lg); padding: 14px 16px; }
-.metric-label { font-size: var(--text-label); color: var(--ink-muted); margin-bottom: 6px; }
-.metric-value { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.metric-tile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: 16px 18px;
+}
+.metric-label { font-size: var(--text-label); color: var(--ink-muted); margin-bottom: 8px; }
+.metric-value { font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.metric-tile:first-child .metric-value { color: var(--accent); }
 .admin-collect-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 
 /* ---------------- Ranking list ---------------- */
