@@ -6,15 +6,18 @@
 {% endblock %}
 {% block body %}
 <div class="page-head">
-  <div>
-    <h1>검색</h1>
-    <div class="page-meta" style="margin-top:8px">{% if q %}"{{ q }}" 결과 <strong>{{ deals|length }}</strong>건{% else %}상품명 또는 판매처로 찾습니다{% endif %}</div>
-  </div>
+  <h1>검색</h1>
 </div>
-<form class="toolbar" method="get" action="/search">
-  <input type="search" name="q" value="{{ q }}" placeholder="상품·판매처" aria-label="검색어" required style="flex:1;min-width:180px;max-width:420px">
+<form class="search-form" method="get" action="/search">
+  <span class="search-field">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+    <input type="search" name="q" value="{{ q }}" placeholder="상품·판매처 검색" aria-label="검색어" required>
+  </span>
   <button type="submit">검색</button>
 </form>
+<div class="search-meta">
+  {% if q %}"{{ q }}" 결과 <strong>{{ deals|length }}</strong>건{% else %}상품명 또는 판매처로 찾습니다{% endif %}
+</div>
 <ul class="deal-cards" id="deal-body">
   {% for d in deals %}
   {% include "_deal_card.html" %}

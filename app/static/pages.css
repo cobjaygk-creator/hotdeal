@@ -271,6 +271,51 @@ td.sel .cal-num:hover { background: transparent; }
 .panel .sale-list li,
 .mp-card .sale-list li { box-shadow: none; }
 
+/* ---------------- 검색 (소프트 커머스) ---------------- */
+.search-form {
+  max-width: 560px;
+  margin: 0 0 18px;
+  display: flex;
+  gap: 8px;
+}
+.search-field {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 52px;
+  padding: 0 18px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.search-field:focus-within { border-color: var(--accent); }
+.search-field svg { flex: none; color: var(--ink-faint); }
+.search-field input[type="search"] {
+  flex: 1;
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  font-size: var(--text-card-title);
+  font-weight: 600;
+}
+.search-field input[type="search"]:focus-visible { outline: 0; }
+.search-form > button { height: 52px; padding: 0 22px; border-radius: var(--radius-pill); }
+.search-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0 2px 14px;
+  font-size: var(--text-body-sm);
+  color: var(--ink-muted);
+}
+.search-meta strong { color: var(--ink); font-variant-numeric: tabular-nums; }
+
 /* ---------------- 약관·정책 (prose 카드) ---------------- */
 .prose-card {
   max-width: 720px;
