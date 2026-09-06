@@ -14,6 +14,8 @@ class EomisaeFamilySource:
         posts = await _board_posts(client)
         sales: list[RawSale] = []
         for post in posts:
+            # 어미새 fs/rt 게시판은 단일 상품딜도 섞여 있어 board만으로는
+            # 구분이 안 된다 — 제목에 패밀리세일/임직원/시크릿이 명시된 글만.
             if not is_family_title(post.title):
                 continue
             sale = RawSale(
@@ -22,6 +24,7 @@ class EomisaeFamilySource:
                 title=post.title,
                 source_url=post.url,
                 date_range=post.title,
+                category_raw=(post.extra or {}).get("source_category"),
                 thumbnail_url=(post.extra or {}).get("thumbnail_url"),
             )
             try:

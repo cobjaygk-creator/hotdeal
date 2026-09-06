@@ -73,6 +73,12 @@ def map_category(raw: str | None, title: str) -> tuple[list[str], str | None]:
     if "브랜드데이" in text or "브랜드데이" in title:
         kind = "브랜드데이"
     mapped = CAT_MAP.get(text)
+    if not mapped:
+        # "패션기타", "잡화해외" 처럼 접두 키워드로 들어오는 소스(어미새) 대응
+        for key, val in CAT_MAP.items():
+            if key in text:
+                mapped = val
+                break
     if mapped:
         cats.append(mapped)
     elif text and text not in ("브랜드데이",):

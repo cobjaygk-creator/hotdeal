@@ -31,7 +31,7 @@
     <a class="fam-card-link" href="/family/{{ s.id }}">
       <div class="fam-cover{% if s.thumbnail_url %} has-img{% endif %}">
         <div class="fam-badges">
-          <span class="fam-badge status {% if s.status == '진행중' %}live{% endif %}">{{ s.status }}</span>
+          <span class="fam-badge status {% if s.status == '진행중' %}live{% endif %}">{% if s.status == '확인필요' %}기간미정{% else %}{{ s.status }}{% endif %}</span>
           {% if s.has_entry_code %}<span class="fam-badge code">입장코드</span>{% endif %}
         </div>
         {% if s.thumbnail_url %}
@@ -47,7 +47,9 @@
         {% if s.brands_label and s.brands_label != '-' %}<span class="fam-brands">{{ s.brands_label }}</span>{% endif %}
         <div class="fam-meta">
           {% if s.cats_label %}<span class="fam-cats">{{ s.cats_label }}</span>{% endif %}
+          {% if s.start_date or s.end_date %}
           <span class="fam-date">{{ s.start_date or '?' }} ~ {{ s.end_date or '?' }}</span>
+          {% endif %}
         </div>
       </div>
     </a>

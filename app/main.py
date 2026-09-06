@@ -594,9 +594,20 @@ async def family_index(
     cats = parse_cats(cat or [])
     entry_only = code == "1"
     sales = await list_sales(_db(), categories=cats, entry_only=entry_only, include_ended=False)
-    status_order = {"진행중": 0, "예정": 1}
+    status_order = {"진행중": 0, "예정": 1, "확인필요": 2}
+    stale_before = (datetime.utcnow() - timedelta(days=21)).strftime("%Y-%m-%d")
+
+    def _visible(s: dict) -> bool:
+        st = s["status"]
+        if st in ("진행중", "예정"):
+            return True
+        # 날짜 파싱이 안 된 세일도 최근 수집분이면 노출(뒤로), 오래되면 자동 숨김
+        if st == "확인필요":
+            return (s.get("collected_at") or "")[:10] >= stale_before
+        return False
+
     live = sorted(
-        (s for s in sales if s["status"] in ("진행중", "예정")),
+        (s for s in sales if _visible(s)),
         key=lambda s: (
             status_order.get(s["status"], 9),
             not s.get("has_entry_code"),

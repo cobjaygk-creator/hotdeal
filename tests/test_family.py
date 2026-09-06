@@ -51,6 +51,14 @@ def test_normalize_sale_thumbnail_passthrough():
     assert normalize_sale(raw2)["thumbnail_url"] is None
 
 
+def test_map_category_prefix_match():
+    from app.family.parse import map_category
+    assert map_category("패션기타", "한섬 패밀리세일") == (["패션의류"], None)
+    assert map_category("잡화해외", "x") == (["잡화"], None)
+    assert map_category("", "브랜드데이 세일")[1] == "브랜드데이"
+    assert map_category(None, "그냥 세일") == (["기타"], None)
+
+
 def test_parse_helpers():
     assert parse_discount("네이밍 페스타 세일 ~89%", "최대 89%") == ("~89%", 89)
     brands = extract_brands("리바트 / 허레이 / 던스트", "브랜드데이")
