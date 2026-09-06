@@ -208,3 +208,69 @@ td.sel .cal-num:hover { background: transparent; }
   font-weight: 600;
 }
 .back-link:hover { color: var(--accent); }
+
+/* ---------------- 마이페이지 (소프트 커머스 카드 섹션) ---------------- */
+.mp { display: flex; flex-direction: column; gap: 16px; max-width: 760px; }
+.mp-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: 20px 22px;
+}
+.mp-card > h2 {
+  margin: 0 0 14px;
+  font-size: var(--text-card-title);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.mp-card > h2 .muted { font-weight: 400; font-size: var(--text-body-sm); }
+.mp-card:last-child { margin-bottom: 0; }
+
+/* 프로필 카드 */
+.mp-profile { display: flex; align-items: center; gap: 14px; }
+.mp-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 20px;
+  flex: none;
+}
+.mp-profile-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex-grow: 1; }
+.mp-profile-name { font-size: var(--text-title); font-weight: 800; letter-spacing: -0.01em; color: var(--ink); }
+.mp-profile-meta { font-size: var(--text-body-sm); color: var(--ink-muted); }
+.mp-profile form { margin: 0; flex: none; align-self: flex-start; }
+.mp-leave,
+.mp-leave:hover {
+  height: auto;
+  min-height: 0;
+  padding: 4px 2px;
+  background: none !important;
+  border: 0 !important;
+  border-radius: 0;
+  font: inherit;
+  font-size: var(--text-label);
+  font-weight: 600;
+  color: var(--ink-faint) !important;
+  cursor: pointer;
+}
+.mp-leave:hover { color: var(--danger) !important; text-decoration: underline; }
+
+/* 찜 카드 안의 딜 그리드는 기존 .deal-cards 재사용 — 여백만 정리 */
+.mp-card .deal-cards { margin: 0; }
+
+/* 내 댓글 리스트 */
+.mp-comments { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; }
+.mp-comments li { padding: 12px 0; border-top: 1px solid var(--border); }
+.mp-comments li:first-child { padding-top: 0; border-top: 0; }
+.mp-comments li:last-child { padding-bottom: 0; }
+.mp-comments a { color: var(--ink); font-weight: 600; text-decoration: none; }
+.mp-comments a:hover { color: var(--accent); }
+.mp-comments .mp-comment-meta { margin-top: 4px; font-size: var(--text-label); color: var(--ink-faint); }

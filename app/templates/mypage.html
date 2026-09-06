@@ -4,68 +4,89 @@
 {% block body %}
 <div class="page-head">
   <h1>마이페이지</h1>
-  <div class="page-meta">{{ user.display_name }}{% if providers %} · {{ providers }} 로그인{% endif %}</div>
 </div>
 
-<h2>찜한 딜 <span class="muted" style="font-weight:400;font-size:13px">{{ bookmarks|length }}건</span></h2>
-{% if bookmarks %}
-<ul class="deal-cards" id="mypage-bookmarks">
-  {% for d in bookmarks %}{% include "_deal_card.html" %}{% endfor %}
-</ul>
-<p class="muted" id="mypage-bookmarks-empty" hidden>찜을 모두 해제했습니다.</p>
-<script>
-(function () {
-  var list = document.getElementById("mypage-bookmarks");
-  if (!list) return;
-  list.addEventListener("click", function (e) {
-    var btn = e.target.closest(".bookmark-btn[data-deal-id]");
-    if (!btn) return;
-    e.preventDefault();
-    var card = btn.closest(".deal-card");
-    var removeId = Number(btn.dataset.dealId);
-    var ids = [...list.querySelectorAll(".deal-card[data-id]")]
-      .map(function (c) { return Number(c.dataset.id); })
-      .filter(function (n) { return n && n !== removeId; });
-    fetch("/api/me/bookmarks", {
-      method: "PUT",
-      credentials: "same-origin",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ids: ids }),
-    }).catch(function () {});
-    try {
-      localStorage.setItem("hotdeal.bookmarks", JSON.stringify(ids));
-    } catch (err) {}
-    if (card) card.remove();
-    if (!list.querySelector(".deal-card")) {
-      list.hidden = true;
-      var empty = document.getElementById("mypage-bookmarks-empty");
-      if (empty) empty.hidden = false;
-    }
-  });
-})();
-</script>
-{% else %}
-<p class="muted">아직 찜한 딜이 없습니다. 딜 카드의 하트를 눌러 저장하세요.</p>
-{% endif %}
+<div class="mp">
 
-<h2 style="margin-top:28px">키워드 알림</h2>
-{% include "_alert_prefs.html" %}
+  <section class="mp-card">
+    <div class="mp-profile">
+      <span class="mp-avatar" aria-hidden="true">{{ user.display_name[:1] if user.display_name else "U" }}</span>
+      <div class="mp-profile-body">
+        <span class="mp-profile-name">{{ user.display_name }}</span>
+        <span class="mp-profile-meta">
+          {%- if providers %}{{ providers }} 로그인{% endif -%}
+          {%- if providers and user.email %} · {% endif -%}
+          {%- if user.email %}{{ user.email }}{% endif -%}
+        </span>
+      </div>
+      <form method="post" action="/mypage" onsubmit="return confirm('정말 탈퇴하시겠습니까? 찜목록과 키워드 알림이 삭제됩니다. (댓글은 익명으로 남습니다)')">
+        <input type="hidden" name="action" value="delete_account">
+        <button type="submit" class="mp-leave">회원탈퇴</button>
+      </form>
+    </div>
+  </section>
 
-<h2 style="margin-top:28px">내가 쓴 댓글 <span class="muted" style="font-weight:400;font-size:13px">{{ comments|length }}건</span></h2>
-<ul class="sale-list">
-  {% for c in comments %}
-  <li>
-    <a href="/deal/{{ c.deal_id }}" style="text-decoration:none">{{ c.body }}</a>
-    <div class="muted" style="margin-top:4px;font-size:12px">{{ c.product_name }} · {{ c.created_at | reltime }}</div>
-  </li>
-  {% else %}
-  <li class="muted">작성한 댓글이 없습니다.</li>
-  {% endfor %}
-</ul>
+  <section class="mp-card">
+    <h2>찜한 딜 <span class="muted">{{ bookmarks|length }}건</span></h2>
+    {% if bookmarks %}
+    <ul class="deal-cards" id="mypage-bookmarks">
+      {% for d in bookmarks %}{% include "_deal_card.html" %}{% endfor %}
+    </ul>
+    <p class="muted" id="mypage-bookmarks-empty" hidden>찜을 모두 해제했습니다.</p>
+    <script>
+    (function () {
+      var list = document.getElementById("mypage-bookmarks");
+      if (!list) return;
+      list.addEventListener("click", function (e) {
+        var btn = e.target.closest(".bookmark-btn[data-deal-id]");
+        if (!btn) return;
+        e.preventDefault();
+        var card = btn.closest(".deal-card");
+        var removeId = Number(btn.dataset.dealId);
+        var ids = [...list.querySelectorAll(".deal-card[data-id]")]
+          .map(function (c) { return Number(c.dataset.id); })
+          .filter(function (n) { return n && n !== removeId; });
+        fetch("/api/me/bookmarks", {
+          method: "PUT",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ids: ids }),
+        }).catch(function () {});
+        try {
+          localStorage.setItem("hotdeal.bookmarks", JSON.stringify(ids));
+        } catch (err) {}
+        if (card) card.remove();
+        if (!list.querySelector(".deal-card")) {
+          list.hidden = true;
+          var empty = document.getElementById("mypage-bookmarks-empty");
+          if (empty) empty.hidden = false;
+        }
+      });
+    })();
+    </script>
+    {% else %}
+    <p class="muted">아직 찜한 딜이 없습니다. 딜 카드의 하트를 눌러 저장하세요.</p>
+    {% endif %}
+  </section>
 
-<h2 style="margin-top:28px">계정</h2>
-<form method="post" action="/mypage" onsubmit="return confirm('정말 탈퇴하시겠습니까? 찜목록과 키워드 알림이 삭제됩니다. (댓글은 익명으로 남습니다)')">
-  <input type="hidden" name="action" value="delete_account">
-  <button type="submit" class="btn-secondary" style="color:var(--danger)">회원탈퇴</button>
-</form>
+  <section class="mp-card">
+    <h2>키워드 알림</h2>
+    {% include "_alert_prefs.html" %}
+  </section>
+
+  <section class="mp-card">
+    <h2>내가 쓴 댓글 <span class="muted">{{ comments|length }}건</span></h2>
+    <ul class="mp-comments">
+      {% for c in comments %}
+      <li>
+        <a href="/deal/{{ c.deal_id }}">{{ c.body }}</a>
+        <div class="mp-comment-meta">{{ c.product_name }} · {{ c.created_at | reltime }}</div>
+      </li>
+      {% else %}
+      <li class="muted">작성한 댓글이 없습니다.</li>
+      {% endfor %}
+    </ul>
+  </section>
+
+</div>
 {% endblock %}
