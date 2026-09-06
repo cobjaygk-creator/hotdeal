@@ -828,6 +828,26 @@ def _require_admin(request: Request) -> dict:
     return user
 
 
+async def _ranking_deals(days: int = 7, limit: int = 50) -> list[dict]:
+    from app.engine.ranking import rank_deals
+
+    db = _db()
+    rows = await rank_deals(db, days=days, limit=limit)
+    deals = [_clean_deal(r) for r in rows]
+    await _attach_sources(db, deals)
+    await _attach_user_comments(deals)
+    return deals
+
+
+@app.get("/ranking", response_class=HTMLResponse)
+async def ranking_index(request: Request):
+    deals = await _ranking_deals()
+    return TEMPLATES.TemplateResponse(
+        "ranking.html",
+        {"request": request, "nav": "ranking", "deals": deals, "source_labels": SOURCE_LABELS},
+    )
+
+
 @app.get("/amazon-jp", response_class=HTMLResponse)
 async def amazon_jp_index(request: Request):
     if not AMAZON_JP_ENABLED:
@@ -1357,6 +1377,7 @@ async def sitemap():
         '<?xml version="1.0" encoding="UTF-8"?>',
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
         f"<url><loc>{SITE_URL}/</loc><changefreq>hourly</changefreq></url>",
+        f"<url><loc>{SITE_URL}/ranking</loc><changefreq>hourly</changefreq></url>",
         f"<url><loc>{SITE_URL}/family</loc><changefreq>daily</changefreq></url>",
         f"<url><loc>{SITE_URL}/search</loc><changefreq>weekly</changefreq></url>",
     ]

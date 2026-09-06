@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}인기 랭킹 · 핫딜모음{% endblock %}
+{% block extra_head %}
+<meta property="og:title" content="핫딜모음 인기 랭킹">
+<meta property="og:description" content="최근 7일 수집한 딜 중 조회·찜·댓글·리액션이 많은 순.">
+<meta property="og:url" content="{{ site_url }}/ranking">
+{% endblock %}
+{% block body %}
+<div class="page-head">
+  <h1>인기 랭킹</h1>
+  <div class="page-meta">최근 7일 · 조회·찜·댓글·리액션 종합</div>
+</div>
+<p class="muted" style="margin:-6px 0 14px;font-size:13px">원문 조회수·추천, 사이트 찜·댓글·리액션을 합산해 정렬합니다.</p>
+
+<ol class="deal-cards ranking-list">
+  {% for d in deals %}
+  {% include "_deal_card.html" %}
+  {% else %}
+  <li class="empty-row empty">아직 순위를 매길 딜이 없습니다.</li>
+  {% endfor %}
+</ol>
+{% endblock %}

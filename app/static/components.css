@@ -1490,6 +1490,31 @@ body.modal-open { overflow: hidden; }
 .metric-value { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .admin-collect-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 
+/* ---------------- Ranking list ---------------- */
+.ranking-list { counter-reset: rank; list-style: none; padding: 0; }
+.ranking-list > .deal-card { counter-increment: rank; }
+.ranking-list > .deal-card::before {
+  content: counter(rank);
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 2;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 6px;
+  background: var(--ink);
+  color: var(--surface);
+  font-size: 12px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 20px;
+  text-align: center;
+}
+.ranking-list > .deal-card:nth-child(1)::before { background: #d4a017; }
+.ranking-list > .deal-card:nth-child(2)::before { background: #9aa3ad; }
+.ranking-list > .deal-card:nth-child(3)::before { background: #b07a47; }
+
 /* ---------------- Login nudge toast ---------------- */
 .login-nudge {
   position: fixed;

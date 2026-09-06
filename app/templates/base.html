@@ -61,6 +61,7 @@
       <a class="topbar-brand" href="/">HOTDEAL</a>
       <nav class="topbar-nav" aria-label="주요 메뉴">
         <a href="/" class="{% if current_nav == 'hotdeal' %}on{% endif %}">핫딜</a>
+        <a href="/ranking" class="{% if current_nav == 'ranking' %}on{% endif %}">랭킹</a>
         <a href="/family" class="{% if current_nav == 'family' %}on{% endif %}">패밀리세일</a>
         {% if coupang_enabled %}
         <a href="/coupang" class="{% if current_nav == 'coupang' %}on{% endif %}">쿠팡최저가</a>
@@ -124,6 +125,10 @@
         <a href="/" class="{% if current_nav == 'hotdeal' %}on{% endif %}">
           <span class="nav-ico" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8.6 1.5 3.5 9h3.4l-1 5.5L13 6.8H9.5l.9-5.3Z"></path></svg></span>
           핫딜
+        </a>
+        <a href="/ranking" class="{% if current_nav == 'ranking' %}on{% endif %}">
+          <span class="nav-ico" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13.5V8M8 13.5V3M13 13.5V6"></path></svg></span>
+          랭킹
         </a>
         {% if coupang_enabled %}
         <a href="/coupang" class="{% if current_nav == 'coupang' %}on{% endif %}">
