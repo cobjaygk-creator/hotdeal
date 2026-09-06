@@ -61,7 +61,7 @@ from app.engine.dedupe import collapse_duplicate_deals
 from app.engine.ppomppu_enrich import enrich_missing_ppomppu_malls
 from app.family.parse import parse_discount
 from app.family.pipeline import collect_family_sales
-from app.family.query import CATEGORIES, get_sale, list_sales, month_grid, parse_cats, parse_year_month
+from app.family.query import CATEGORIES, get_sale, list_sales, parse_cats
 from app.events import EventHub
 from app.http_client import PoliteClient
 from app.pipeline import collect_and_process
@@ -588,38 +588,21 @@ async def index(
 @app.get("/family", response_class=HTMLResponse)
 async def family_index(
     request: Request,
-    year: int | None = None,
-    month: int | None = None,
-    day: str | None = None,
     cat: list[str] | None = Query(None),
     code: str | None = None,
 ):
     cats = parse_cats(cat or [])
     entry_only = code == "1"
-    y, m = parse_year_month(year, month)
-    sales = await list_sales(_db(), categories=cats, entry_only=entry_only, include_ended=True)
-    live = [s for s in sales if s["status"] in ("진행중", "예정")]
-    grid = month_grid(y, m, sales)
-    if m == 1:
-        prev = {"year": y - 1, "month": 12}
-    else:
-        prev = {"year": y, "month": m - 1}
-    if m == 12:
-        nxt = {"year": y + 1, "month": 1}
-    else:
-        nxt = {"year": y, "month": m + 1}
-    if day:
-        day_sales = [
-            s
-            for s in sales
-            if s.get("start_date") and s.get("end_date") and s["start_date"][:10] <= day <= s["end_date"][:10]
-        ]
-        if entry_only:
-            day_sales = [s for s in day_sales if s.get("has_entry_code")]
-        if cats:
-            day_sales = [s for s in day_sales if set(s.get("categories") or []) & set(cats)]
-    else:
-        day_sales = live
+    sales = await list_sales(_db(), categories=cats, entry_only=entry_only, include_ended=False)
+    status_order = {"진행중": 0, "예정": 1}
+    live = sorted(
+        (s for s in sales if s["status"] in ("진행중", "예정")),
+        key=lambda s: (
+            status_order.get(s["status"], 9),
+            not s.get("has_entry_code"),
+            s.get("start_date") or "9999",
+        ),
+    )
     last = await get_meta(_db(), "last_family_collect_at")
     stats = {
         "live": sum(1 for s in live if s["status"] == "진행중"),
@@ -632,12 +615,7 @@ async def family_index(
         {
             "request": request,
             "nav": "family",
-            "grid": grid,
-            "prev": prev,
-            "next": nxt,
-            "sales": sales,
-            "day_sales": day_sales,
-            "selected": day or "",
+            "sales": live,
             "cats": cats,
             "all_cats": CATEGORIES,
             "entry_only": entry_only,
