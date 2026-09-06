@@ -193,6 +193,43 @@ td.sel .cal-num:hover { background: transparent; }
 .oauth-btn.naver { background: #03c75a; color: #ffffff !important; border-color: #03c75a; }
 .oauth-btn.naver:hover { background: #02b350; }
 
+/* ---------------- 로그인 (소프트 커머스 중앙 카드) ---------------- */
+.auth {
+  max-width: 380px;
+  margin: 24px auto 0;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.auth-brand { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.auth-mark {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-lg);
+  background: var(--accent);
+  color: var(--accent-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.auth-title { font-size: var(--text-title); font-weight: 800; letter-spacing: -0.02em; color: var(--ink); }
+.auth-sub { font-size: var(--text-body-sm); color: var(--ink-muted); line-height: var(--lh-body); }
+.auth .oauth-row { flex-direction: column; gap: 11px; margin: 0; }
+.auth .oauth-btn { width: 100%; min-height: 52px; font-size: var(--text-card-title); }
+.auth-consent { font-size: var(--text-label); color: var(--ink-faint); text-align: center; line-height: var(--lh-body); margin: 0; }
+.auth-consent a { color: var(--ink-muted); text-decoration: underline; }
+.auth-error { color: var(--danger); text-align: center; font-size: var(--text-body-sm); margin: 0; }
+.auth-admin { margin: 0; }
+.auth-admin > summary {
+  cursor: pointer;
+  list-style: none;
+  text-align: center;
+  font-size: var(--text-label);
+  color: var(--ink-faint);
+}
+.auth-admin > summary::-webkit-details-marker { display: none; }
+.auth-admin .admin-form { max-width: none; margin-top: 14px; }
+
 @media (min-width: 900px) { .family-layout { grid-template-columns: 300px 1fr; } }
 
 /* ---------------- Deal SSR page ---------------- */
