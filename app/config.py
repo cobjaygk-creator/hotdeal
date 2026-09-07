@@ -160,6 +160,24 @@ MALL_ENRICH_INTERVAL_SECONDS = max(
 )
 PPOMPPU_ENRICH_BATCH = int((os.environ.get("PPOMPPU_ENRICH_BATCH") or "12").strip() or "12")
 
+# LLM category re-classification. The keyword classifier (app.engine.category)
+# still runs inline at collect time; this overrides it in the background when
+# the keyword guess was weak (기타) or wrong. Off unless ANTHROPIC_API_KEY set.
+# Cost at ~200 new deals/day, batched: well under $0.10/day on Haiku.
+ANTHROPIC_API_KEY = (os.environ.get("ANTHROPIC_API_KEY") or "").strip()
+LLM_MODEL = (os.environ.get("LLM_MODEL") or "claude-haiku-4-5-20251001").strip()
+LLM_CLASSIFY_ENABLED = bool(ANTHROPIC_API_KEY) and _env_flag(
+    "LLM_CLASSIFY_ENABLED", default=True
+)
+LLM_CLASSIFY_BATCH = int((os.environ.get("LLM_CLASSIFY_BATCH") or "25").strip() or "25")
+LLM_CLASSIFY_PER_TICK = int(
+    (os.environ.get("LLM_CLASSIFY_PER_TICK") or "100").strip() or "100"
+)
+LLM_CLASSIFY_INTERVAL_SECONDS = max(
+    30,
+    int((os.environ.get("LLM_CLASSIFY_INTERVAL_SECONDS") or "120").strip() or "120"),
+)
+
 SITE_URL = (os.environ.get("SITE_URL") or "").strip().rstrip("/")
 if not SITE_URL:
     domain = (os.environ.get("RAILWAY_PUBLIC_DOMAIN") or "").strip()

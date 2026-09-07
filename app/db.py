@@ -343,6 +343,8 @@ async def _ensure_columns(conn: aiosqlite.Connection) -> None:
         ("last_scored_at", "TEXT"),
         ("last_scored_price", "INTEGER"),
         ("category", "TEXT"),
+        # keyword | llm | manual — where deals.category came from. NULL == keyword.
+        ("category_source", "TEXT"),
     ):
         if name not in deal_cols:
             await conn.execute(f"ALTER TABLE deals ADD COLUMN {name} {decl}")

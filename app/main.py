@@ -40,6 +40,8 @@ from app.config import (
     EMAIL_DIGEST_HOUR,
     FAMILY_SALE_INTERVAL_MINUTES,
     GA_MEASUREMENT_ID,
+    LLM_CLASSIFY_ENABLED,
+    LLM_CLASSIFY_INTERVAL_SECONDS,
     MVNO_ENABLED,
     VAPID_PUBLIC_KEY,
     WEBPUSH_ENABLED,
@@ -257,6 +259,17 @@ async def lifespan(app: FastAPI):
                 coalesce=True,
                 next_run_time=datetime.now() + timedelta(minutes=2),
             )
+        if LLM_CLASSIFY_ENABLED:
+            scheduler.add_job(
+                _scheduled_llm_classify,
+                "interval",
+                seconds=LLM_CLASSIFY_INTERVAL_SECONDS,
+                id="llm_classify",
+                max_instances=1,
+                coalesce=True,
+                next_run_time=datetime.now() + timedelta(seconds=40),
+            )
+            log.info("llm classify worker enabled (model reclassifies weak categories)")
         log.info(
             "mall enrich worker enabled (proxy=%s)",
             "on" if PPOMPPU_PROXY_URL else "off",
@@ -389,6 +402,16 @@ async def _scheduled_mvno() -> None:
 
 async def _scheduled_ppomppu_mall_enrich() -> None:
     await _run_mall_enrich()
+
+
+async def _scheduled_llm_classify() -> None:
+    from app.engine.llm_classify import reclassify_pending
+
+    try:
+        async with _own_db() as conn:
+            await reclassify_pending(conn)
+    except Exception:
+        log.exception("llm classify tick failed")
 
 
 async def _kick_mall_enrich(deal_ids: list[int]) -> None:
@@ -904,6 +927,17 @@ async def api_coupang_collect(request: Request):
         async with _own_db() as conn:
             summary = await collect_coupang(conn)
     return JSONResponse(summary)
+
+
+@app.post("/api/admin/llm-classify")
+async def api_admin_llm_classify(request: Request, limit: int = 100):
+    _require_admin(request)
+    if not LLM_CLASSIFY_ENABLED:
+        raise HTTPException(400, "LLM_CLASSIFY_ENABLED가 꺼져 있습니다 (ANTHROPIC_API_KEY 필요)")
+    from app.engine.llm_classify import reclassify_pending
+
+    async with _own_db() as conn:
+        return JSONResponse(await reclassify_pending(conn, limit=max(1, min(500, limit))))
 
 
 @app.post("/api/admin/digest/send")
@@ -1902,9 +1936,11 @@ async def _stats() -> dict:
     summary_raw = await get_meta(db, "last_collect_summary")
     by_source_raw = await get_meta(db, "last_collect_by_source")
     pp_enrich_raw = await get_meta(db, "last_ppomppu_mall_enrich")
+    llm_classify_raw = await get_meta(db, "last_llm_classify")
     last_collect = None
     by_source = None
     pp_enrich = None
+    llm_classify = None
     if summary_raw:
         try:
             last_collect = json.loads(summary_raw)
@@ -1920,6 +1956,11 @@ async def _stats() -> dict:
             pp_enrich = json.loads(pp_enrich_raw)
         except json.JSONDecodeError:
             pp_enrich = {"raw": pp_enrich_raw}
+    if llm_classify_raw:
+        try:
+            llm_classify = json.loads(llm_classify_raw)
+        except json.JSONDecodeError:
+            llm_classify = {"raw": llm_classify_raw}
     return {
         "posts": posts,
         "deals": deals,
@@ -1930,6 +1971,8 @@ async def _stats() -> dict:
         "collect_by_source": by_source,
         "ppomppu_proxy_configured": bool(PPOMPPU_PROXY_URL),
         "last_ppomppu_mall_enrich": pp_enrich,
+        "llm_classify_configured": LLM_CLASSIFY_ENABLED,
+        "last_llm_classify": llm_classify,
         "last_amazon_jp_collect_at": await get_meta(db, "last_amazon_jp_collect_at"),
     }
 
