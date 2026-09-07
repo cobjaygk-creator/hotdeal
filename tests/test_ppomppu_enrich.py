@@ -193,3 +193,45 @@ async def test_enrich_fills_clien_without_proxy(monkeypatch):
     out = await enrich_missing_ppomppu_malls(conn, object(), limit=4)
     assert out["filled"] == 1
     assert out["by_source"]["clien"]["filled"] == 1
+
+
+@pytest.mark.asyncio
+async def test_enrich_bumps_comment_count_without_counting_as_fill(monkeypatch):
+    conn = _RowsConn(2)
+    for r in conn.rows:
+        r["mall_url"] = "https://www.coupang.com/vp/products/1"  # already complete
+        r["comments"] = 3
+    _patch_common(monkeypatch, conn)
+
+    from app.sources.detail import DetailEnrichment
+
+    async def fake_enrich(client, source, url):
+        # Nothing new except the post now has more comments upstream.
+        return DetailEnrichment(blocked=False, comment_count=41)
+
+    monkeypatch.setattr("app.engine.ppomppu_enrich.enrich_post", fake_enrich)
+
+    out = await enrich_missing_ppomppu_malls(conn, object(), limit=5)
+    assert out["count_bumped"] == 2
+    assert out["filled"] == 0  # a count refresh is not a mall fill
+    ups = [sql for sql, _ in conn.updates if "UPDATE posts SET comments" in sql]
+    assert len(ups) == 2
+
+
+@pytest.mark.asyncio
+async def test_enrich_ignores_lower_comment_count(monkeypatch):
+    conn = _RowsConn(1)
+    conn.rows[0]["mall_url"] = "https://www.coupang.com/vp/products/1"
+    conn.rows[0]["comments"] = 90
+    _patch_common(monkeypatch, conn)
+
+    from app.sources.detail import DetailEnrichment
+
+    async def fake_enrich(client, source, url):
+        return DetailEnrichment(blocked=False, comment_count=12)  # stale/low read
+
+    monkeypatch.setattr("app.engine.ppomppu_enrich.enrich_post", fake_enrich)
+
+    out = await enrich_missing_ppomppu_malls(conn, object(), limit=5)
+    assert out["count_bumped"] == 0
+    assert not any("UPDATE posts SET comments" in sql for sql, _ in conn.updates)

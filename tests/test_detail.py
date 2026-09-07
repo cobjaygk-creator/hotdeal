@@ -330,3 +330,42 @@ def test_quasarzone_views_fallback():
     assert len(posts) >= 1
     assert posts[0].source_post_id == "1982858"
     assert "컬리" in posts[0].title
+
+
+def test_extract_comment_count_from_header_text():
+    from app.sources.detail import parse_detail
+
+    html = """
+    <html><head><meta property="og:title" content="테스트 딜"></head>
+    <body>
+      <div class="board-contents"><p>본문</p></div>
+      <div class="cmt_head">댓글 <strong>47</strong></div>
+      <ul class="comment_list">
+        <li class="cmt"><span class="reply_count">2</span> 답글</li>
+      </ul>
+    </body></html>
+    """
+    detail = parse_detail(html, "https://www.ppomppu.co.kr/zboard/view.php?id=ppomppu&no=1")
+    assert detail.comment_count == 47
+
+
+def test_extract_comment_count_none_when_absent():
+    from app.sources.detail import parse_detail
+
+    html = "<html><head><meta property='og:title' content='딜'></head><body><div class='board-contents'>본문만</div></body></html>"
+    detail = parse_detail(html, "https://x/y")
+    assert detail.comment_count is None
+
+
+def test_extract_comment_count_xe_style_count_before_label():
+    from app.sources.detail import parse_detail
+
+    html = """
+    <html><head><meta property="og:title" content="펨코 딜"></head>
+    <body>
+      <div class="rd_body"><article><div class="xe_content">본문</div></article></div>
+      <span class="fdb_count">128</span>개의 댓글
+    </body></html>
+    """
+    detail = parse_detail(html, "https://www.fmkorea.com/1")
+    assert detail.comment_count == 128

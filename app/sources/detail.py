@@ -92,6 +92,8 @@ class DetailEnrichment:
     thumbnail_url: str | None = None
     # Sanitized HTML fragment from the community post body (images allowed).
     body_html: str | None = None
+    # Current comment count on the source post (None when it can't be read).
+    comment_count: int | None = None
     # True only when the detail page was refused/soft-blocked (403, nginx block,
     # Cloudflare gate). A clean fetch that simply has no buy link stays False so
     # callers can tell "exit IP blocked" apart from "post has no mall link".
@@ -360,7 +362,47 @@ def parse_detail(html: str, page_url: str = "") -> DetailEnrichment:
         mall_url=mall,
         thumbnail_url=thumb,
         body_html=body_html,
+        comment_count=_extract_comment_count(tree, html),
     )
+
+
+# "댓글 12", "댓글<b>12</b>", "댓글 (12)", "12개의 댓글", "Comments 12" …
+_CMT_NEAR_RE = re.compile(
+    r"(?:댓글|코멘트|comments?)\s*(?:<[^>]*>\s*)*[\[(]?\s*(\d[\d,]{0,5})\b"
+    r"|\b(\d[\d,]{0,5})\s*(?:<[^>]*>\s*)*개?\s*(?:의\s*)?(?:댓글|코멘트)",
+    re.I,
+)
+_CMT_BARE_RE = re.compile(r"^[\[(]?\s*(\d[\d,]{0,5})\s*[\])]?\s*(?:개|comments?)?$", re.I)
+
+
+def _extract_comment_count(tree: HTMLParser, html: str) -> int | None:
+    """Best-effort current comment count from a community detail page.
+
+    Heuristic and board-agnostic: only ever used to bump a stored count
+    upward, so a missed parse (→ None) or a small over-count is harmless.
+    """
+    cands: list[int] = []
+    try:
+        for node in tree.css(
+            "[class*=comment],[class*=cmt],[id*=comment],[id*=cmt],[class*=reply]"
+        ):
+            txt = " ".join((node.text() or "").split())
+            if not txt or len(txt) > 12:
+                continue
+            m = _CMT_BARE_RE.match(txt)
+            if m:
+                cands.append(int(m.group(1).replace(",", "")))
+    except Exception:  # noqa: BLE001 — selector engine quirks must never break enrich
+        pass
+    for m in _CMT_NEAR_RE.finditer(html or ""):
+        raw = m.group(1) or m.group(2)
+        if raw:
+            try:
+                cands.append(int(raw.replace(",", "")))
+            except ValueError:
+                pass
+    cands = [c for c in cands if 0 < c <= 100000]
+    return max(cands) if cands else None
 
 
 def _is_detail_stub(source: str, html: str) -> bool:

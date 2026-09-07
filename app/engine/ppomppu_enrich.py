@@ -31,6 +31,55 @@ _STALE_QZ_THUMB = "%dc9345db51f5b6aa0e363ed2cfbe9358%"
 _ATTEMPT_COOLDOWN_SEC = 45 * 60
 _last_attempt: dict[int, float] = {}
 
+# Per background tick, how many recent deals to re-fetch solely to refresh the
+# source comment count. Small: these are extra detail fetches (proxied for
+# ppomppu) on top of the mall-url gap fills.
+_COUNT_REFRESH_SLICE = 4
+
+
+async def _recent_count_refresh_rows(
+    conn, exclude: set[int], limit: int
+) -> list[dict]:
+    """Recent deals (last 24h) to re-fetch only for a fresh comment count."""
+    if limit <= 0:
+        return []
+    cur = await conn.execute(
+        """
+        SELECT d.id AS deal_id,
+               p.id AS post_id,
+               p.url AS post_url,
+               p.source AS source,
+               d.mall_url AS mall_url,
+               p.body_html AS body_html,
+               IFNULL(p.comments, 0) AS comments
+        FROM deals d
+        JOIN deal_posts dp ON dp.deal_id = d.id
+        JOIN posts p ON p.id = dp.post_id
+        WHERE p.url IS NOT NULL
+          AND d.last_seen_at >= datetime('now', '-1 day')
+          AND p.id = (
+            SELECT p2.id
+            FROM deal_posts dp2
+            JOIN posts p2 ON p2.id = dp2.post_id
+            WHERE dp2.deal_id = d.id AND p2.url IS NOT NULL
+            ORDER BY CASE WHEN p2.source = 'ppomppu' THEN 1 ELSE 0 END, p2.id
+            LIMIT 1
+          )
+        ORDER BY d.last_seen_at DESC
+        LIMIT ?
+        """,
+        (max(1, limit) * 5,),
+    )
+    out: list[dict] = []
+    for r in await cur.fetchall():
+        row = dict(r)
+        if int(row["deal_id"]) in exclude:
+            continue
+        out.append(row)
+        if len(out) >= limit:
+            break
+    return out
+
 
 def _cooldown_ok(deal_id: int) -> bool:
     now = time.time()
@@ -64,6 +113,7 @@ async def enrich_missing_ppomppu_malls(
                 "proxy": bool(PPOMPPU_PROXY_URL),
                 "attempted": 0,
                 "filled": 0,
+                "count_bumped": 0,
                 "blocked": 0,
                 "no_link": 0,
                 "errors": 0,
@@ -119,13 +169,14 @@ async def enrich_missing_ppomppu_malls(
     params.append(batch)
     cur = await conn.execute(
         f"""
-        SELECT deal_id, post_id, post_url, source, mall_url, body_html FROM (
+        SELECT deal_id, post_id, post_url, source, mall_url, body_html, comments FROM (
           SELECT d.id AS deal_id,
                  p.id AS post_id,
                  p.url AS post_url,
                  p.source AS source,
                  d.mall_url AS mall_url,
                  p.body_html AS body_html,
+                 IFNULL(p.comments, 0) AS comments,
                  ROW_NUMBER() OVER (
                    PARTITION BY p.source
                    ORDER BY d.last_seen_at DESC
@@ -155,11 +206,19 @@ async def enrich_missing_ppomppu_malls(
     rows = [dict(r) for r in await cur.fetchall()]
     if not deal_ids:  # background sweep: honour the per-deal cooldown
         rows = [r for r in rows if _cooldown_ok(int(r["deal_id"]))]
+        # Spare-capacity pass: re-touch a few recent deals purely to refresh
+        # their source comment count (it otherwise freezes once the post drops
+        # off the list page and enrich stops re-fetching it).
+        have = {int(r["deal_id"]) for r in rows}
+        for extra in await _recent_count_refresh_rows(conn, have, _COUNT_REFRESH_SLICE):
+            if _cooldown_ok(int(extra["deal_id"])):
+                rows.append(extra)
     filled = 0
     blocked = 0
     no_link = 0
     errors = 0
     attempted = 0
+    count_bumped = 0
     by_source: dict[str, dict[str, int]] = defaultdict(
         lambda: {"filled": 0, "blocked": 0, "no_link": 0}
     )
@@ -171,7 +230,7 @@ async def enrich_missing_ppomppu_malls(
         grouped[(row.get("source") or "").strip() or "ppomppu"].append(row)
 
     async def _run_source(source: str, items: list[dict]) -> None:
-        nonlocal filled, blocked, no_link, errors, attempted
+        nonlocal filled, blocked, no_link, errors, attempted, count_bumped
         consec_blocked = 0
         filled_here = 0
         for row in items:
@@ -199,6 +258,8 @@ async def enrich_missing_ppomppu_malls(
             title_update = len(title_txt) >= 4
             thumb_update = bool(thumb)
             body_update = prefers_body_html(body_html, row.get("body_html"))
+            cc = getattr(detail, "comment_count", None)
+            count_update = bool(cc and cc > int(row.get("comments") or 0))
 
             if not mall_url:
                 if getattr(detail, "blocked", False):
@@ -209,14 +270,22 @@ async def enrich_missing_ppomppu_malls(
                     no_link += 1
                     by_source[source]["no_link"] += 1
                     consec_blocked = 0
-                if not title_update and not thumb_update and not body_update:
+                if not (title_update or thumb_update or body_update or count_update):
                     continue
-            elif not mall_better and not title_update and not thumb_update and not body_update:
+            elif not (
+                mall_better or title_update or thumb_update or body_update or count_update
+            ):
                 continue
             else:
                 consec_blocked = 0
 
             async with write_lock:
+                if count_update:
+                    await conn.execute(
+                        "UPDATE posts SET comments = ? WHERE id = ? AND ? > IFNULL(comments, 0)",
+                        (cc, row["post_id"], cc),
+                    )
+                    count_bumped += 1
                 if mall_better and mall_url:
                     await conn.execute(
                         """
@@ -290,10 +359,12 @@ async def enrich_missing_ppomppu_malls(
                             """,
                             (name, offer.seller, cat, row["deal_id"]),
                         )
-            filled += 1
-            filled_here += 1
-            filled_ids.append(int(row["deal_id"]))
-            by_source[source]["filled"] += 1
+            if mall_better or title_update or thumb_update or body_update:
+                filled += 1
+                filled_here += 1
+                by_source[source]["filled"] += 1
+            if int(row["deal_id"]) not in filled_ids:
+                filled_ids.append(int(row["deal_id"]))
 
     if grouped:
         await asyncio.gather(*(_run_source(src, items) for src, items in grouped.items()))
@@ -312,6 +383,7 @@ async def enrich_missing_ppomppu_malls(
         "proxy": bool(PPOMPPU_PROXY_URL),
         "attempted": attempted,
         "filled": filled,
+        "count_bumped": count_bumped,
         "blocked": blocked,
         "no_link": no_link,
         "errors": errors,
@@ -323,9 +395,10 @@ async def enrich_missing_ppomppu_malls(
     await set_meta(conn, "last_ppomppu_mall_enrich", json.dumps(meta, ensure_ascii=False))
     await conn.commit()
     log.info(
-        "mall enrich attempted=%s filled=%s blocked=%s no_link=%s errors=%s sources=%s",
+        "mall enrich attempted=%s filled=%s count_bumped=%s blocked=%s no_link=%s errors=%s sources=%s",
         attempted,
         filled,
+        count_bumped,
         blocked,
         no_link,
         errors,
