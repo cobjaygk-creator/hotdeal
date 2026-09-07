@@ -29,16 +29,38 @@ _API_URL = "https://api.anthropic.com/v1/messages"
 _VALID = set(CATEGORIES)
 
 _SYSTEM = (
-    "너는 한국 온라인 쇼핑 핫딜 상품을 카테고리로 분류한다. "
-    "카테고리는 정확히 다음 9개 중 하나다: " + ", ".join(CATEGORIES) + ". "
-    "제품명이 애매하면 주된 용도로 판단한다. 신발/의류/가방은 '의류', "
-    "먹는 것은 '식품', 세제·화장품·반려동물·문구는 '생활'. "
-    "근거를 쓰지 말고 분류만 한다."
+    "너는 한국 온라인 쇼핑 핫딜 상품명을 아래 9개 카테고리 중 하나로 분류한다.\n"
+    "식품: 먹거나 마시는 모든 것 — 과자·라면·음료·정육·수산·과일·건강기능식품·"
+    "커피원두·밀키트·외식쿠폰(치킨/버거/피자 기프티콘).\n"
+    "생활: 세제·화장품·스킨케어·바디·헤어·구강·위생용품·휴지·반려동물용품·문구·"
+    "주방잡화·수납·캠핑·자동차용품.\n"
+    "PC: 노트북(그램·갤럭시북·아이디어패드 등 라인명 포함)·데스크탑·모니터·그래픽카드·"
+    "CPU·SSD·RAM·키보드·마우스·스마트폰·태블릿·이어폰·헤드폰·스마트워치·충전기·"
+    "보조배터리·공유기·NAS.\n"
+    "가전: TV·냉장고·세탁기·청소기·에어컨·공기청정기·에어프라이어·전기밥솥·"
+    "커피머신·안마의자·드라이어·면도기·전동칫솔.\n"
+    "의류: 옷·신발(운동화·구두·샌들)·가방·모자·양말·속옷·잡화·액세서리.\n"
+    "유아: 기저귀·분유·이유식·유모차·카시트·아기옷·아기용품.\n"
+    "게임: 콘솔(스위치·PS5·Xbox)·게임 타이틀·DLC·게임패드·기프트카드(스팀/닌텐도).\n"
+    "도서: 책·전집·문제집·잡지·전자책.\n"
+    "기타: 위 8개 중 어디에도 정말 해당하지 않을 때만. (상품권·복권·정체불명 묶음 등)\n"
+    "조금이라도 맞는 카테고리가 있으면 절대 기타로 보내지 마라. "
+    "브랜드/라인명(그램, 에어맥스, 갤럭시북 등)도 제품 종류로 판단하라. "
+    "근거는 쓰지 말고 분류만 한다."
+)
+_FEWSHOT = (
+    "예: LG 그램 14 노트북 → PC / 나이키 에어맥스 신발 → 의류 / "
+    "해태 에이스 카라멜 → 식품 / 버거킹 와퍼 세트 → 식품 / "
+    "발 각질 패치 50매 → 생활 / 다우니 섬유유연제 → 생활 / "
+    "닌텐도 스위치 기프트카드 → 게임 / 삼성 갤럭시탭 → PC\n"
 )
 _INSTRUCT = (
     "아래 상품을 분류해라. 각 줄은 `번호<TAB>정보` 형식이다.\n"
-    'JSON 객체 하나로만 답해라: {"번호": "카테고리", ...}. 다른 텍스트 금지.\n'
-    "카테고리는 반드시 " + "/".join(CATEGORIES) + " 중 하나.\n\n"
+    'JSON 객체 하나로만 답해라: {"번호": "카테고리", ...}. 다른 텍스트·설명 금지.\n'
+    "각 번호는 입력에 준 번호를 그대로 쓴다. "
+    "카테고리는 반드시 " + "/".join(CATEGORIES) + " 중 하나.\n"
+    + _FEWSHOT
+    + "\n"
 )
 
 
@@ -127,10 +149,29 @@ def _source_category(raw_json) -> str | None:
     return None
 
 
-async def reclassify_pending(conn, *, limit: int | None = None) -> dict:
-    """Background sweep: LLM-classify deals the keyword pass left weak/unset."""
+async def reclassify_pending(
+    conn, *, limit: int | None = None, reset: str | None = None
+) -> dict:
+    """Background sweep: LLM-classify deals the keyword pass left weak/unset.
+
+    reset="기타"  -> re-open only deals an earlier LLM run parked in 기타
+    reset="all"  -> re-open every deal an earlier LLM run touched
+    (both flip category_source back to NULL so the sweep picks them up again;
+    'manual' overrides are never reset.)
+    """
     if not LLM_CLASSIFY_ENABLED:
         return {"skipped": True, "reason": "LLM_CLASSIFY_ENABLED off", "checked": 0, "changed": 0}
+    if reset == "all":
+        await conn.execute(
+            "UPDATE deals SET category_source = NULL WHERE category_source = 'llm'"
+        )
+        await conn.commit()
+    elif reset == "기타":
+        await conn.execute(
+            "UPDATE deals SET category_source = NULL "
+            "WHERE category_source = 'llm' AND (category = '기타' OR category IS NULL)"
+        )
+        await conn.commit()
     cap = max(1, limit or LLM_CLASSIFY_PER_TICK)
     cur = await conn.execute(
         """
@@ -171,6 +212,12 @@ async def reclassify_pending(conn, *, limit: int | None = None) -> dict:
         if not result:
             # API failure for this chunk: leave rows unmarked, retry next tick.
             continue
+        # Fallback: model ignored our ids and answered 1..N by position.
+        chunk_ids = {r["id"] for r in chunk}
+        if not (result.keys() & chunk_ids) and set(result) <= set(
+            range(1, len(chunk) + 1)
+        ):
+            result = {chunk[k - 1]["id"]: v for k, v in result.items()}
         for r in chunk:
             new = result.get(r["id"])
             if not new:

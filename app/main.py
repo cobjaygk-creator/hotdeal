@@ -930,14 +930,19 @@ async def api_coupang_collect(request: Request):
 
 
 @app.post("/api/admin/llm-classify")
-async def api_admin_llm_classify(request: Request, limit: int = 100):
+async def api_admin_llm_classify(
+    request: Request, limit: int = 100, reset: str | None = None
+):
     _require_admin(request)
     if not LLM_CLASSIFY_ENABLED:
         raise HTTPException(400, "LLM_CLASSIFY_ENABLED가 꺼져 있습니다 (ANTHROPIC_API_KEY 필요)")
     from app.engine.llm_classify import reclassify_pending
 
+    reset = reset if reset in ("기타", "all") else None
     async with _own_db() as conn:
-        return JSONResponse(await reclassify_pending(conn, limit=max(1, min(500, limit))))
+        return JSONResponse(
+            await reclassify_pending(conn, limit=max(1, min(1000, limit)), reset=reset)
+        )
 
 
 @app.post("/api/admin/digest/send")

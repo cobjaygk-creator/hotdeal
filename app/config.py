@@ -165,11 +165,13 @@ PPOMPPU_ENRICH_BATCH = int((os.environ.get("PPOMPPU_ENRICH_BATCH") or "12").stri
 # the keyword guess was weak (기타) or wrong. Off unless ANTHROPIC_API_KEY set.
 # Cost at ~200 new deals/day, batched: well under $0.10/day on Haiku.
 ANTHROPIC_API_KEY = (os.environ.get("ANTHROPIC_API_KEY") or "").strip()
-LLM_MODEL = (os.environ.get("LLM_MODEL") or "claude-haiku-4-5-20251001").strip()
+# Sonnet by default: Haiku batched classification put obvious items (LG 그램
+# laptop, 버거킹 와퍼) in 기타. Override with LLM_MODEL if cost matters more.
+LLM_MODEL = (os.environ.get("LLM_MODEL") or "claude-sonnet-5").strip()
 LLM_CLASSIFY_ENABLED = bool(ANTHROPIC_API_KEY) and _env_flag(
     "LLM_CLASSIFY_ENABLED", default=True
 )
-LLM_CLASSIFY_BATCH = int((os.environ.get("LLM_CLASSIFY_BATCH") or "25").strip() or "25")
+LLM_CLASSIFY_BATCH = int((os.environ.get("LLM_CLASSIFY_BATCH") or "12").strip() or "12")
 LLM_CLASSIFY_PER_TICK = int(
     (os.environ.get("LLM_CLASSIFY_PER_TICK") or "100").strip() or "100"
 )
