@@ -141,7 +141,11 @@ state: dict = {}
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    state["db"] = await connect()
+    # Request handlers read (and do small writes) through this one long-lived
+    # connection. It must be autocommit: a handler write that raised between
+    # execute() and commit() would otherwise leave it pinned to a stale WAL
+    # snapshot, so freshly collected deals stop showing up until a restart.
+    state["db"] = await connect(autocommit=True)
     state["http"] = PoliteClient()
     state["hub"] = EventHub()
     state["collect_lock"] = asyncio.Lock()
@@ -301,7 +305,9 @@ async def _scheduled_email_digest() -> None:
     if _dt.now(KST).hour != EMAIL_DIGEST_HOUR:
         return
     try:
-        summary = await run_digest(state["db"])
+        async with _own_db() as conn:
+            summary = await run_digest(conn)
+            await conn.commit()  # run_digest writes last_email_digest_* via set_meta
         log.info("email digest %s", summary)
     except Exception:
         log.exception("email digest failed")
@@ -355,7 +361,8 @@ async def _scheduled_collect_slow() -> None:
 async def _scheduled_family() -> None:
     async with state["collect_lock"]:
         try:
-            await collect_family_sales(state["db"], state["http"])
+            async with _own_db() as conn:
+                await collect_family_sales(conn, state["http"])
         except Exception:
             log.exception("family collect failed")
 
@@ -363,7 +370,8 @@ async def _scheduled_family() -> None:
 async def _scheduled_amazon_jp() -> None:
     async with state["collect_lock"]:
         try:
-            await collect_amazon_jp(state["db"], state["http"])
+            async with _own_db() as conn:
+                await collect_amazon_jp(conn, state["http"])
         except Exception:
             log.exception("amazon jp collect failed")
 
@@ -373,7 +381,8 @@ async def _scheduled_mvno() -> None:
 
     async with state["collect_lock"]:
         try:
-            await collect_mvno_plans(state["db"], state["http"])
+            async with _own_db() as conn:
+                await collect_mvno_plans(conn, state["http"])
         except Exception:
             log.exception("mvno collect failed")
 
@@ -505,6 +514,21 @@ async def _run_collect(names: list[str] | None) -> dict:
 
 def _db():
     return state["db"]
+
+
+@asynccontextmanager
+async def _own_db():
+    """A private transactional connection for background collectors/digests.
+
+    Kept off the shared autocommit request connection so a long collector tick
+    cannot serialize behind (or stall) web reads, and so multi-statement
+    upserts keep their atomicity.
+    """
+    conn = await connect()
+    try:
+        yield conn
+    finally:
+        await conn.close()
 
 
 async def _home_ctx(
@@ -877,7 +901,8 @@ async def api_coupang_collect(request: Request):
     if not COUPANG_ENABLED:
         raise HTTPException(404, "쿠팡 파트너스 키가 설정되지 않았습니다")
     async with state["collect_lock"]:
-        summary = await collect_coupang(state["db"])
+        async with _own_db() as conn:
+            summary = await collect_coupang(conn)
     return JSONResponse(summary)
 
 
@@ -888,7 +913,10 @@ async def api_admin_digest_send(request: Request):
         raise HTTPException(404, "SMTP가 설정되지 않았습니다")
     from app.engine.email_digest import run_digest
 
-    return JSONResponse(await run_digest(state["db"], force=True))
+    async with _own_db() as conn:
+        result = await run_digest(conn, force=True)
+        await conn.commit()  # persist last_email_digest_* markers
+        return JSONResponse(result)
 
 
 @app.get("/mvno", response_class=HTMLResponse)
@@ -922,7 +950,8 @@ async def api_mvno_collect():
     from app.mvno.pipeline import collect_mvno_plans
 
     async with state["collect_lock"]:
-        summary = await collect_mvno_plans(state["db"], state["http"])
+        async with _own_db() as conn:
+            summary = await collect_mvno_plans(conn, state["http"])
     return JSONResponse(summary)
 
 
@@ -930,7 +959,8 @@ async def api_mvno_collect():
 async def api_family_collect():
     _require_collect()
     async with state["collect_lock"]:
-        summary = await collect_family_sales(state["db"], state["http"])
+        async with _own_db() as conn:
+            summary = await collect_family_sales(conn, state["http"])
     return JSONResponse(summary)
 
 
@@ -940,7 +970,8 @@ async def api_amazon_jp_collect():
         raise HTTPException(404, "일마존 메뉴가 비활성화되어 있습니다")
     _require_collect()
     async with state["collect_lock"]:
-        summary = await collect_amazon_jp(state["db"], state["http"])
+        async with _own_db() as conn:
+            summary = await collect_amazon_jp(conn, state["http"])
     return JSONResponse(summary)
 
 

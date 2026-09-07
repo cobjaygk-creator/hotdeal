@@ -296,10 +296,21 @@ def utcnow_iso() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
 
 
-async def connect(path: Path | None = None) -> aiosqlite.Connection:
+async def connect(
+    path: Path | None = None, *, autocommit: bool = False
+) -> aiosqlite.Connection:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     db_path = path or DATABASE_PATH
-    conn = await aiosqlite.connect(db_path, timeout=30.0)
+    # autocommit=True (isolation_level=None): every statement commits at once, so
+    # the connection can never sit inside an open transaction. The long-lived
+    # request connection MUST use this — under WAL, a reader stuck in a
+    # transaction (e.g. a write that raised before commit, with no rollback)
+    # keeps seeing a frozen snapshot and never picks up rows other connections
+    # commit, until the process restarts. Writers keep the default deferred mode
+    # so their multi-statement upserts stay atomic.
+    conn = await aiosqlite.connect(
+        db_path, timeout=30.0, isolation_level=None if autocommit else ""
+    )
     conn.row_factory = aiosqlite.Row
     await conn.execute("PRAGMA journal_mode=WAL")
     await conn.execute("PRAGMA busy_timeout=30000")
