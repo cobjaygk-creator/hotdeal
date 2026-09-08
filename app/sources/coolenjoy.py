@@ -52,6 +52,9 @@ def parse_rss(xml_text: str) -> list[RawPost]:
         thumb = _first_thumb(desc)
         if thumb:
             extra["thumbnail_url"] = thumb
+        cat = (item.findtext("category") or "").strip()
+        if cat and cat.lower() not in ("jirum", "지름"):
+            extra["source_category"] = cat
         posts.append(
             RawPost(
                 source="coolenjoy",

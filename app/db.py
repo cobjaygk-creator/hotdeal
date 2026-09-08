@@ -740,17 +740,18 @@ async def _backfill_categories(conn: aiosqlite.Connection) -> None:
 
     cur = await conn.execute(
         """
-        SELECT d.id, d.product_name, d.seller, d.category,
+        SELECT d.id, d.product_name, d.seller, d.category, d.mall_url,
                (
                  SELECT p.raw_json FROM deal_posts dp
                  JOIN posts p ON p.id = dp.post_id
                  WHERE dp.deal_id = d.id
                    AND p.raw_json IS NOT NULL AND p.raw_json != ''
-                 ORDER BY CASE p.source WHEN 'quasarzone' THEN 0 WHEN 'eomisae' THEN 1 ELSE 2 END,
-                          p.id DESC
+                   AND p.raw_json LIKE '%source_category%'
+                 ORDER BY p.id DESC
                  LIMIT 1
                ) AS raw_json
         FROM deals d
+        WHERE IFNULL(d.category_source, '') != 'manual'
         """
     )
     rows = await cur.fetchall()
@@ -766,7 +767,9 @@ async def _backfill_categories(conn: aiosqlite.Connection) -> None:
                 val = extra.get("source_category")
                 if isinstance(val, str) and val.strip():
                     source_category = val
-        cat = classify(row["product_name"], row["seller"], source_category)
+        cat = classify(
+            row["product_name"], row["seller"], source_category, mall_url=row["mall_url"]
+        )
         if cat != (row["category"] or ""):
             await conn.execute(
                 "UPDATE deals SET category=? WHERE id=?",

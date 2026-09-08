@@ -176,7 +176,9 @@ async def upsert_deal_from_post(conn, post_row: dict) -> int | None:
         post_row.get("body"), post_row.get("title"), post_row.get("raw_json")
     )
     thumbnail_url = post_row.get("thumbnail_url")
-    category = classify(offer.product_name, offer.seller, _source_category(post_row))
+    category = classify(
+        offer.product_name, offer.seller, _source_category(post_row), mall_url=mall_url
+    )
     if match:
         deal_id = match["id"]
         new_price = offer.price if offer.price is not None else match["price"]

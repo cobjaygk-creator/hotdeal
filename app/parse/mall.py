@@ -135,3 +135,29 @@ def mall_label_from_url(url: str | None) -> str | None:
 
 def mall_key_from_url(url: str | None) -> str | None:
     return mall_from_url(url)[1]
+
+
+# Malls that sell (almost) one category — the buy link alone is a strong signal.
+# Generic marketplaces (쿠팡/네이버/G마켓/11번가/SSG/롯데온/티몬…) are deliberately
+# absent.
+_MALL_CATEGORY: dict[str, str] = {
+    "kurly": "식품",
+    "iherb": "식품",
+    "musinsa": "의류",
+    "ably": "의류",
+    "zigzag": "의류",
+    "kream": "의류",
+    "compuzone": "PC",
+    "danawa": "PC",
+    "yes24": "도서",
+    "kyobo": "도서",
+    "ohouse": "생활",
+    "himart": "가전",
+    "steam": "게임",
+}
+
+
+def mall_category_from_url(url: str | None) -> str | None:
+    """Our taxonomy category inferred from a category-specific mall, else None."""
+    key = mall_key_from_url(url)
+    return _MALL_CATEGORY.get(key or "")

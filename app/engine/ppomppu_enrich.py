@@ -372,7 +372,11 @@ async def enrich_missing_ppomppu_malls(
                     )
                     offer = parse_title(title_txt)
                     name = offer.product_name or title_txt
-                    cat = classify(name, offer.seller)
+                    cat = classify(
+                        name,
+                        offer.seller,
+                        mall_url=(mall_url or row.get("mall_url")),
+                    )
                     if offer.product_key:
                         await conn.execute(
                             """

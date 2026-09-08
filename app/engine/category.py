@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import re
 
+from app.parse.mall import mall_category_from_url
+
 CATEGORIES = ["식품", "생활", "PC", "가전", "의류", "유아", "게임", "도서", "기타"]
 
 _SELLER_RULES: list[tuple[tuple[str, ...], str]] = [
@@ -189,16 +191,29 @@ _PRIORITY = ("게임", "유아", "도서", "PC", "가전", "의류", "식품", "
 # to our taxonomy and use them only as a *fallback* — after product-name
 # keywords/heuristics have had a shot — so a specific keyword match never
 # gets overridden by a coarser source label.
-_AMBIGUOUS_SOURCE_CATEGORY_MARKERS = ("생활/식품", "식품/생활")
+_AMBIGUOUS_SOURCE_CATEGORY_MARKERS = ("생활/식품", "식품/생활", "생활/주방", "패션/잡화")
 _SOURCE_CATEGORY_RULES: list[tuple[tuple[str, ...], str]] = [
-    (("게임", "sw"), "게임"),
-    (("유아", "아동", "키즈", "베이비"), "유아"),
-    (("도서", "문구"), "도서"),
-    (("노트북", "모바일", "하드웨어", "pc"), "PC"),
-    (("가전", "tv"), "가전"),
-    (("패션", "의류", "신발", "가방", "잡화"), "의류"),
-    (("식품", "푸드", "먹거리"), "식품"),
-    (("생활", "리빙", "뷰티"), "생활"),
+    # 각 커뮤니티의 자체 카테고리 배지 어휘 → 우리 taxonomy
+    (("게임", "sw", "타이틀", "콘솔", "스팀", "닌텐도", "플스", "xbox"), "게임"),
+    (("유아", "아동", "키즈", "베이비", "육아", "출산", "완구", "장난감"), "유아"),
+    (("도서", "서적", "문구", "책", "잡지", "e북", "전자책"), "도서"),
+    (
+        ("노트북", "모바일", "하드웨어", "pc", "컴퓨터", "주변기기", "저장장치",
+         "스마트폰", "태블릿", "모니터", "그래픽", "ssd", "cpu"),
+        "PC",
+    ),
+    (("가전", "tv", "television", "냉장고", "세탁", "청소기", "주방가전", "생활가전"), "가전"),
+    (
+        ("패션", "의류", "신발", "가방", "잡화", "액세서리", "쥬얼리", "언더웨어",
+         "스포츠의류", "아웃도어의류"),
+        "의류",
+    ),
+    (("식품", "푸드", "먹거리", "먹을거리", "간식", "음료", "건강식품", "농수축산"), "식품"),
+    (
+        ("생활", "리빙", "뷰티", "화장품", "주방", "욕실", "반려", "펫", "가구",
+         "인테리어", "세제", "청소", "위생", "자동차용품", "캠핑"),
+        "생활",
+    ),
 ]
 
 
@@ -234,23 +249,32 @@ def classify(
     product_name: str | None,
     seller: str | None = None,
     source_category: str | None = None,
+    mall_url: str | None = None,
 ) -> str:
+    # 1) 판매처명 명시 규칙
     seller_l = (seller or "").lower()
     for needles, cat in _SELLER_RULES:
         if any(n.lower() in seller_l for n in needles):
             return cat
+    # 2) 제품명 키워드 (구체 키워드가 제일 신뢰도 높음)
     text = f"{seller or ''} {product_name or ''}".lower()
     text = text.replace("기타정보", " ").replace("딜바다::", " ")
     for cat in _PRIORITY:
         for kw in _KEYWORDS[cat]:
             if kw.lower() in text:
                 return cat
+    # 3) 단위·품목 패턴
     for pat, cat in _HEURISTICS:
         if pat.search(text):
             return cat
+    # 4) 소스가 자기 글에 붙인 카테고리 배지 (애매하면 _map_source_category가 None)
     mapped = _map_source_category(source_category)
     if mapped:
         return mapped
+    # 5) 카테고리가 거의 고정된 몰의 구매링크 (다른 신호가 하나도 없을 때만)
+    mall_cat = mall_category_from_url(mall_url)
+    if mall_cat:
+        return mall_cat
     return "기타"
 
 

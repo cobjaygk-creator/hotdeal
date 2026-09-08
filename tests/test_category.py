@@ -134,3 +134,26 @@ def test_classify_former_misc_buckets():
     assert classify("비타민C 1000 영양제", "네이버") == "식품"
     assert classify("강아지 사료 6kg", "쿠팡") == "생활"
     assert classify("알라딘 양장본 세트", "알라딘") == "도서"
+
+
+def test_classify_mall_domain_rescues_cryptic_titles():
+    # Cryptic title, no keyword, no source badge — the buy link is a
+    # category-locked mall, used only as the last signal before 기타.
+    assert classify("오늘만 이 가격", None, mall_url="https://www.kurly.com/goods/1") == "식품"
+    assert classify("BLACK FRIDAY", None, mall_url="https://www.musinsa.com/app/goods/9") == "의류"
+    assert classify("재입고 알림", None, mall_url="https://prod.danawa.com/info/?pcode=1") == "PC"
+    assert classify("품절 임박", None, mall_url="https://www.yes24.com/Product/Goods/1") == "도서"
+    # Generic marketplace -> no mall signal, falls through to 기타
+    assert classify("오늘만 이 가격", None, mall_url="https://www.coupang.com/vp/products/1") == "기타"
+    # A real product keyword still wins over the mall domain.
+    assert classify("립톤 아이스티 분말 2개", None, mall_url="https://www.kurly.com/x") == "식품"
+
+
+def test_classify_expanded_source_badges():
+    assert classify("무명 XZ", None, "먹거리") == "식품"
+    assert classify("무명 XZ", None, "의류/잡화") == "의류"
+    assert classify("무명 XZ", None, "육아") == "유아"
+    assert classify("무명 XZ", None, "도서/음반") == "도서"
+    assert classify("무명 XZ", None, "컴퓨터") == "PC"
+    assert classify("무명 XZ", None, "화장품") == "생활"
+    assert classify("무명 XZ", None, "상품권") == "기타"

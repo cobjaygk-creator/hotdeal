@@ -95,6 +95,10 @@ def parse_rss(xml_text: str) -> list[RawPost]:
             continue
         hits = (item.findtext("hits") or "").strip()
         votes, views = _hits(hits)
+        extra: dict = {"thumbnail_url": thumbnail_for_post_id(post_id)}
+        cat = (item.findtext("category") or "").strip()
+        if cat and cat.lower() not in ("ppomppu", "뽐뿌"):
+            extra["source_category"] = cat
         posts.append(
             RawPost(
                 source="ppomppu",
@@ -106,7 +110,7 @@ def parse_rss(xml_text: str) -> list[RawPost]:
                 posted_at=posted,
                 votes=votes,
                 views=views,
-                extra={"thumbnail_url": thumbnail_for_post_id(post_id)},
+                extra=extra,
             )
         )
     return posts

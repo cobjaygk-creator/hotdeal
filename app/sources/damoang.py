@@ -47,6 +47,8 @@ def parse_rss(xml_text: str) -> list[RawPost]:
                 posted = email.utils.parsedate_to_datetime(pub)
             except (TypeError, ValueError):
                 posted = None
+        cat = (item.findtext("category") or "").strip()
+        extra = {"source_category": cat} if cat and cat.lower() != "economy" else {}
         posts.append(
             RawPost(
                 source="damoang",
@@ -56,6 +58,7 @@ def parse_rss(xml_text: str) -> list[RawPost]:
                 body=desc,
                 author=author[:40] if author else None,
                 posted_at=posted,
+                extra=extra,
             )
         )
     return posts
