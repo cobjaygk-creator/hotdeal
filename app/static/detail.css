@@ -15,7 +15,7 @@
 @media (min-width: 960px) {
   #deal-modal {
     align-items: flex-start;
-    padding: 28px 20px 44px;
+    padding: 28px 20px 16px;
     overflow-y: auto;
     overscroll-behavior: none; /* 스크롤 끝에서 부모창으로 넘어가지 않게 */
     scrollbar-width: none;
@@ -78,8 +78,9 @@
     align-self: start;
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 56px);
-    max-height: calc(100vh - 56px);
+    /* 스크롤 끝에서 sticky를 놓치지 않도록 스크롤 가능 범위보다 살짝 낮게. */
+    height: calc(100vh - 52px);
+    max-height: calc(100vh - 52px);
     border: 1px solid var(--border);
     border-radius: 16px;
     background: var(--surface);
