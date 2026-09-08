@@ -523,7 +523,7 @@ function renderRow(deal, { fresh = false, freshIndex = 0 } = {}) {
   const starred = isBookmarked(deal.id);
   const title = cleanDealTitle(deal.product_name || "(제목 없음)");
   const thumb = deal.thumbnail_url
-    ? `<img class="deal-thumb" src="${esc(deal.thumbnail_url)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null;this.classList.add('placeholder');this.removeAttribute('src')">`
+    ? `<img class="deal-thumb" src="${esc(deal.thumbnail_url)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null;var d=document.createElement('div');d.className='deal-thumb placeholder';d.setAttribute('aria-hidden','true');this.replaceWith(d)">`
     : `<div class="deal-thumb placeholder" aria-hidden="true"></div>`;
   const ts = deal.last_seen_at || "";
   const comments =
@@ -1354,9 +1354,12 @@ function markBrokenThumb(img) {
     img.remove();
     return;
   }
-  img.classList.add("placeholder");
-  img.removeAttribute("src");
-  img.removeAttribute("srcset");
+  // Replace the node outright — a broken <img> keeps its torn-icon chrome in
+  // some browsers even after src is cleared; a <div> never can.
+  const ph = document.createElement("div");
+  ph.className = "deal-thumb placeholder";
+  ph.setAttribute("aria-hidden", "true");
+  img.replaceWith(ph);
 }
 document.addEventListener(
   "error",
