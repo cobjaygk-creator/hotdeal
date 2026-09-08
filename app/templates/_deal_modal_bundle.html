@@ -1,0 +1,23 @@
+{#
+  In-place deal preview modal for any page that renders _deal_card.html
+  (ranking / search / mypage). Without this, a deal-card link is a plain
+  <a href="/deal/{id}"> that full-navigates and the server renders the home
+  list as the backdrop — so closing the modal drops the user on 핫딜, not
+  the page they came from. Home (index.html) wires live.js itself with its
+  own richer live-config, so it does not include this.
+#}
+<script id="live-config" type="application/json">{{ {
+  "live": false,
+  "grade": "",
+  "seller": "",
+  "source": "",
+  "pageSize": page_size | default(50, true),
+  "hasMore": false,
+  "sourceLabels": source_labels | default({}, true),
+  "loggedIn": (user is defined and user is not none)
+} | tojson | safe }}</script>
+{% include "_deal_modal.html" %}
+{% if initial_deal_id %}<script>window.__initialDealId = {{ initial_deal_id }};</script>{% endif %}
+<script src="/static/comments.js?v={{ asset_v }}"></script>
+<script src="/static/chat-pin.js?v={{ asset_v }}"></script>
+<script src="/static/live.js?v={{ asset_v }}"></script>

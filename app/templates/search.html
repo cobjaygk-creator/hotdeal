@@ -25,18 +25,5 @@
   {% if q %}<li class="empty-row empty">맞는 딜이 없습니다.</li>{% endif %}
   {% endfor %}
 </ul>
-<script id="live-config" type="application/json">{{ {
-  "live": false,
-  "grade": "",
-  "seller": "",
-  "source": "",
-  "pageSize": 50,
-  "hasMore": false,
-  "sourceLabels": source_labels,
-  "loggedIn": user is not none
-} | tojson | safe }}</script>
-{% include "_deal_modal.html" %}
-<script src="/static/comments.js?v={{ asset_v }}"></script>
-<script src="/static/chat-pin.js?v={{ asset_v }}"></script>
-<script src="/static/live.js?v={{ asset_v }}"></script>
+{% include "_deal_modal_bundle.html" %}
 {% endblock %}
