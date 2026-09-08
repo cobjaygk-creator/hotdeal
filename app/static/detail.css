@@ -64,15 +64,22 @@
   }
   .modal-panel.is-detail .dd-main-col > .dd-main {
     overflow: visible;
+    /* .dd-main-col은 overflow:visible라 라운드로 클립을 못 한다 — .dd-main 배경을
+       투명으로 둬서 뒤의 .dd-main-col 흰 배경 라운드 코너가 그대로 보이게. */
+    background: transparent;
+    border-radius: 16px;
+    padding-top: 16px;
   }
-  /* 오른쪽 = 댓글(위, 안에서만 스크롤) + 구매/원글/찜(아래 고정) 한 덩어리로 sticky */
+  /* 오른쪽 = 댓글(위, 안에서만 스크롤) + 구매/원글/찜(아래 고정) 한 덩어리로 sticky.
+     높이는 왼쪽 카드의 보이는 영역과 같게 (뷰포트 - 상하 여백). */
   .modal-panel.is-detail .dd-side {
     position: sticky;
-    top: 24px;
+    top: 0; /* #deal-modal 패딩(28px) 안쪽 기준 — 왼쪽 카드 상단과 정렬 */
     align-self: start;
     display: flex;
     flex-direction: column;
-    max-height: calc(100vh - 48px);
+    height: calc(100vh - 56px);
+    max-height: calc(100vh - 56px);
     border: 1px solid var(--border);
     border-radius: 16px;
     background: var(--surface);
