@@ -1081,11 +1081,14 @@ async function openModal(id, opts) {
         <p class="dd-meta">
           ${sourceBits}
           ${deal.category ? `<span class="dd-meta-cat">${esc(deal.category)}</span>` : ""}
-          <time>${esc(relativeTime(deal.last_seen_at))}</time>
-          ${deal.status === "expired" ? `<span class="deal-soldout">품절</span>` : ""}
         </p>
         <h1 id="modal-title">${esc(deal.product_name)}</h1>
-        <p class="modal-price">${priceHtml(deal.price)}${detailOffHtml(deal)}${strikeHtml(deal, hasBaseline, cheaper)}</p>
+        <p class="modal-price">
+          ${priceHtml(deal.price)}${detailOffHtml(deal)}${strikeHtml(deal, hasBaseline, cheaper)}
+          <span class="deal-meta-sep" aria-hidden="true">|</span>
+          <time class="dd-hero-time">${esc(relativeTime(deal.last_seen_at))}</time>
+          ${deal.status === "expired" ? `<span class="deal-soldout">품절</span>` : ""}
+        </p>
         ${verdictHtml}
       </div>
     </div>
