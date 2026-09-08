@@ -8,34 +8,28 @@
    높이는 내용만큼 늘어나고(최대 92vh), 그 안에서 모달 자체가 스크롤 컨테이너가
    되어 왼쪽 상세 영역과 함께 스크롤되며, 오른쪽 댓글 패널만 상단에 고정(sticky) ---- */
 @media (min-width: 960px) {
-  /* 스크롤은 92vh 박스가 아니라 오버레이(#deal-modal) 전체에서 일어난다.
-     왼쪽 상세 카드는 내용만큼의 높이로 통째로 움직이고, 오른쪽 댓글 패널만
-     뷰포트에 sticky. 스크롤바는 숨긴다. */
+  /* 모달과 배경은 뷰포트에 고정. 스크롤은 왼쪽 본문(.dd-main) 안에서만 일어나고
+     스크롤바는 숨긴다. 오른쪽(댓글+CTA)은 자체 높이로 고정. */
   #deal-modal {
-    align-items: flex-start;
-    padding: 28px 20px 44px;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
+    align-items: center;
+    padding: 32px 20px;
+    overflow: hidden;               /* 오버레이는 절대 스크롤 안 함 */
   }
-  #deal-modal::-webkit-scrollbar { width: 0; height: 0; display: none; }
   .modal .modal-panel.is-detail,
   .modal-panel.is-detail {
     background: transparent;
     padding: 0;
     gap: 0;
     width: min(1120px, 100%);
-    height: auto;
-    max-height: none;
-    min-height: 100%;
-    overflow: visible;
+    height: min(86vh, 760px);
+    max-height: min(86vh, 760px);
+    overflow: hidden;               /* 패널도 스크롤 안 함 */
     box-shadow: none;
   }
   .modal-panel.is-detail .modal-close {
-    position: fixed;
-    top: 20px;
-    right: 20px;
+    position: absolute;
+    top: -6px;
+    right: -6px;
     z-index: 6;
     background: var(--surface);
     border: 1px solid var(--border);
@@ -45,32 +39,44 @@
     background: var(--surface-hover, #f7f8fa);
   }
   .modal-panel.is-detail .dd-split {
-    flex: 0 0 auto; /* 내용 높이만큼 그대로 커지게 (shrink 금지) */
+    flex: 1;
+    min-height: 0;
     gap: 12px;
     grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
-    align-items: start; /* 오른쪽 댓글 칸이 왼쪽 높이에 맞춰 늘어나지 않게 */
+    align-items: stretch;           /* 두 카드 모두 패널 높이만큼 */
     background: transparent;
     padding: 0;
-    overflow: visible;
+    overflow: hidden;
   }
   .modal-panel.is-detail .dd-main-col {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
     border: 1px solid var(--border);
     border-radius: 16px;
     background: var(--surface);
-    overflow: visible; /* 내부 스크롤 없이 오버레이와 함께 통째로 스크롤 */
+    overflow: hidden;
     box-shadow: 0 1px 2px rgba(74, 50, 30, 0.04);
   }
+  /* 여기 한 곳만 스크롤 — 스크롤바 숨김, 바깥으로 체이닝 금지 */
   .modal-panel.is-detail .dd-main-col > .dd-main {
-    overflow: visible;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
-  /* 오른쪽 = 댓글(위, 안에서만 스크롤) + 구매/원글/찜(아래 고정) 한 덩어리로 sticky */
+  .modal-panel.is-detail .dd-main-col > .dd-main::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+  }
+  /* 오른쪽 = 댓글(안에서만 스크롤) + 구매/원글/찜(하단 고정) */
   .modal-panel.is-detail .dd-side {
-    position: sticky;
-    top: 24px;
-    align-self: start;
+    min-height: 0;
     display: flex;
     flex-direction: column;
-    max-height: calc(100vh - 48px);
     border: 1px solid var(--border);
     border-radius: 16px;
     background: var(--surface);
