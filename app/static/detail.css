@@ -8,19 +8,32 @@
    높이는 내용만큼 늘어나고(최대 92vh), 그 안에서 모달 자체가 스크롤 컨테이너가
    되어 왼쪽 상세 영역과 함께 스크롤되며, 오른쪽 댓글 패널만 상단에 고정(sticky) ---- */
 @media (min-width: 960px) {
+  /* 스크롤은 92vh 박스가 아니라 오버레이(#deal-modal) 전체에서 일어난다.
+     왼쪽 상세 카드는 내용만큼의 높이로 통째로 움직이고, 오른쪽 댓글 패널만
+     뷰포트에 sticky. 스크롤바는 숨긴다. */
+  #deal-modal {
+    align-items: flex-start;
+    padding: 28px 20px 44px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  #deal-modal::-webkit-scrollbar { width: 0; height: 0; display: none; }
   .modal .modal-panel.is-detail,
   .modal-panel.is-detail {
     background: transparent;
-    padding: 16px 0 0;
+    padding: 0;
     gap: 0;
     width: min(1120px, 100%);
     height: auto;
-    max-height: 92vh;
-    overflow-y: auto;
-    overflow-x: hidden;
+    max-height: none;
+    min-height: 100%;
+    overflow: visible;
     box-shadow: none;
   }
   .modal-panel.is-detail .modal-close {
+    position: fixed;
     top: 20px;
     right: 20px;
     z-index: 6;
@@ -32,8 +45,7 @@
     background: var(--surface-hover, #f7f8fa);
   }
   .modal-panel.is-detail .dd-split {
-    flex: 0 0 auto; /* flex:1(기본값)이면 모달의 max-height에 맞춰 줄어들어(flex-shrink)
-                       sticky 범위가 그 안에 갇힌다 — 내용 높이만큼 그대로 커지게 한다 */
+    flex: 0 0 auto; /* 내용 높이만큼 그대로 커지게 (shrink 금지) */
     gap: 12px;
     grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
     align-items: start; /* 오른쪽 댓글 칸이 왼쪽 높이에 맞춰 늘어나지 않게 */
@@ -45,24 +57,42 @@
     border: 1px solid var(--border);
     border-radius: 16px;
     background: var(--surface);
-    overflow: visible; /* 내부 스크롤 없이 모달과 함께 스크롤 */
+    overflow: visible; /* 내부 스크롤 없이 오버레이와 함께 통째로 스크롤 */
     box-shadow: 0 1px 2px rgba(74, 50, 30, 0.04);
   }
   .modal-panel.is-detail .dd-main-col > .dd-main {
     overflow: visible;
   }
-  .modal-panel.is-detail .dd-chat {
+  /* 오른쪽 = 댓글(위, 안에서만 스크롤) + 구매/원글/찜(아래 고정) 한 덩어리로 sticky */
+  .modal-panel.is-detail .dd-side {
     position: sticky;
-    top: 0;
+    top: 24px;
     align-self: start;
-    max-height: calc(92vh - 32px);
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 48px);
     border: 1px solid var(--border);
-    border-left: 1px solid var(--border);
     border-radius: 16px;
     background: var(--surface);
-    overflow: hidden; /* 내부 chat-log만 스크롤 */
+    overflow: hidden;
     box-shadow: 0 1px 2px rgba(74, 50, 30, 0.04);
   }
+  .modal-panel.is-detail .dd-side .dd-chat {
+    position: static;
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .modal-panel.is-detail .dd-side .dd-cta {
+    flex: 0 0 auto;
+  }
+}
+@media (max-width: 959px) {
+  /* 모바일: dd-side는 껍데기만 — chat/cta가 dd-split 그리드에 그대로 흐르게 */
+  .dd-side { display: contents; }
 }
 @media (max-width: 959px) {
   .modal-panel.is-detail .dd-main-col,
