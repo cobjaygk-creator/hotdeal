@@ -39,6 +39,10 @@ def _model_tag(model: str = LLM_MODEL) -> str:
 # background sweep re-open every row an *older* model pinned — no manual reset.
 _SRC = "llm:" + _model_tag()
 
+# Last Anthropic API error string (surfaced in the sweep summary / /api/stats),
+# or None after a successful call.
+_last_error: str | None = None
+
 _API_URL = "https://api.anthropic.com/v1/messages"
 _VALID = set(CATEGORIES)
 
@@ -143,10 +147,17 @@ async def classify_batch(items: list[dict]) -> dict[int, str]:
     if not items or not LLM_CLASSIFY_ENABLED:
         return {}
     prompt = _INSTRUCT + "\n".join(_item_line(it) for it in items)
+    global _last_error
     try:
-        return await _call_api(prompt)
+        out = await _call_api(prompt)
+        _last_error = None
+        return out
     except Exception as exc:  # noqa: BLE001
-        log.warning("llm classify call failed: %s", exc)
+        detail = str(exc)
+        if isinstance(exc, httpx.HTTPStatusError):
+            detail = f"{exc.response.status_code} {exc.response.text[:200]}"
+        _last_error = detail
+        log.warning("llm classify call failed: %s", detail)
         return {}
 
 
