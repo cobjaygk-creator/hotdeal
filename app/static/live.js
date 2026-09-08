@@ -523,7 +523,7 @@ function renderRow(deal, { fresh = false, freshIndex = 0 } = {}) {
   const starred = isBookmarked(deal.id);
   const title = cleanDealTitle(deal.product_name || "(제목 없음)");
   const thumb = deal.thumbnail_url
-    ? `<img class="deal-thumb" src="${esc(deal.thumbnail_url)}" alt="" loading="lazy" referrerpolicy="no-referrer">`
+    ? `<img class="deal-thumb" src="${esc(deal.thumbnail_url)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null;this.classList.add('placeholder');this.removeAttribute('src')">`
     : `<div class="deal-thumb placeholder" aria-hidden="true"></div>`;
   const ts = deal.last_seen_at || "";
   const comments =
@@ -1011,7 +1011,7 @@ async function openModal(id, opts) {
     .join("");
   const thumb = `<div class="modal-thumb-wrap">${
     deal.thumbnail_url
-      ? `<img class="modal-thumb" src="${esc(deal.thumbnail_url)}" alt="" referrerpolicy="no-referrer">`
+      ? `<img class="modal-thumb" src="${esc(deal.thumbnail_url)}" alt="" referrerpolicy="no-referrer" onerror="this.onerror=null;this.remove()">`
       : ""
   }</div>`;
   const buyLabel = deal.seller
@@ -1342,3 +1342,42 @@ document.addEventListener("click", (e) => {
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && modal && !modal.hidden) closeModal();
 });
+
+// Dead / hotlink-blocked thumbnails: swap the broken <img> for the placeholder
+// look instead of a browser broken-image icon. Capture phase — `error` on
+// <img> does not bubble. The initial sweep catches images that already failed
+// before this script ran.
+function markBrokenThumb(img) {
+  if (!img || img.dataset.thumbFailed) return;
+  img.dataset.thumbFailed = "1";
+  if (img.classList.contains("modal-thumb")) {
+    img.remove();
+    return;
+  }
+  img.classList.add("placeholder");
+  img.removeAttribute("src");
+  img.removeAttribute("srcset");
+}
+document.addEventListener(
+  "error",
+  (e) => {
+    const img = e.target;
+    if (
+      img &&
+      img.tagName === "IMG" &&
+      (img.classList.contains("deal-thumb") || img.classList.contains("modal-thumb"))
+    ) {
+      markBrokenThumb(img);
+    }
+  },
+  true
+);
+function sweepBrokenThumbs(root) {
+  (root || document)
+    .querySelectorAll("img.deal-thumb[src], img.modal-thumb[src]")
+    .forEach((img) => {
+      if (img.complete && img.naturalWidth === 0) markBrokenThumb(img);
+    });
+}
+sweepBrokenThumbs();
+window.addEventListener("load", () => sweepBrokenThumbs());

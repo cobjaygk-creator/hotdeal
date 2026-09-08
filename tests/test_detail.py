@@ -369,3 +369,46 @@ def test_extract_comment_count_xe_style_count_before_label():
     """
     detail = parse_detail(html, "https://www.fmkorea.com/1")
     assert detail.comment_count == 128
+
+
+def test_img_candidates_orders_og_then_body_and_filters_junk():
+    from app.sources.detail import _img_candidates
+    from selectolax.parser import HTMLParser
+
+    html = """
+    <html><head>
+      <meta property="og:image" content="https://cdn.x/og/photo.jpg">
+    </head><body>
+      <div class="board-contents">
+        <img src="/skin/emoticon/smile.gif">
+        <img src="https://cdn.x/img/badge_free.png">
+        <img src="https://cdn.x/upload/2026/09/real1.jpg">
+        <img src="/upload/2026/09/real2.jpg">
+      </div>
+    </body></html>
+    """
+    tree = HTMLParser(html)
+    cands = _img_candidates(tree, "https://board.x/view?no=1")
+    assert cands[0] == "https://cdn.x/og/photo.jpg"
+    assert "https://cdn.x/upload/2026/09/real1.jpg" in cands
+    assert "https://board.x/upload/2026/09/real2.jpg" in cands  # relativised
+    assert all("emoticon" not in c and "badge" not in c for c in cands)
+
+
+def test_img_candidates_empty_when_only_junk():
+    from app.sources.detail import _img_candidates
+    from selectolax.parser import HTMLParser
+
+    tree = HTMLParser('<img src="data:image/gif;base64,AA"><img src="/img/icon/x.png">')
+    assert _img_candidates(tree, "https://x/y") == []
+
+
+def test_looks_like_image_magic_numbers():
+    from app.engine.ppomppu_enrich import _looks_like_image
+
+    assert _looks_like_image(b"\xff\xd8\xff" + b"\x00" * 600)          # jpeg
+    assert _looks_like_image(b"\x89PNG\r\n\x1a\n" + b"\x00" * 600)     # png
+    assert _looks_like_image(b"RIFF" + b"\x00" * 4 + b"WEBP" + b"\x00" * 600)
+    assert not _looks_like_image(b"<html>not an image</html>")
+    assert not _looks_like_image(b"\xff\xd8\xff")  # too short
+    assert not _looks_like_image(None)

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from urllib.parse import urljoin, urlparse
 
 from selectolax.parser import HTMLParser
@@ -90,6 +90,9 @@ class DetailEnrichment:
     title: str | None = None
     mall_url: str | None = None
     thumbnail_url: str | None = None
+    # Ordered thumbnail fallbacks (og:image, then body images). The enrich
+    # worker walks these to replace a dead/hotlink-blocked primary thumb.
+    thumbnail_candidates: list[str] = field(default_factory=list)
     # Sanitized HTML fragment from the community post body (images allowed).
     body_html: str | None = None
     # Current comment count on the source post (None when it can't be read).
@@ -327,9 +330,12 @@ def parse_detail(html: str, page_url: str = "") -> DetailEnrichment:
                 "",
                 title,
             )
-    thumb = _meta_content(tree, "og:image") or _first_img(tree, BODY_SELECTORS)
-    if thumb and page_url:
-        thumb = urljoin(page_url, thumb)
+    img_cands = _img_candidates(tree, page_url)
+    thumb = img_cands[0] if img_cands else None
+    if not thumb:
+        thumb = _first_img(tree, BODY_SELECTORS)
+        if thumb and page_url:
+            thumb = urljoin(page_url, thumb)
     body_text = _body_blob(tree)
     # 1) Board "구매/관련링크" field  2) goToLink / body  3) whole-page fallback.
     # The loose fallback runs on visible text only — the raw page is full of
@@ -361,9 +367,55 @@ def parse_detail(html: str, page_url: str = "") -> DetailEnrichment:
         title=title or None,
         mall_url=mall,
         thumbnail_url=thumb,
+        thumbnail_candidates=img_cands,
         body_html=body_html,
         comment_count=_extract_comment_count(tree, html),
     )
+
+
+# Junky <img> the community boards sprinkle around the real photo.
+_BAD_IMG_HINT = re.compile(
+    r"(icon|emoticon|emoji|/emo/|blank|spacer|1x1|pixel|loading|/btn|button|"
+    r"badge|/logo|profile|avatar|/ad[s]?/|banner|_ad_|share|sns|facebook|twitter|"
+    r"kakao|/skin/|/template/|placeholder)",
+    re.I,
+)
+
+
+def _img_candidates(tree: HTMLParser, page_url: str = "", limit: int = 5) -> list[str]:
+    """Ordered thumbnail fallbacks: og/twitter image, then body <img>, then any
+    <img>. Junk (icons/badges/spacers/data:) filtered, absolutised, deduped."""
+    seen: set[str] = set()
+    out: list[str] = []
+
+    def add(src: str | None) -> None:
+        if not src or len(out) >= limit:
+            return
+        src = src.strip()
+        if not src or src.startswith("data:") or _BAD_IMG_HINT.search(src):
+            return
+        if page_url:
+            src = urljoin(page_url, src)
+        if not src.startswith(("http://", "https://")) or src in seen:
+            return
+        seen.add(src)
+        out.append(src)
+
+    add(_meta_content(tree, "og:image"))
+    add(_meta_content(tree, "twitter:image"))
+    for sel in BODY_SELECTORS:
+        root = tree.css_first(sel)
+        if not root:
+            continue
+        before = len(out)
+        for img in root.css("img[src]"):
+            add(img.attributes.get("src"))
+        if len(out) > before:  # first body region with a real image wins
+            break
+    if len(out) < 2:  # last resort: any <img> on the page
+        for img in tree.css("img[src]"):
+            add(img.attributes.get("src"))
+    return out[:limit]
 
 
 # "댓글 12", "댓글<b>12</b>", "댓글 (12)", "12개의 댓글", "Comments 12" …

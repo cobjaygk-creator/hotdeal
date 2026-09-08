@@ -646,12 +646,11 @@ button:disabled,
   background: var(--surface-sunken);
   box-shadow: none;
 }
-.deal-thumb.placeholder { position: relative; background: var(--surface-sunken); }
-.deal-thumb.placeholder::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: 10px;
+/* Also applied to a broken <img.deal-thumb> by live.js (src removed), so the
+   fill lives on the element itself rather than an ::after that <img> ignores. */
+.deal-thumb.placeholder {
+  color: transparent;
+  font-size: 0;
   background: linear-gradient(135deg,
     color-mix(in srgb, var(--surface-sunken) 70%, var(--surface)),
     color-mix(in srgb, var(--border-strong) 55%, var(--surface-sunken)));

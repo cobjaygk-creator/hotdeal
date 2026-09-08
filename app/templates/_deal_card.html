@@ -2,7 +2,7 @@
   <div class="deal-thumb-wrap">
     <a class="deal-thumb-hit" href="/deal/{{ d.id }}" data-deal-id="{{ d.id }}" tabindex="-1" aria-hidden="true">
       {% if d.thumbnail_url %}
-      <img class="deal-thumb" src="{{ d.thumbnail_url }}" alt="" loading="lazy" referrerpolicy="no-referrer">
+      <img class="deal-thumb" src="{{ d.thumbnail_url }}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null;this.classList.add('placeholder');this.removeAttribute('src')">
       {% else %}
       <div class="deal-thumb placeholder" aria-hidden="true"></div>
       {% endif %}

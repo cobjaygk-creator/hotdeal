@@ -36,6 +36,35 @@ _last_attempt: dict[int, float] = {}
 # ppomppu) on top of the mall-url gap fills.
 _COUNT_REFRESH_SLICE = 4
 
+_IMG_MAGIC = (b"\xff\xd8\xff", b"\x89PNG\r\n\x1a\n", b"GIF87a", b"GIF89a")
+
+
+def _looks_like_image(raw: bytes | None) -> bool:
+    if not raw or len(raw) < 512:
+        return False
+    if any(raw.startswith(m) for m in _IMG_MAGIC):
+        return True
+    return raw[:4] == b"RIFF" and raw[8:12] == b"WEBP"
+
+
+async def _first_live_thumb(client, candidates: list[str]) -> str | None:
+    """First candidate URL that actually returns image bytes. Images are rarely
+    IP-blocked, so this goes direct — no residential-proxy GB."""
+    tried: set[str] = set()
+    for url in candidates[:4]:
+        if not url or url in tried:
+            continue
+        tried.add(url)
+        try:
+            r = await client.get(url, timeout=6.0, max_retries=1, curl_fallback=False)
+        except Exception:  # noqa: BLE001
+            continue
+        if getattr(r, "status", 0) == 200 and _looks_like_image(
+            getattr(r, "content", b"")
+        ):
+            return url
+    return None
+
 
 async def _recent_count_refresh_rows(
     conn, exclude: set[int], limit: int
@@ -50,6 +79,7 @@ async def _recent_count_refresh_rows(
                p.url AS post_url,
                p.source AS source,
                d.mall_url AS mall_url,
+               d.thumbnail_url AS thumbnail_url,
                p.body_html AS body_html,
                IFNULL(p.comments, 0) AS comments
         FROM deals d
@@ -169,12 +199,13 @@ async def enrich_missing_ppomppu_malls(
     params.append(batch)
     cur = await conn.execute(
         f"""
-        SELECT deal_id, post_id, post_url, source, mall_url, body_html, comments FROM (
+        SELECT deal_id, post_id, post_url, source, mall_url, thumbnail_url, body_html, comments FROM (
           SELECT d.id AS deal_id,
                  p.id AS post_id,
                  p.url AS post_url,
                  p.source AS source,
                  d.mall_url AS mall_url,
+                 d.thumbnail_url AS thumbnail_url,
                  p.body_html AS body_html,
                  IFNULL(p.comments, 0) AS comments,
                  ROW_NUMBER() OVER (
@@ -252,12 +283,26 @@ async def enrich_missing_ppomppu_malls(
 
             mall_url = getattr(detail, "mall_url", None)
             title_txt = (getattr(detail, "title", None) or "").strip()
-            thumb = getattr(detail, "thumbnail_url", None)
             body_html = (getattr(detail, "body_html", None) or "").strip() or None
             mall_better = prefers_mall(mall_url, row.get("mall_url"))
             title_update = len(title_txt) >= 4
-            thumb_update = bool(thumb)
             body_update = prefers_body_html(body_html, row.get("body_html"))
+
+            # Verify the thumbnail actually loads; fall back through body images.
+            cand = list(getattr(detail, "thumbnail_candidates", None) or [])
+            raw_thumb = getattr(detail, "thumbnail_url", None)
+            if raw_thumb and raw_thumb not in cand:
+                cand.insert(0, raw_thumb)
+            stored_thumb = (row.get("thumbnail_url") or "").strip()
+            thumb = None
+            if cand and cand[:1] != [stored_thumb]:
+                try:
+                    thumb = await asyncio.wait_for(
+                        _first_live_thumb(client, cand), timeout=14.0
+                    )
+                except Exception:  # noqa: BLE001 — thumb check must never fail enrich
+                    thumb = None
+            thumb_update = bool(thumb) and thumb != stored_thumb
             cc = getattr(detail, "comment_count", None)
             count_update = bool(cc and cc > int(row.get("comments") or 0))
 
