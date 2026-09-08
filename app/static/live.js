@@ -1074,9 +1074,6 @@ async function openModal(id, opts) {
       `<span><span class="dd-legend-dot"></span>현재 딜</span>` +
       `</div></div>`
     : `<div class="dd-empty">같은 상품의 딜 가격 이력이 아직 부족해 가격 흐름을 그릴 수 없습니다.</div>`;
-  const baselineRows = hasBaseline
-    ? `${specRow("중앙값", won(deal.baseline_price))}${specRow("최저가", won(deal.min_price))}${specRow("표본", esc(sampleCount) + "건")}`
-    : (sampleCount ? specRow("표본", esc(sampleCount) + "건") : "");
   modalBody.innerHTML = `
     <div class="dd-hero">
       ${thumb}
@@ -1093,13 +1090,6 @@ async function openModal(id, opts) {
       </div>
     </div>
     ${chartHtml}
-    <h2 class="dd-section">쇼핑몰 시세 <span class="dd-section-sub">커뮤니티 기준</span></h2>
-    <div class="dd-market">
-      <p class="muted" id="market-status" style="font-size:var(--text-body-sm)">시세를 불러오는 중…</p>
-      <div id="market-bars" class="mkt" hidden></div>
-      <ul class="dd-market-list" id="market-list" hidden></ul>
-      <p class="mkt-note" id="market-note" hidden></p>
-    </div>
     ${deal.body_html
       ? `<h2 class="dd-section">원문 내용${
           deal.body_source
@@ -1107,16 +1097,6 @@ async function openModal(id, opts) {
             : ""
         }</h2><div class="dd-body-html">${deal.body_html}</div>`
       : ""}
-    <h2 class="dd-section">상품 정보</h2>
-    <div class="dd-spec">
-      ${specRow("쇼핑몰", esc(deal.seller || ""))}
-      ${specRow("가격", won(deal.price))}
-      ${deal.shipping_fee != null ? specRow("배송비", won(deal.shipping_fee)) : ""}
-      ${deal.unit_price ? specRow("단가", won(deal.unit_price)) : ""}
-      ${baselineRows}
-      ${specRow("카테고리", esc(deal.category || ""))}
-      ${deal.first_seen_at ? specRow("최초 확인", esc(kst(deal.first_seen_at))) : ""}
-    </div>
     <h2 class="dd-section">원문 ${posts.length ? `<span class="dd-section-sub">${posts.length}건</span>` : ""}</h2>
     <ul class="dd-posts">${postHtml}</ul>
     <div class="dd-tags">
@@ -1156,7 +1136,6 @@ async function openModal(id, opts) {
     modalCta.hidden = !ctaHtml;
     paintBookmarkButtons();
   }
-  loadMarketCompare(id);
   if (window.DealChat) window.DealChat.open(id);
   if (window.DealChatPin) window.DealChatPin.bind();
   if (!isPostUrl(deal.mall_url)) {
@@ -1193,8 +1172,8 @@ async function pollModalBody(id) {
         existing.innerHTML = fresh.body_html;
         return;
       }
-      const market = modalBody.querySelector(".dd-market");
-      if (!market) return;
+      const anchor = modalBody.querySelector("#dd-chart-root, .dd-empty");
+      if (!anchor) return;
       const h = document.createElement("h2");
       h.className = "dd-section";
       h.textContent = "원문 내용";
@@ -1208,7 +1187,7 @@ async function pollModalBody(id) {
       const box = document.createElement("div");
       box.className = "dd-body-html";
       box.innerHTML = fresh.body_html;
-      market.insertAdjacentElement("afterend", h);
+      anchor.insertAdjacentElement("afterend", h);
       h.insertAdjacentElement("afterend", box);
       return;
     } catch (e) {}
