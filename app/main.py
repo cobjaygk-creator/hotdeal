@@ -945,6 +945,21 @@ async def api_admin_llm_classify(
         )
 
 
+@app.post("/api/admin/reclassify")
+async def api_admin_reclassify(request: Request):
+    """Re-run the keyword classifier over every deal (also runs on each boot)."""
+    _require_admin(request)
+    from app.db import _backfill_categories
+
+    q = "SELECT COUNT(*) FROM deals WHERE IFNULL(category, '') IN ('', '기타')"
+    async with _own_db() as conn:
+        before = int((await (await conn.execute(q)).fetchone())[0])
+        await _backfill_categories(conn)
+        await conn.commit()
+        after = int((await (await conn.execute(q)).fetchone())[0])
+    return JSONResponse({"etc_before": before, "etc_after": after, "moved": before - after})
+
+
 @app.post("/api/admin/digest/send")
 async def api_admin_digest_send(request: Request):
     _require_admin(request)

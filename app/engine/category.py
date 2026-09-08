@@ -242,6 +242,29 @@ _HEURISTICS: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"(사운드바|혈압계|밥솥|세탁|건조기|청소기|로보락|\d+인치)"), "가전"),
     (re.compile(r"(노트북|모니터|헤드폰|이어버드|블랙박스|win11|ideapad)"), "PC"),
     (re.compile(r"(게임패드|컨트롤러|건담|젤다|마인크래프트|nsw|스위치)"), "게임"),
+    # --- 스펙/단위 패턴 (키워드가 없을 때만 도달) ---
+    (
+        re.compile(
+            r"\b(rtx|gtx|radeon|geforce|ryzen|nvme|ssd|hdd|ddr[3-5]|m\.2|"
+            r"\d+\s*mah|\d+\s*(?:core|코어)|1tb|2tb|올인원\s*pc|넷북|미니\s*pc)\b",
+            re.I,
+        ),
+        "PC",
+    ),
+    (
+        re.compile(
+            r"\b(4k|8k|uhd|oled|qled|나노셀|미니\s*led|프로젝터|사운드바|"
+            r"\d+\s*인치\s*(?:tv|티비))\b",
+            re.I,
+        ),
+        "가전",
+    ),
+    (re.compile(r"\d+\s*(인분|인용)\b"), "식품"),
+    (re.compile(r"(\d+\s*(?:포|스틱|정|환|티백)\b|드립백|원두|\d+\s*미\b)"), "식품"),
+    (re.compile(r"(\d+\s*권\b|전\s*\d+\s*권|합본|개정판|양장본|세트북|문제집|워크북)"), "도서"),
+    (re.compile(r"(\d+\s*단계\s*분유|\d+\s*개월\s*용|기저귀\s*\d+\s*(?:매|팩)|아기\s*물티슈)"), "유아"),
+    (re.compile(r"(\d+\s*(?:매입|겹|ply)\b|\d+\s*롤\b|리필\s*\d+|물티슈|키친타월)"), "생활"),
+    (re.compile(r"(스팀\s*코드|스팀\s*키|dlc|시즌\s*패스|\d+\s*개월\s*이용권)"), "게임"),
 ]
 
 
