@@ -239,44 +239,11 @@
   }
 
   function bind() {
+    // 스크롤 시 상품정보가 우측 댓글 상단으로 날아가는 핀 애니메이션은 사용하지
+    // 않는다 — 핀을 비활성화하고 숨긴 상태로만 둔다. API는 live.js 호환을 위해 유지.
     chat = $("#dd-chat");
     pin = $("#dd-chat-pin");
-    scroller = $("#modal-body");
-    if (!scroller) scroller = $(".dd-main");
-    if (!chat || !pin || !scroller) return;
-    hero = $(".dd-hero", scroller);
-    if (!hero) return;
-
-    if (observer) observer.disconnect();
-    clearTimeout(collapseTimer);
-    clearFly();
-    pinned = false;
-    animating = false;
     hidePinnedInstant();
-    syncFromHero();
-
-    // Desktop scrolls the whole overlay (#deal-modal), not .dd-main — observe
-    // the hero against whichever of the two actually scrolls.
-    var obsRoot = (scroller.closest && scroller.closest("#deal-modal")) || scroller;
-    observer = new IntersectionObserver(onIntersect, {
-      root: obsRoot,
-      threshold: [0, 0.01, 0.15],
-      rootMargin: "0px 0px 0px 0px",
-    });
-    observer.observe(hero);
-
-    var btn = $("#dd-chat-pin-btn", pin);
-    if (btn && !btn.dataset.bound) {
-      btn.dataset.bound = "1";
-      btn.addEventListener("click", function () {
-        if (!hero || !scroller) return;
-        try {
-          hero.scrollIntoView({ behavior: reduceMotion() ? "auto" : "smooth", block: "start" });
-        } catch (e) {
-          scroller.scrollTop = 0;
-        }
-      });
-    }
   }
 
   window.DealChatPin = { bind: bind, unbind: unbind };
