@@ -86,16 +86,19 @@ async def test_reclassify_updates_wrong_and_marks_source(monkeypatch):
     # id 1 (기타 -> 식품) and id 2 (식품 -> 의류) both flip; id 3 already 식품.
     assert out["changed"] == 2
     assert out["checked"] == 3
-    cat_updates = [
-        p for sql, p in conn.updates if "UPDATE deals SET category =" in sql
-    ]
-    assert sorted(cat_updates, key=lambda p: p[1]) == [("식품", 1), ("의류", 2)]
-    # id 3 still gets pinned to 'llm' so it is not re-checked
+    # (cat, src, id) per "SET category = ?, category_source = ? WHERE id = ?"
+    cat_by_id = {
+        p[2]: p[0] for sql, p in conn.updates if "UPDATE deals SET category = ?" in sql
+    }
+    assert cat_by_id == {1: "식품", 2: "의류"}
+    # id 3 (no category change) still gets pinned so it is not re-checked
     src_only = [
         p for sql, p in conn.updates
-        if "SET category_source = 'llm'" in sql and "SET category =" not in sql
+        if "SET category_source = ?" in sql and "SET category = ?" not in sql
     ]
-    assert sorted(p[0] for p in src_only) == [3]
+    assert [p[1] for p in src_only] == [3]
+    assert src_only[0][0] == llm_classify._SRC  # pinned to the model tag
+    assert llm_classify._SRC.startswith("llm:")
 
 
 @pytest.mark.asyncio
@@ -146,7 +149,8 @@ async def test_reclassify_reset_reopens_llm_rows(monkeypatch):
     conn2 = _FakeConn([])
     await reclassify_pending(conn2, reset="all")
     assert any(
-        sql.strip() == "UPDATE deals SET category_source = NULL WHERE category_source = 'llm'"
+        sql.strip()
+        == "UPDATE deals SET category_source = NULL WHERE category_source LIKE 'llm%'"
         for sql, _ in conn2.updates
     )
 
@@ -176,7 +180,8 @@ async def test_reclassify_maps_positional_response(monkeypatch):
         r["id"] = 5000 + i
     out = await reclassify_pending(conn, limit=100)
     assert out["checked"] == 3
-    cat_updates = {p[1]: p[0] for sql, p in conn.updates if "SET category =" in sql}
+    # UPDATE ... SET category = ?, category_source = ? WHERE id = ?  -> (cat, src, id)
+    cat_updates = {p[2]: p[0] for sql, p in conn.updates if "SET category = ?" in sql}
     # positional map applied: 5000 오메가3 기타->식품, 5001 에어포스1 식품->의류,
     # 5002 삼다수 stays 식품 (no category write)
     assert cat_updates == {5000: "식품", 5001: "의류"}

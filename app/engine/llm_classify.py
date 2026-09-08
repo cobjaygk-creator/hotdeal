@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 
 import httpx
 
@@ -24,6 +25,19 @@ from app.db import set_meta, utcnow_iso
 from app.engine.category import CATEGORIES
 
 log = logging.getLogger("hotdeal.llm_classify")
+
+
+def _model_tag(model: str = LLM_MODEL) -> str:
+    """Short stable tag, e.g. claude-sonnet-5 -> sonnet-5, ...haiku-4-5-2025... -> haiku-4-5."""
+    m = re.sub(r"^claude-", "", (model or "").strip().lower())
+    m = re.sub(r"-\d{6,}.*$", "", m)  # drop a trailing yyyymmdd[-suffix]
+    return m or "llm"
+
+
+# deals.category_source once the model has classified a row. Encodes the model
+# so swapping LLM_MODEL (or landing a prompt fix behind a new tag) makes the
+# background sweep re-open every row an *older* model pinned — no manual reset.
+_SRC = "llm:" + _model_tag()
 
 _API_URL = "https://api.anthropic.com/v1/messages"
 _VALID = set(CATEGORIES)
@@ -157,19 +171,20 @@ async def reclassify_pending(
     reset="기타"  -> re-open only deals an earlier LLM run parked in 기타
     reset="all"  -> re-open every deal an earlier LLM run touched
     (both flip category_source back to NULL so the sweep picks them up again;
-    'manual' overrides are never reset.)
+    'manual' overrides are never reset. Swapping LLM_MODEL already re-opens
+    rows an older model pinned, so reset is only for forcing a same-model redo.)
     """
     if not LLM_CLASSIFY_ENABLED:
         return {"skipped": True, "reason": "LLM_CLASSIFY_ENABLED off", "checked": 0, "changed": 0}
     if reset == "all":
         await conn.execute(
-            "UPDATE deals SET category_source = NULL WHERE category_source = 'llm'"
+            "UPDATE deals SET category_source = NULL WHERE category_source LIKE 'llm%'"
         )
         await conn.commit()
     elif reset == "기타":
         await conn.execute(
             "UPDATE deals SET category_source = NULL "
-            "WHERE category_source = 'llm' AND (category = '기타' OR category IS NULL)"
+            "WHERE category_source LIKE 'llm%' AND (category = '기타' OR category IS NULL)"
         )
         await conn.commit()
     cap = max(1, limit or LLM_CLASSIFY_PER_TICK)
@@ -183,13 +198,13 @@ async def reclassify_pending(
                  ORDER BY p.id LIMIT 1
                ) AS raw_json
         FROM deals d
-        WHERE IFNULL(d.category_source, '') NOT IN ('llm', 'manual')
+        WHERE IFNULL(d.category_source, '') NOT IN ('manual', ?)
         ORDER BY
           CASE WHEN d.category IS NULL OR d.category = '기타' THEN 0 ELSE 1 END,
           d.last_seen_at DESC
         LIMIT ?
         """,
-        (cap,),
+        (_SRC, cap),
     )
     rows = [dict(r) for r in await cur.fetchall()]
     if not rows:
@@ -225,14 +240,14 @@ async def reclassify_pending(
             checked += 1
             if new != (r.get("category") or ""):
                 await conn.execute(
-                    "UPDATE deals SET category = ?, category_source = 'llm' WHERE id = ?",
-                    (new, r["id"]),
+                    "UPDATE deals SET category = ?, category_source = ? WHERE id = ?",
+                    (new, _SRC, r["id"]),
                 )
                 changed += 1
             else:
                 await conn.execute(
-                    "UPDATE deals SET category_source = 'llm' WHERE id = ?",
-                    (r["id"],),
+                    "UPDATE deals SET category_source = ? WHERE id = ?",
+                    (_SRC, r["id"]),
                 )
     await conn.commit()
 
@@ -240,9 +255,10 @@ async def reclassify_pending(
         "skipped": False,
         "checked": checked,
         "changed": changed,
+        "model": _SRC,
         "at": utcnow_iso(),
     }
     await set_meta(conn, "last_llm_classify", json.dumps(summary, ensure_ascii=False))
     await conn.commit()
-    log.info("llm classify checked=%s changed=%s", checked, changed)
+    log.info("llm classify checked=%s changed=%s model=%s", checked, changed, _SRC)
     return summary
