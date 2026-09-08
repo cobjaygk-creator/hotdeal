@@ -255,8 +255,11 @@
     hidePinnedInstant();
     syncFromHero();
 
+    // Desktop scrolls the whole overlay (#deal-modal), not .dd-main — observe
+    // the hero against whichever of the two actually scrolls.
+    var obsRoot = (scroller.closest && scroller.closest("#deal-modal")) || scroller;
     observer = new IntersectionObserver(onIntersect, {
-      root: scroller,
+      root: obsRoot,
       threshold: [0, 0.01, 0.15],
       rootMargin: "0px 0px 0px 0px",
     });
