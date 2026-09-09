@@ -700,11 +700,24 @@ function prefersReducedMotion() {
   }
 }
 
+// .is-shifting sets pointer-events:none — a stuck one makes rows unclickable.
+// Never leave it on: clear it whenever we're not mid-animation.
+function clearShifting(root) {
+  const scope = root || bodyEl || document;
+  scope.querySelectorAll(".deal-card.is-shifting").forEach((el) => {
+    el.style.transition = "";
+    el.style.opacity = "";
+    el.classList.remove("is-shifting");
+  });
+}
+let flipInFlight = false;
+
 function flipPrepend(rows, { animate = false } = {}) {
   if (!bodyEl || !rows.length) return;
   // Prepend oldest-of-batch first so newest ends on top with delay 0.
   const insertRows = [...rows].reverse();
-  if (!animate || prefersReducedMotion()) {
+  clearShifting(); // don't stack a new animation on a half-finished one
+  if (!animate || prefersReducedMotion() || flipInFlight) {
     for (const row of insertRows) bodyEl.prepend(row);
     return;
   }
@@ -715,6 +728,7 @@ function flipPrepend(rows, { animate = false } = {}) {
     for (const row of insertRows) bodyEl.prepend(row);
     return;
   }
+  flipInFlight = true;
   for (const el of existing) {
     el.classList.add("is-shifting");
     el.style.transition = "opacity 200ms ease-out";
@@ -727,15 +741,14 @@ function flipPrepend(rows, { animate = false } = {}) {
         if (!el.isConnected) continue;
         el.style.transition = "opacity 300ms ease-in";
         el.style.opacity = "1";
-        const clear = (ev) => {
-          if (ev.propertyName && ev.propertyName !== "opacity") return;
-          el.style.transition = "";
-          el.style.opacity = "";
-          el.classList.remove("is-shifting");
-          el.removeEventListener("transitionend", clear);
-        };
-        el.addEventListener("transitionend", clear);
       }
+      // Time-based cleanup — transitionend is unreliable (no-op transitions,
+      // backgrounded tab, overlapping ticks) and a missed one permanently
+      // disables clicks on those rows.
+      window.setTimeout(() => {
+        flipInFlight = false;
+        clearShifting();
+      }, 420);
     });
   }, 210);
 }
@@ -922,6 +935,8 @@ function closeModal(opts) {
   if (!modal) return;
   modal.hidden = true;
   document.body.classList.remove("modal-open");
+  // A tick that ran while the modal was open may have left rows disabled.
+  clearShifting();
   if (chart) {
     chart.destroy();
     chart = null;
