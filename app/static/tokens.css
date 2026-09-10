@@ -100,7 +100,7 @@
   /* ---- 레이아웃 ---- */
   --header-h: 56px;
   --sidebar-w: 216px;
-  --maxw: 1320px;
+  --maxw: 1280px;
 
   --font: "Pretendard Variable", "Pretendard", "Apple SD Gothic Neo",
     "Noto Sans KR", sans-serif;

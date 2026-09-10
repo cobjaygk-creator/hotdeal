@@ -439,3 +439,29 @@ h2 {
   .main-inner { padding: 28px 32px 56px; }
   .account-pill-name { max-width: 160px; }
 }
+
+/* Store layout: a single 1280px content column. Deal-card rules stay unchanged. */
+.app-topbar { display: block; padding: 0; }
+.topbar-inner {
+  width: min(var(--maxw), calc(100% - 40px)); min-height: var(--header-h); margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+}
+.topbar-left, .topbar-right { min-width: 0; }
+.topbar-left { flex: 1; }
+.topbar-right { margin-left: auto; }
+.topbar-wishlist { color: var(--ink); font-size: var(--text-body-sm); font-weight: 650; text-decoration: none; white-space: nowrap; }
+.topbar-wishlist:hover { color: var(--accent); }
+.sidebar, .sidebar-backdrop, .menu-btn { display: none !important; }
+.app-shell { display: block; }
+.main-inner, .site-footer { max-width: var(--maxw); margin-right: auto; margin-left: auto; }
+.topbar-search, .topbar-right > .icon-btn, .theme-toggle { display: none !important; }
+@media (min-width: 960px) {
+  .app-topbar { padding: 0; }
+  .main-inner { padding: 28px 0 56px; }
+  .site-footer { padding-right: 0; padding-left: 0; }
+}
+@media (max-width: 959px) {
+  .topbar-nav { display: flex; overflow-x: auto; }
+  .topbar-inner { width: min(var(--maxw), calc(100% - 32px)); }
+  .topbar-nav a { flex: none; }
+}

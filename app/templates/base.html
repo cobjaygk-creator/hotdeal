@@ -54,6 +54,7 @@
   <div class="sidebar-backdrop" id="sidebar-backdrop" hidden></div>
 
   <header class="app-topbar">
+    <div class="topbar-inner">
     <div class="topbar-left">
       <button type="button" class="menu-btn" id="menu-btn" aria-label="메뉴 열기">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M2.5 4h11M2.5 8h11M2.5 12h11"></path></svg>
@@ -75,6 +76,7 @@
       </nav>
     </div>
     <div class="topbar-right">
+      <a class="topbar-wishlist" href="/mypage">찜</a>
       <form class="topbar-search" method="get" action="/search" role="search">
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true" style="color:var(--ink-faint);flex:none"><circle cx="7" cy="7" r="4.5"></circle><path d="M10.5 10.5 14 14"></path></svg>
         <input type="search" name="q" placeholder="상품·판매처 검색" aria-label="검색어" value="{{ q|default('') }}">
@@ -115,6 +117,7 @@
           {% endif %}
         </div>
       </details>
+    </div>
     </div>
   </header>
 
