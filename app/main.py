@@ -931,7 +931,7 @@ async def api_coupang_collect(request: Request):
 
 @app.post("/api/admin/llm-classify")
 async def api_admin_llm_classify(
-    request: Request, limit: int = 100, reset: str | None = None
+    request: Request, limit: int = 100, reset: str | None = None, scope: str = "weak"
 ):
     _require_admin(request)
     if not LLM_CLASSIFY_ENABLED:
@@ -939,9 +939,10 @@ async def api_admin_llm_classify(
     from app.engine.llm_classify import reclassify_pending
 
     reset = reset if reset in ("기타", "all") else None
+    scope = "all" if scope == "all" else "weak"
     async with _own_db() as conn:
         return JSONResponse(
-            await reclassify_pending(conn, limit=max(1, min(1000, limit)), reset=reset)
+            await reclassify_pending(conn, limit=max(1, min(1000, limit)), reset=reset, scope=scope)
         )
 
 

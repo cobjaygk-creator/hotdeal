@@ -175,9 +175,18 @@ def _source_category(raw_json) -> str | None:
 
 
 async def reclassify_pending(
-    conn, *, limit: int | None = None, reset: str | None = None
+    conn, *, limit: int | None = None, reset: str | None = None, scope: str = "weak"
 ) -> dict:
     """Background sweep: LLM-classify deals the keyword pass left weak/unset.
+
+    scope="weak" (default) -> only rows currently 기타/미분류. This is what the
+      always-on scheduler tick uses, so steady-state cost stays bounded to the
+      (shrinking) 기타 backlog instead of re-checking the whole catalog.
+    scope="all"  -> also re-check deals the keyword pass already gave a
+      category to, in case it picked a *wrong* one with confidence (e.g. a
+      title keyword-matched 식품 but is actually 의류). Costs a lot more since
+      it touches every not-yet-llm-checked deal, not just 기타 — use it as an
+      explicit one-off admin sweep, not on a timer.
 
     reset="기타"  -> re-open only deals an earlier LLM run parked in 기타
     reset="all"  -> re-open every deal an earlier LLM run touched
@@ -199,8 +208,9 @@ async def reclassify_pending(
         )
         await conn.commit()
     cap = max(1, limit or LLM_CLASSIFY_PER_TICK)
+    scope_filter = "" if scope == "all" else "AND (d.category IS NULL OR d.category = '' OR d.category = '기타')"
     cur = await conn.execute(
-        """
+        f"""
         SELECT d.id, d.product_name, d.seller, d.category,
                (
                  SELECT p.raw_json FROM deal_posts dp
@@ -210,6 +220,7 @@ async def reclassify_pending(
                ) AS raw_json
         FROM deals d
         WHERE IFNULL(d.category_source, '') NOT IN ('manual', ?)
+        {scope_filter}
         ORDER BY
           CASE WHEN d.category IS NULL OR d.category = '기타' THEN 0 ELSE 1 END,
           d.last_seen_at DESC
