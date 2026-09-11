@@ -149,6 +149,49 @@ def test_classify_mall_domain_rescues_cryptic_titles():
     assert classify("립톤 아이스티 분말 2개", None, mall_url="https://www.kurly.com/x") == "식품"
 
 
+def test_classify_real_misc_audit_2026_09_11():
+    """Second audit pass — 246 live 기타 deals pulled from production and
+    read by hand (no LLM). ~105/246 recovered; the ones below are the
+    representative, unambiguous cases plus the collisions the new keywords
+    could have opened up."""
+    assert classify("조립PC 완본체 3종 (7500X3D/7800X3D/5060Ti/5070)", "G마켓") == "PC"
+    assert classify("LG 그램북 14U40V-GA5CK", "쿠팡") == "PC"
+    assert classify("LG 그램 프로 AI 16 Ultra5 16ZD90TS-GX5PK", "쿠팡") == "PC"
+    assert classify("시놀로지 DS225+ 나스용 스토리지 여러개", "롯데온") == "PC"
+    assert classify("GIGABYTE Z890 AORUS ELITE WIFI7 ICE 피씨디렉트", None) == "PC"
+    assert classify("국산콩 지담원 청국장 1kg", "남도장터") == "식품"
+    assert classify("한성 모짜렐라 치즈볼 1kg", "네이버") == "식품"
+    assert classify("프로즌 원팩 마라탕 보통맛 2팩", "G마켓") == "식품"
+    assert classify("빙그레 더단백 드링크 8종 18팩 2박스 골라담기", "11번가") == "식품"
+    assert classify("MINTIA 그레이프맛 50알 x 10개", "쿠팡") == "식품"
+    assert classify("셰프초이스 제육 불고기 1.5kg", None) == "식품"
+    assert classify("파워에이드 마운틴블라스트 900ml 12개", "쿠팡") == "식품"
+    assert classify("완숙토마토 1kg", "롯데온") == "식품"
+    assert classify("필라델피아 크림치즈 미니 16개", "NS몰") == "식품"
+    assert classify("남성 나이키 페가수스 42 IB1873-702", "신세계") == "의류"
+    assert classify("스케쳐스 여성 워크아웃 워커 3종 택1", "11번가") == "의류"
+    assert classify("네파 공용 휘슬라이저 프로 고어텍스 트레킹화", "G마켓") == "의류"
+    assert classify("에디션 프리미엄 사방스판 허리밴딩 바지", "G마켓") == "의류"
+    assert classify("인사이 가정용 저소음 음식물 처리기 3L", "인사이") == "가전"
+    assert classify("파나소닉 남성용 방수 바디트리머 ER-GY60", None) == "가전"
+    assert classify("다이슨 에어스무스 스타일링 브러시", "네이버") == "가전"
+    assert classify("삼성 하만카돈 오라스튜디오5 블루투스 스피커", "옥션") == "가전"
+    assert classify("칸디다 항균 데일리 질경이 여성청결제 200ml x 2개", "캐시딜") == "생활"
+    assert classify("레인 OK 에탄올워셔액 1.8L 6개", "G마켓") == "생활"
+    assert classify("하림펫푸드 밥이보약 DOG 튼튼한관절 3.4kg", "토스") == "생활"
+    assert classify("모던하우스 비스트로 웍 IH 24cm", "G마켓") == "생활"
+    assert classify("레고 크리에이터 3-in-1 31387 전설의 해적선", "쿠팡") == "유아"
+    assert classify("어린이학습만화 베스트 골라담기", "G마켓") == "도서"
+    assert classify("스팀월렛 25000원권 + 삼성월렛", None) == "게임"
+    assert classify("PS판 파이널 판타지 7 리버스", "PS스토어") == "게임"
+    # False-positive guards for the new keywords/heuristics themselves:
+    # "웍" matches wok cookware but must not fire on a company name ending
+    # in "…웍스"; "바지" matches pants but must not fire on "바지락"(clam).
+    assert classify("아크시스템웍스 데이브 더 다이버 CE 온라인샵 특전판", None) != "생활"
+    assert classify("바지락 손질 1kg", None) == "식품"
+    assert classify("바지락 칼국수 밀키트", None) == "식품"
+
+
 def test_classify_expanded_source_badges():
     assert classify("무명 XZ", None, "먹거리") == "식품"
     assert classify("무명 XZ", None, "의류/잡화") == "의류"
