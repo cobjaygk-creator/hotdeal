@@ -454,7 +454,7 @@ h2 {
 .sidebar, .sidebar-backdrop, .menu-btn { display: none !important; }
 .app-shell { display: block; }
 .main-inner, .site-footer { max-width: var(--maxw); margin-right: auto; margin-left: auto; }
-.topbar-search, .topbar-right > .icon-btn, .theme-toggle { display: none !important; }
+.topbar-right > .icon-btn, .theme-toggle { display: none !important; }
 @media (min-width: 960px) {
   .app-topbar { padding: 0; }
   .main-inner { padding: 28px 0 56px; }
