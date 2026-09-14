@@ -125,7 +125,6 @@ def test_classify_real_misc_audit_2026_09():
 
 
 def test_classify_former_misc_buckets():
-    assert classify("처음 읽는 한국사1/삼국지5/그리스로마신화 15", "G마켓") == "도서"
     assert classify("아이폰 15 프로 자급제", "쿠팡") == "PC"
     assert classify("에어팟 프로 2세대", "애플") == "PC"
     assert classify("하기스 매직팬티 6단계", "쿠팡") == "유아"
@@ -133,7 +132,7 @@ def test_classify_former_misc_buckets():
     assert classify("토트백 숄더백 여성", "지그재그") == "의류"
     assert classify("비타민C 1000 영양제", "네이버") == "식품"
     assert classify("강아지 사료 6kg", "쿠팡") == "생활"
-    assert classify("알라딘 양장본 세트", "알라딘") == "도서"
+    assert classify("괌 3박5일 왕복항공권", "하나투어") == "여행"
 
 
 def test_classify_mall_domain_rescues_cryptic_titles():
@@ -142,7 +141,7 @@ def test_classify_mall_domain_rescues_cryptic_titles():
     assert classify("오늘만 이 가격", None, mall_url="https://www.kurly.com/goods/1") == "식품"
     assert classify("BLACK FRIDAY", None, mall_url="https://www.musinsa.com/app/goods/9") == "의류"
     assert classify("재입고 알림", None, mall_url="https://prod.danawa.com/info/?pcode=1") == "PC"
-    assert classify("품절 임박", None, mall_url="https://www.yes24.com/Product/Goods/1") == "도서"
+    assert classify("품절 임박", None, mall_url="https://www.agoda.com/ko-kr/property/1") == "여행"
     # Generic marketplace -> no mall signal, falls through to 기타
     assert classify("오늘만 이 가격", None, mall_url="https://www.coupang.com/vp/products/1") == "기타"
     # A real product keyword still wins over the mall domain.
@@ -181,7 +180,6 @@ def test_classify_real_misc_audit_2026_09_11():
     assert classify("하림펫푸드 밥이보약 DOG 튼튼한관절 3.4kg", "토스") == "생활"
     assert classify("모던하우스 비스트로 웍 IH 24cm", "G마켓") == "생활"
     assert classify("레고 크리에이터 3-in-1 31387 전설의 해적선", "쿠팡") == "유아"
-    assert classify("어린이학습만화 베스트 골라담기", "G마켓") == "도서"
     assert classify("스팀월렛 25000원권 + 삼성월렛", None) == "게임"
     assert classify("PS판 파이널 판타지 7 리버스", "PS스토어") == "게임"
     # False-positive guards for the new keywords/heuristics themselves:
@@ -196,7 +194,7 @@ def test_classify_expanded_source_badges():
     assert classify("무명 XZ", None, "먹거리") == "식품"
     assert classify("무명 XZ", None, "의류/잡화") == "의류"
     assert classify("무명 XZ", None, "육아") == "유아"
-    assert classify("무명 XZ", None, "도서/음반") == "도서"
+    assert classify("무명 XZ", None, "여행/항공") == "여행"
     assert classify("무명 XZ", None, "컴퓨터") == "PC"
     assert classify("무명 XZ", None, "화장품") == "생활"
     assert classify("무명 XZ", None, "상품권") == "기타"
