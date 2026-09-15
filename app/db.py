@@ -506,6 +506,7 @@ async def _ensure_columns(conn: aiosqlite.Connection) -> None:
         logging.getLogger("hotdeal").exception("amazon jp table failed")
     try:
         await _ensure_coupang_table(conn)
+        await _ensure_settings_table(conn)
     except Exception:
         logging.getLogger("hotdeal").exception("coupang table failed")
     try:
@@ -693,6 +694,9 @@ async def _ensure_amazon_jp_table(conn: aiosqlite.Connection) -> None:
         "CREATE INDEX IF NOT EXISTS idx_amazon_jp_active ON amazon_jp_deals(active, discount_rate)"
     )
 
+
+async def _ensure_settings_table(conn: aiosqlite.Connection) -> None:
+    await conn.execute("CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, encrypted_value TEXT NOT NULL, updated_at TEXT NOT NULL, updated_by TEXT)")
 
 async def _ensure_coupang_table(conn: aiosqlite.Connection) -> None:
     await conn.execute(
