@@ -718,6 +718,8 @@ async def _ensure_coupang_table(conn: aiosqlite.Connection) -> None:
     )
     await conn.execute("CREATE TABLE IF NOT EXISTS coupang_price_history (id INTEGER PRIMARY KEY AUTOINCREMENT, product_id TEXT NOT NULL, price INTEGER NOT NULL, checked_at TEXT NOT NULL)")
     await conn.execute("CREATE INDEX IF NOT EXISTS idx_coupang_price_history ON coupang_price_history(product_id, checked_at)")
+    await conn.execute("CREATE TABLE IF NOT EXISTS coupang_link_history (id INTEGER PRIMARY KEY AUTOINCREMENT, product_id TEXT NOT NULL, original_url TEXT, affiliate_url TEXT, changed_at TEXT NOT NULL, changed_by TEXT)")
+    await conn.execute("CREATE INDEX IF NOT EXISTS idx_coupang_link_history ON coupang_link_history(product_id, changed_at)")
     cur = await conn.execute("PRAGMA table_info(coupang_deals)")
     existing_cols = {row["name"] for row in await cur.fetchall()}
     for name, definition in (("original_url", "TEXT"), ("affiliate_url", "TEXT"), ("link_status", "TEXT NOT NULL DEFAULT 'pending'"), ("link_failure_reason", "TEXT"), ("link_converted_at", "TEXT"), ("link_verified_at", "TEXT")):

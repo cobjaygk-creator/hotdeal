@@ -16,7 +16,7 @@
   <td><span class="deal-tag {% if row.link_status == 'converted' %}deal-tag-mall{% endif %}">{{ row.link_status or 'pending' }}</span>{% if row.link_failure_reason %}<br><small class="muted">{{ row.link_failure_reason }}</small>{% endif %}</td>
   <td><a href="{{ row.original_url or row.buy_url }}" target="_blank" rel="noopener">원본 열기</a></td>
   <td><input class="admin-link-input" data-product-id="{{ row.product_id }}" value="{{ row.affiliate_url or row.buy_url or '' }}" style="width:280px"></td>
-  <td><button class="btn-secondary save-link" data-product-id="{{ row.product_id }}">저장</button></td>
+  <td><button class="btn-secondary save-link" data-product-id="{{ row.product_id }}">저장</button><br><button class="btn-secondary restore-link" data-product-id="{{ row.product_id }}" style="margin-top:4px">최근 이력 복구</button></td>
 </tr>
 {% else %}<tr><td colspan="5">해당 링크가 없습니다.</td></tr>{% endfor %}
 </tbody></table></div>
@@ -34,5 +34,13 @@ document.querySelectorAll(".save-link").forEach((button) => {
     } finally { button.disabled = false; }
   });
 });
-</script>
+document.querySelectorAll(".restore-link").forEach((button) => {
+  button.addEventListener("click", async () => {
+    if (!confirm("최근 저장된 링크로 복구할까요?")) return;
+    const status = document.getElementById("link-status");
+    const res = await fetch("/api/admin/coupang-links/" + encodeURIComponent(button.dataset.productId) + "/restore", {method:"POST"});
+    const data = await res.json();
+    status.textContent = res.ok ? "복구했습니다. 새로고침하면 반영됩니다." : (data.detail || "복구 실패");
+  });
+});</script>
 {% endblock %}

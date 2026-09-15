@@ -1655,13 +1655,31 @@ async def admin_coupang_links(request: Request, status: str | None = None):
 
 @app.post("/api/admin/coupang-links/{product_id}")
 async def admin_coupang_link_update(product_id: str, request: Request):
-    _require_admin(request)
+    me = _require_admin(request)
     payload = await request.json()
     affiliate_url = str(payload.get("affiliate_url") or "").strip()
     if not affiliate_url:
         raise HTTPException(400, "제휴 URL이 필요합니다")
-    await _db().execute("UPDATE coupang_deals SET affiliate_url=?, buy_url=?, link_status='converted', link_failure_reason=NULL, link_verified_at=? WHERE product_id=?", (affiliate_url, affiliate_url, utcnow_iso(), product_id))
-    await _db().commit()
+    conn = _db()
+    cur = await conn.execute("SELECT original_url, affiliate_url FROM coupang_deals WHERE product_id=?", (product_id,))
+    current = await cur.fetchone()
+    if not current:
+        raise HTTPException(404, "상품을 찾을 수 없습니다")
+    await conn.execute("INSERT INTO coupang_link_history(product_id, original_url, affiliate_url, changed_at, changed_by) VALUES (?, ?, ?, ?, ?)", (product_id, current["original_url"], current["affiliate_url"], utcnow_iso(), me.get("username")))
+    await conn.execute("UPDATE coupang_deals SET affiliate_url=?, buy_url=?, link_status='converted', link_failure_reason=NULL, link_verified_at=? WHERE product_id=?", (affiliate_url, affiliate_url, utcnow_iso(), product_id))
+    await conn.commit()
+    return {"ok": True, "product_id": product_id}
+
+@app.post("/api/admin/coupang-links/{product_id}/restore")
+async def admin_coupang_link_restore(product_id: str, request: Request):
+    _require_admin(request)
+    conn = _db()
+    cur = await conn.execute("SELECT affiliate_url FROM coupang_link_history WHERE product_id=? ORDER BY id DESC LIMIT 1", (product_id,))
+    previous = await cur.fetchone()
+    if not previous or not previous["affiliate_url"]:
+        raise HTTPException(404, "복구할 이력이 없습니다")
+    await conn.execute("UPDATE coupang_deals SET affiliate_url=?, buy_url=?, link_status='converted', link_failure_reason=NULL, link_verified_at=? WHERE product_id=?", (previous["affiliate_url"], previous["affiliate_url"], utcnow_iso(), product_id))
+    await conn.commit()
     return {"ok": True, "product_id": product_id}
 
 @app.get("/admin/reports", response_class=HTMLResponse)
