@@ -467,7 +467,7 @@ h2 {
 }
 
 /* Live connection indicator is shown beside the page title. */
-.title-live-dot { display: inline-block; width: 8px; height: 8px; margin-left: 5px; vertical-align: middle; background: var(--success); }
+.title-live-dot { display: inline-block; width: 8px; height: 8px; margin-left: 5px; vertical-align: middle; background: var(--success) !important; }
 @keyframes live-pulse { 0%, 100% { opacity: .55; transform: scale(.9); } 50% { opacity: 1; transform: scale(1); } }
 .title-live-dot { animation: live-pulse 1.8s ease-in-out infinite; }
 
