@@ -11,7 +11,7 @@ from app.config import (
     RECENT_DEAL_HOURS,
 )
 from app.db import get_meta, set_meta, utcnow_iso
-from app.engine.category import classify
+from app.engine.category import classify_detail
 from app.engine.dedupe import jaccard, prefers_non_ppomppu, should_merge
 from app.engine.naver_seed import seed_baseline_if_needed
 from app.engine.pricing import compute_baseline
@@ -176,9 +176,14 @@ async def upsert_deal_from_post(conn, post_row: dict) -> int | None:
         post_row.get("body"), post_row.get("title"), post_row.get("raw_json")
     )
     thumbnail_url = post_row.get("thumbnail_url")
-    category = classify(
-        offer.product_name, offer.seller, _source_category(post_row), mall_url=mall_url
+    source_category = _source_category(post_row)
+    decision = classify_detail(
+        offer.product_name, offer.seller, source_category, mall_url=mall_url
     )
+    category = decision.category
+    # A human correction must survive a later collection pass.
+    if match and match.get("category_source") == "manual":
+        category = match.get("category") or category
     if match:
         deal_id = match["id"]
         new_price = offer.price if offer.price is not None else match["price"]
@@ -223,7 +228,12 @@ async def upsert_deal_from_post(conn, post_row: dict) -> int | None:
                 status=?,
                 last_scored_at=?,
                 last_scored_price=?,
-                category=?
+                category=?,
+                category_source=CASE WHEN category_source='manual' THEN category_source ELSE 'rules' END,
+                category_confidence=CASE WHEN category_source='manual' THEN category_confidence ELSE ? END,
+                category_reason=CASE WHEN category_source='manual' THEN category_reason ELSE ? END,
+                source_category_raw=CASE WHEN category_source='manual' THEN source_category_raw ELSE ? END,
+                category_conflict=CASE WHEN category_source='manual' THEN category_conflict ELSE ? END
             WHERE id=?
             """,
             (
@@ -246,6 +256,10 @@ async def upsert_deal_from_post(conn, post_row: dict) -> int | None:
                 scored_at,
                 scored_price,
                 category,
+                decision.confidence,
+                decision.reason,
+                source_category,
+                1 if decision.conflict else 0,
                 deal_id,
             ),
         )
@@ -256,8 +270,9 @@ async def upsert_deal_from_post(conn, post_row: dict) -> int | None:
                 product_key, product_name, seller, price, shipping_fee, unit_price,
                 deal_url, mall_url, thumbnail_url, first_seen_at, last_seen_at, baseline_price, min_price,
                 sample_count, discount_rate, score, grade, status,
-                last_scored_at, last_scored_price, category
-            ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                last_scored_at, last_scored_price, category, category_source,
+                category_confidence, category_reason, source_category_raw, category_conflict
+            ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """,
             (
                 offer.product_key,
@@ -281,6 +296,11 @@ async def upsert_deal_from_post(conn, post_row: dict) -> int | None:
                 now,
                 offer.price,
                 category,
+                'rules',
+                decision.confidence,
+                decision.reason,
+                source_category,
+                1 if decision.conflict else 0,
             ),
         )
         deal_id = cur.lastrowid

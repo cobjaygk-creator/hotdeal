@@ -48,7 +48,12 @@ CREATE TABLE IF NOT EXISTS deals (
     status TEXT,
     last_scored_at TEXT,
     last_scored_price INTEGER,
-    category TEXT
+    category TEXT,
+    category_source TEXT,
+    category_confidence REAL,
+    category_reason TEXT,
+    source_category_raw TEXT,
+    category_conflict INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS deal_posts (
@@ -345,6 +350,10 @@ async def _ensure_columns(conn: aiosqlite.Connection) -> None:
         ("category", "TEXT"),
         # keyword | llm | manual — where deals.category came from. NULL == keyword.
         ("category_source", "TEXT"),
+        ("category_confidence", "REAL"),
+        ("category_reason", "TEXT"),
+        ("source_category_raw", "TEXT"),
+        ("category_conflict", "INTEGER NOT NULL DEFAULT 0"),
     ):
         if name not in deal_cols:
             await conn.execute(f"ALTER TABLE deals ADD COLUMN {name} {decl}")
@@ -736,7 +745,7 @@ async def _unwrap_wrapper_mall_urls(conn: aiosqlite.Connection) -> None:
 
 
 async def _backfill_categories(conn: aiosqlite.Connection) -> None:
-    from app.engine.category import classify
+    from app.engine.category import classify_detail
 
     cur = await conn.execute(
         """
@@ -767,15 +776,24 @@ async def _backfill_categories(conn: aiosqlite.Connection) -> None:
                 val = extra.get("source_category")
                 if isinstance(val, str) and val.strip():
                     source_category = val
-        cat = classify(
+        decision = classify_detail(
             row["product_name"], row["seller"], source_category, mall_url=row["mall_url"]
         )
-        if cat != (row["category"] or ""):
-            await conn.execute(
-                "UPDATE deals SET category=? WHERE id=?",
-                (cat, row["id"]),
-            )
-
+        await conn.execute(
+            """
+            UPDATE deals SET category=?, category_source='rules',
+                category_confidence=?, category_reason=?, source_category_raw=?, category_conflict=?
+            WHERE id=?
+            """,
+            (
+                decision.category,
+                decision.confidence,
+                decision.reason,
+                source_category,
+                1 if decision.conflict else 0,
+                row["id"],
+            ),
+        )
 
 async def _ensure_fts(conn: aiosqlite.Connection) -> None:
     try:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 
 from app.parse.mall import mall_category_from_url
 
@@ -302,39 +303,6 @@ _HEURISTICS: list[tuple[re.Pattern[str], str]] = [
 ]
 
 
-def classify(
-    product_name: str | None,
-    seller: str | None = None,
-    source_category: str | None = None,
-    mall_url: str | None = None,
-) -> str:
-    # 1) 판매처명 명시 규칙
-    seller_l = (seller or "").lower()
-    for needles, cat in _SELLER_RULES:
-        if any(n.lower() in seller_l for n in needles):
-            return cat
-    # 2) 제품명 키워드 (구체 키워드가 제일 신뢰도 높음)
-    text = f"{seller or ''} {product_name or ''}".lower()
-    text = text.replace("기타정보", " ").replace("딜바다::", " ")
-    for cat in _PRIORITY:
-        for kw in _KEYWORDS[cat]:
-            if kw.lower() in text:
-                return cat
-    # 3) 단위·품목 패턴
-    for pat, cat in _HEURISTICS:
-        if pat.search(text):
-            return cat
-    # 4) 소스가 자기 글에 붙인 카테고리 배지 (애매하면 _map_source_category가 None)
-    mapped = _map_source_category(source_category)
-    if mapped:
-        return mapped
-    # 5) 카테고리가 거의 고정된 몰의 구매링크 (다른 신호가 하나도 없을 때만)
-    mall_cat = mall_category_from_url(mall_url)
-    if mall_cat:
-        return mall_cat
-    return "기타"
-
-
 # ============================================================
 # Keyword-candidate mining — NOT wired into classify(). A review tool: given
 # titles whose category came from a source's own badge (real ground truth,
@@ -405,3 +373,109 @@ def mine_keyword_candidates(
         if ranked:
             out[cat] = ranked[:top_n]
     return out
+
+
+@dataclass(frozen=True)
+class CategoryDecision:
+    """Deterministic category result with its supporting evidence."""
+
+    category: str
+    confidence: float
+    reason: str
+    source_category: str | None
+    conflict: bool
+
+
+def _score_add(
+    scores: dict[str, float],
+    reasons: dict[str, list[str]],
+    category: str,
+    weight: float,
+    reason: str,
+) -> None:
+    scores[category] += weight
+    reasons[category].append(reason)
+
+
+def classify_detail(
+    product_name: str | None,
+    seller: str | None = None,
+    source_category: str | None = None,
+    mall_url: str | None = None,
+) -> CategoryDecision:
+    """Classify with deterministic, weighted evidence only.
+
+    A community post's category is a weak fallback. Specific title, seller,
+    and mall signals therefore correct missing or incorrect source labels.
+    """
+    scores = {category: 0.0 for category in _PRIORITY}
+    reasons = {category: [] for category in _PRIORITY}
+    text = f"{seller or ''} {product_name or ''}".lower()
+    seller_l = (seller or "").lower()
+
+    # Retailer identity is useful but cannot beat an explicit product type.
+    for needles, category in _SELLER_RULES:
+        if any(needle.lower() in seller_l for needle in needles):
+            _score_add(scores, reasons, category, 2.0, "seller")
+
+    # Product-name matches are primary evidence. Extra matches are capped so
+    # verbose titles cannot win merely by containing more words.
+    for category in _PRIORITY:
+        matches: list[str] = []
+        for keyword in _KEYWORDS[category]:
+            normalized = keyword.lower()
+            if normalized and normalized in text and normalized not in matches:
+                matches.append(normalized)
+        if matches:
+            weight = 3.5 + min(1.5, 0.5 * (len(matches) - 1))
+            _score_add(scores, reasons, category, weight, f"title:{matches[0]}")
+
+    for pattern, category in _HEURISTICS:
+        if pattern.search(text):
+            _score_add(scores, reasons, category, 2.5, "pattern")
+
+    mapped_source = _map_source_category(source_category)
+    if mapped_source:
+        _score_add(scores, reasons, mapped_source, 1.25, f"source:{source_category}")
+
+    mall_category = mall_category_from_url(mall_url)
+    if mall_category:
+        _score_add(scores, reasons, mall_category, 1.0, "mall")
+
+    ranked = sorted(
+        _PRIORITY,
+        key=lambda category: (-scores[category], _PRIORITY.index(category)),
+    )
+    winner, runner = ranked[0], ranked[1]
+    winner_score, runner_score = scores[winner], scores[runner]
+    if winner_score <= 0:
+        return CategoryDecision("기타", 0.0, "unresolved", source_category, False)
+
+    conflict = bool(
+        mapped_source
+        and mapped_source != winner
+        and winner_score > scores[mapped_source]
+    )
+    confidence = min(
+        0.99,
+        0.35 + (winner_score * 0.11) + ((winner_score - runner_score) * 0.10),
+    )
+    if mapped_source and winner == mapped_source:
+        confidence = min(0.99, confidence + 0.08)
+    return CategoryDecision(
+        winner,
+        round(max(0.0, confidence), 2),
+        ",".join(reasons[winner]) or "derived",
+        source_category,
+        conflict,
+    )
+
+
+def classify(
+    product_name: str | None,
+    seller: str | None = None,
+    source_category: str | None = None,
+    mall_url: str | None = None,
+) -> str:
+    """Backward-compatible category-only wrapper."""
+    return classify_detail(product_name, seller, source_category, mall_url).category

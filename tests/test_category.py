@@ -1,4 +1,4 @@
-from app.engine.category import classify
+from app.engine.category import classify, classify_detail
 
 
 def test_classify_food_and_game_seller():
@@ -198,3 +198,46 @@ def test_classify_expanded_source_badges():
     assert classify("무명 XZ", None, "컴퓨터") == "PC"
     assert classify("무명 XZ", None, "화장품") == "생활"
     assert classify("무명 XZ", None, "상품권") == "기타"
+
+
+def test_weighted_rules_correct_bad_source_category_and_preserve_evidence():
+    decision = classify_detail("\uc0bc\uacb9\uc0b4 1kg", None, "PC/\ud558\ub4dc\uc6e8\uc5b4")
+    assert decision.category == "\uc2dd\ud488"
+    assert decision.conflict is True
+    assert decision.source_category == "PC/\ud558\ub4dc\uc6e8\uc5b4"
+    assert decision.confidence >= 0.7
+
+
+def test_product_evidence_beats_broad_seller_rule_without_llm():
+    # A retailer can sell many product groups; product type wins deterministically.
+    assert classify("\uacf5\uae30\uccad\uc815\uae30 \ube14\ub8e8\uc2a4\ud0a4", "\ud558\uc774\ub9c8\ud2b8") == "\uac00\uc804"
+
+
+def test_unresolved_title_is_the_only_path_to_misc():
+    decision = classify_detail("\ud55c\uc815 \ud2b9\uac00", None, None)
+    assert decision.category == "\uae30\ud0c0"
+    assert decision.reason == "unresolved"
+    assert decision.confidence == 0.0
+
+def test_category_evidence_columns_are_migrated(tmp_path, monkeypatch):
+    import asyncio
+    from app import db
+
+    monkeypatch.setattr(db, "DATABASE_PATH", tmp_path / "hotdeal.db")
+
+    async def check():
+        conn = await db.connect(autocommit=True)
+        try:
+            rows = await (await conn.execute("PRAGMA table_info(deals)")).fetchall()
+            columns = {row[1] for row in rows}
+            assert {
+                "category_source",
+                "category_confidence",
+                "category_reason",
+                "source_category_raw",
+                "category_conflict",
+            } <= columns
+        finally:
+            await conn.close()
+
+    asyncio.run(check())
