@@ -1655,6 +1655,10 @@ async def admin_settings_save(request: Request):
         await conn.execute("INSERT INTO app_settings(key, encrypted_value, updated_at, updated_by) VALUES (?, ?, ?, ?) ON CONFLICT(key) DO UPDATE SET encrypted_value=excluded.encrypted_value, updated_at=excluded.updated_at, updated_by=excluded.updated_by", (key, encrypt(value), now, me.get("username")))
         saved += 1
     await conn.commit()
+    import app.engine.auth as auth_runtime
+    for key in ("NAVER_OAUTH_CLIENT_ID", "NAVER_OAUTH_CLIENT_SECRET", "KAKAO_CLIENT_ID", "KAKAO_CLIENT_SECRET", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"):
+        if payload.get(key):
+            setattr(auth_runtime, key, str(payload[key]).strip())
     return {"ok": True, "saved": saved}
 @app.get("/admin", response_class=HTMLResponse)
 async def admin_dashboard(request: Request):
