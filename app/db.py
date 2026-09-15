@@ -718,6 +718,11 @@ async def _ensure_coupang_table(conn: aiosqlite.Connection) -> None:
     )
     await conn.execute("CREATE TABLE IF NOT EXISTS coupang_price_history (id INTEGER PRIMARY KEY AUTOINCREMENT, product_id TEXT NOT NULL, price INTEGER NOT NULL, checked_at TEXT NOT NULL)")
     await conn.execute("CREATE INDEX IF NOT EXISTS idx_coupang_price_history ON coupang_price_history(product_id, checked_at)")
+    cur = await conn.execute("PRAGMA table_info(coupang_deals)")
+    existing_cols = {row["name"] for row in await cur.fetchall()}
+    for name, definition in (("original_url", "TEXT"), ("affiliate_url", "TEXT"), ("link_status", "TEXT NOT NULL DEFAULT 'pending'"), ("link_failure_reason", "TEXT"), ("link_converted_at", "TEXT"), ("link_verified_at", "TEXT")):
+        if name not in existing_cols:
+            await conn.execute(f"ALTER TABLE coupang_deals ADD COLUMN {name} {definition}")
 
 
 async def _unwrap_wrapper_mall_urls(conn: aiosqlite.Connection) -> None:
@@ -1061,10 +1066,10 @@ async def upsert_coupang_deal(conn: aiosqlite.Connection, deal: dict) -> tuple[i
         """
         INSERT INTO coupang_deals(
             product_id, title, price, original_price, discount_rate, image_url,
-            buy_url, category_id, first_seen_at, last_seen_at, active
+            buy_url, original_url, affiliate_url, link_status, link_failure_reason, link_converted_at, link_verified_at, category_id, first_seen_at, last_seen_at, active
         ) VALUES(
             :product_id, :title, :price, :original_price, :discount_rate, :image_url,
-            :buy_url, :category_id, :first_seen_at, :last_seen_at, :active
+            :buy_url, :original_url, :affiliate_url, :link_status, :link_failure_reason, :link_converted_at, :link_verified_at, :category_id, :first_seen_at, :last_seen_at, :active
         )
         ON CONFLICT(product_id) DO UPDATE SET
             title=excluded.title,
@@ -1072,7 +1077,7 @@ async def upsert_coupang_deal(conn: aiosqlite.Connection, deal: dict) -> tuple[i
             original_price=COALESCE(excluded.original_price, coupang_deals.original_price),
             discount_rate=excluded.discount_rate,
             image_url=COALESCE(excluded.image_url, coupang_deals.image_url),
-            buy_url=excluded.buy_url,
+            buy_url=excluded.buy_url, original_url=COALESCE(excluded.original_url, coupang_deals.original_url), affiliate_url=COALESCE(excluded.affiliate_url, coupang_deals.affiliate_url), link_status=excluded.link_status, link_failure_reason=excluded.link_failure_reason, link_converted_at=COALESCE(excluded.link_converted_at, coupang_deals.link_converted_at), link_verified_at=COALESCE(excluded.link_verified_at, coupang_deals.link_verified_at),
             category_id=excluded.category_id,
             last_seen_at=excluded.last_seen_at,
             active=1
@@ -1085,6 +1090,12 @@ async def upsert_coupang_deal(conn: aiosqlite.Connection, deal: dict) -> tuple[i
             "discount_rate": float(deal.get("discount_rate") or 0.0),
             "image_url": deal.get("image_url"),
             "buy_url": deal["buy_url"],
+            "original_url": deal.get("original_url"),
+            "affiliate_url": deal.get("affiliate_url") or deal["buy_url"],
+            "link_status": deal.get("link_status") or "pending",
+            "link_failure_reason": deal.get("link_failure_reason"),
+            "link_converted_at": deal.get("link_converted_at"),
+            "link_verified_at": deal.get("link_verified_at"),
             "category_id": deal.get("category_id"),
             "first_seen_at": deal.get("first_seen_at") or now,
             "last_seen_at": deal.get("last_seen_at") or now,

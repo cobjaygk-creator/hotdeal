@@ -36,6 +36,11 @@ async def collect_coupang(conn) -> dict:
             "discount_rate": raw.discount_rate,
             "image_url": raw.image_url,
             "buy_url": deeplinks.get(url, url),
+            "original_url": url,
+            "affiliate_url": deeplinks.get(url),
+            "link_status": "converted" if url in deeplinks else "failed",
+            "link_failure_reason": None if url in deeplinks else "deeplink 변환 결과 없음",
+            "link_converted_at": utcnow_iso() if url in deeplinks else None,
             "category_id": raw.category_id,
             "active": 1,
         }
