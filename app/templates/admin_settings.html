@@ -1,0 +1,23 @@
+{% extends "admin_base.html" %}
+{% block title %}관리자 · 외부 서비스 설정{% endblock %}
+{% block admin_body %}
+<div class="page-head"><h1>외부 서비스 설정</h1></div>
+<p class="muted">키는 암호화되어 저장되며 화면에 다시 표시하지 않습니다. 비워 둔 항목은 기존 값이 유지됩니다.</p>
+<form id="settings-form" class="panel">
+{% for key, label in setting_keys.items() %}
+<label style="display:block;margin:14px 0"><strong>{{ label }}</strong><input name="{{ key }}" type="password" autocomplete="new-password" placeholder="변경할 때만 입력" style="display:block;width:100%;max-width:620px;margin-top:6px"></label>
+{% endfor %}
+<button class="btn-primary" type="submit">암호화 저장</button>
+<p id="settings-status" class="muted"></p>
+</form>
+<script>
+document.getElementById("settings-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const payload = Object.fromEntries(new FormData(event.target).entries());
+  const res = await fetch("/api/admin/settings", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)});
+  const data = await res.json();
+  document.getElementById("settings-status").textContent = res.ok ? data.saved + "개 항목을 암호화 저장했습니다." : (data.detail || "저장 실패");
+  if (res.ok) event.target.reset();
+});
+</script>
+{% endblock %}

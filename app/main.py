@@ -25,6 +25,7 @@ from app.amazon_jp.pipeline import collect_amazon_jp
 from app.amazon_jp.query import list_amazon_jp_deals
 from app.coupang.pipeline import collect_coupang
 from app.coupang.query import list_coupang_deals
+from app.admin_settings import SETTING_KEYS, encrypt
 from app.config import (
     AMAZON_JP_ENABLED,
     AMAZON_JP_INTERVAL_MINUTES,
@@ -1632,6 +1633,29 @@ async def api_deal_report(request: Request, deal_id: int, payload: ReportIn):
     return resp
 
 
+@app.get("/admin/settings", response_class=HTMLResponse)
+async def admin_settings_page(request: Request):
+    _require_admin(request)
+    conn = _db()
+    cur = await conn.execute("SELECT key, updated_at FROM app_settings ORDER BY key")
+    saved = {row["key"]: row["updated_at"] for row in await cur.fetchall()}
+    return TEMPLATES.TemplateResponse("admin_settings.html", {"request": request, "nav": "admin", "admin_section": "settings", "setting_keys": SETTING_KEYS, "saved": saved})
+
+@app.post("/api/admin/settings")
+async def admin_settings_save(request: Request):
+    me = _require_admin(request)
+    payload = await request.json()
+    conn = _db()
+    now = utcnow_iso()
+    saved = 0
+    for key in SETTING_KEYS:
+        value = str(payload.get(key) or "").strip()
+        if not value:
+            continue
+        await conn.execute("INSERT INTO app_settings(key, encrypted_value, updated_at, updated_by) VALUES (?, ?, ?, ?) ON CONFLICT(key) DO UPDATE SET encrypted_value=excluded.encrypted_value, updated_at=excluded.updated_at, updated_by=excluded.updated_by", (key, encrypt(value), now, me.get("username")))
+        saved += 1
+    await conn.commit()
+    return {"ok": True, "saved": saved}
 @app.get("/admin", response_class=HTMLResponse)
 async def admin_dashboard(request: Request):
     _require_admin(request)
