@@ -804,7 +804,22 @@ function setLive(ok, text) {
   }
 }
 
-async function pollLatest() {`r`n  if (!bodyEl) return;`r`n  try {`r`n    const q = new URLSearchParams({limit: "40"});`r`n    if (config.category) q.set("cat", config.category);`r`n    const res = await fetch("/api/deals?" + q.toString(), {cache: "no-store"});`r`n    if (!res.ok) return;`r`n    const items = await res.json();`r`n    if (!Array.isArray(items) || !items.length) return;`r`n    const before = seen.size;`r`n    ingest(items, {animate: seen.size > 0, allowInsert: true});`r`n    if (seen.size > before) setLive(true, "실시간 상품 갱신");`r`n  } catch (e) {}`r`n}`r`n`r`nfunction connect() {
+async function pollLatest() {
+  if (!bodyEl) return;
+  try {
+    const q = new URLSearchParams({limit: "40"});
+    if (config.category) q.set("cat", config.category);
+    const res = await fetch("/api/deals?" + q.toString(), {cache: "no-store"});
+    if (!res.ok) return;
+    const items = await res.json();
+    if (!Array.isArray(items) || !items.length) return;
+    const before = seen.size;
+    ingest(items, {animate: seen.size > 0, allowInsert: true});
+    if (seen.size > before) setLive(true, "실시간 상품 갱신");
+  } catch (e) {}
+}
+
+function connect() {
   const es = new EventSource("/api/stream");
   es.onopen = () => setLive(true, "실시간 수신 중");
   es.onmessage = (ev) => {
@@ -902,7 +917,8 @@ if (bodyEl) {
   if (selectedSources && selectedSources.length) ensureVisible(12);
   refreshTimes();
   setInterval(refreshTimes, 15000);
-  if (config.live !== false) connect();`r`n  if (config.live !== false) setInterval(pollLatest, 20000);
+  if (config.live !== false) connect();
+  if (config.live !== false) setInterval(pollLatest, 20000);
 } else {
   paintBookmarkButtons();
 }
