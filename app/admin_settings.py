@@ -27,7 +27,9 @@ def encrypt(value: str) -> str:
     return _fernet().encrypt(value.encode()).decode()
 
 def decrypt(value: str) -> str:
-    return _fernet().decrypt(value.encode()).decode()async def load_runtime_settings(conn) -> int:
+    return _fernet().decrypt(value.encode()).decode()
+
+async def load_runtime_settings(conn) -> int:
     cur = await conn.execute("SELECT key, encrypted_value FROM app_settings")
     rows = await cur.fetchall()
     loaded = 0
