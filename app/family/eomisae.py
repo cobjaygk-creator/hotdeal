@@ -5,7 +5,8 @@ from selectolax.parser import HTMLParser
 from app.family import RawSale
 from app.family.parse import extract_entry_code, is_family_title, parse_date_range
 from app.http_client import PoliteClient
-from app.parse.links import is_junk_mall_url, is_mall_url
+from app.parse.links import coupang_product_url, is_coupang_partner_gate, is_junk_mall_url, is_mall_url
+from app.sources.detail import canonicalize_mall_url
 
 
 class EomisaeFamilySource:
