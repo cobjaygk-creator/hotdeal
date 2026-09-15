@@ -153,6 +153,10 @@ async def lifespan(app: FastAPI):
     state["db"] = await connect(autocommit=True)
     try:
         loaded_settings = await load_runtime_settings(state["db"])
+        import app.config as runtime_config
+        TEMPLATES.env.globals["adsense_publisher_id"] = getattr(runtime_config, "ADSENSE_PUBLISHER_ID", "")
+        TEMPLATES.env.globals["adsense_sidebar_slot_id"] = getattr(runtime_config, "ADSENSE_SIDEBAR_SLOT_ID", "")
+        TEMPLATES.env.globals["coupang_enabled"] = bool(getattr(runtime_config, "COUPANG_PARTNERS_ACCESS_KEY", "") and getattr(runtime_config, "COUPANG_PARTNERS_SECRET_KEY", ""))
         log.info("loaded %d encrypted admin settings", loaded_settings)
     except Exception:
         log.warning("encrypted admin settings unavailable", exc_info=True)
