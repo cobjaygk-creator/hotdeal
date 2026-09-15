@@ -526,14 +526,6 @@ function renderRow(deal, { fresh = false, freshIndex = 0 } = {}) {
     ? `<img class="deal-thumb" src="${esc(deal.thumbnail_url)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null;var d=document.createElement('div');d.className='deal-thumb placeholder';d.setAttribute('aria-hidden','true');this.replaceWith(d)">`
     : `<div class="deal-thumb placeholder" aria-hidden="true"></div>`;
   const ts = deal.last_seen_at || "";
-  const comments =
-    deal.comments && Number(deal.comments) > 0
-      ? `<span class="deal-comments" aria-label="원문 댓글 ${Number(deal.comments)}">댓글 ${Number(deal.comments)}</span>`
-      : "";
-  const userComments =
-    deal.user_comments && Number(deal.user_comments) > 0
-      ? `<span class="deal-user-comments" aria-label="댓글 ${Number(deal.user_comments)}">댓글 ${Number(deal.user_comments)}</span>`
-      : "";
   const soldout = deal.status === "expired" ? `<span class="deal-soldout">품절</span>` : "";
   if (deal.status === "expired") li.classList.add("is-expired");
   li.innerHTML =
@@ -545,7 +537,7 @@ function renderRow(deal, { fresh = false, freshIndex = 0 } = {}) {
     `<div class="deal-body">` +
     tagsHtml(deal) +
     `<span class="deal-title">${esc(title)}</span>` +
-    `<div class="deal-price-row">${priceRowMeta(deal, ts)}${comments}${userComments}${soldout}</div>` +
+    `<div class="deal-price-row">${priceRowMeta(deal, ts)}${soldout}</div>` +
     `</div></a>` +
     `<div class="deal-row-side">` +
     (isPostUrl(deal.mall_url)

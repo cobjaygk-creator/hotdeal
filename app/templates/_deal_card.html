@@ -35,12 +35,6 @@
         {% endif %}
         <span class="deal-meta-sep" aria-hidden="true">|</span>
         <time class="time-rel" datetime="{{ d.last_seen_at or '' }}" data-ts="{{ d.last_seen_at or '' }}">{{ d.last_seen_at | reltime }}</time>
-        {% if d.comments and d.comments > 0 %}
-        <span class="deal-comments" aria-label="원문 댓글 {{ d.comments }}">댓글 {{ d.comments }}</span>
-        {% endif %}
-        {% if d.user_comments and d.user_comments > 0 %}
-        <span class="deal-user-comments" aria-label="댓글 {{ d.user_comments }}">댓글 {{ d.user_comments }}</span>
-        {% endif %}
         {% if d.status == 'expired' %}
         <span class="deal-soldout">품절</span>
         {% endif %}
