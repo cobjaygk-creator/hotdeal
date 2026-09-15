@@ -27,4 +27,23 @@ def encrypt(value: str) -> str:
     return _fernet().encrypt(value.encode()).decode()
 
 def decrypt(value: str) -> str:
-    return _fernet().decrypt(value.encode()).decode()
+    return _fernet().decrypt(value.encode()).decode()async def load_runtime_settings(conn) -> int:
+    cur = await conn.execute("SELECT key, encrypted_value FROM app_settings")
+    rows = await cur.fetchall()
+    loaded = 0
+    import app.engine.auth as auth_runtime
+    import app.config as config_runtime
+    import app.coupang.api as coupang_api
+    for row in rows:
+        try:
+            value = decrypt(row["encrypted_value"])
+        except Exception:
+            continue
+        key = row["key"]
+        if key in SETTING_KEYS:
+            setattr(auth_runtime, key, value)
+            setattr(config_runtime, key, value)
+            if hasattr(coupang_api, key):
+                setattr(coupang_api, key, value)
+            loaded += 1
+    return loaded

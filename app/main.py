@@ -25,6 +25,7 @@ from app.amazon_jp.pipeline import collect_amazon_jp
 from app.amazon_jp.query import list_amazon_jp_deals
 from app.coupang.pipeline import collect_coupang
 from app.coupang.query import list_coupang_deals
+from app.admin_settings import load_runtime_settings
 from app.admin_settings import SETTING_KEYS, encrypt
 from app.config import (
     AMAZON_JP_ENABLED,
@@ -150,6 +151,11 @@ async def lifespan(app: FastAPI):
     # execute() and commit() would otherwise leave it pinned to a stale WAL
     # snapshot, so freshly collected deals stop showing up until a restart.
     state["db"] = await connect(autocommit=True)
+    try:
+        loaded_settings = await load_runtime_settings(state["db"])
+        log.info("loaded %d encrypted admin settings", loaded_settings)
+    except Exception:
+        log.warning("encrypted admin settings unavailable", exc_info=True)
     state["http"] = PoliteClient()
     state["hub"] = EventHub()
     state["collect_lock"] = asyncio.Lock()
