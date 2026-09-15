@@ -41,12 +41,12 @@ WATCHDOG_CHECK_SECONDS = int(
 COLLECT_INTERVAL_MINUTES = 3
 PPOMPPU_INTERVAL_SECONDS = int((os.environ.get("PPOMPPU_INTERVAL_SECONDS") or "30").strip() or "30")
 COLLECT_FAST_SECONDS = int((os.environ.get("COLLECT_FAST_SECONDS") or "30").strip() or "30")
-COLLECT_PROXY_SECONDS = int((os.environ.get("COLLECT_PROXY_SECONDS") or "240").strip() or "240")
+COLLECT_PROXY_SECONDS = int((os.environ.get("COLLECT_PROXY_SECONDS") or "480").strip() or "240")
 COLLECT_SLOW_MINUTES = int((os.environ.get("COLLECT_SLOW_MINUTES") or "30").strip() or "30")
 # Quasarzone has no RSS, so its list page is the heaviest proxy fetch left.
 # Give it its own (slower) cadence instead of dragging arca down with it.
 QUASARZONE_INTERVAL_MINUTES = int(
-    (os.environ.get("QUASARZONE_INTERVAL_MINUTES") or "6").strip() or "6"
+    (os.environ.get("QUASARZONE_INTERVAL_MINUTES") or "10").strip() or "10"
 )
 FAMILY_SALE_INTERVAL_MINUTES = 30
 AMAZON_JP_INTERVAL_MINUTES = 30
@@ -152,13 +152,13 @@ FMKOREA_PROXY_SESSION_TTL_SEC = int(
     (os.environ.get("FMKOREA_PROXY_SESSION_TTL_SEC") or "480").strip() or "480"
 )
 PPOMPPU_ENRICH_INTERVAL_MINUTES = int(
-    (os.environ.get("PPOMPPU_ENRICH_INTERVAL_MINUTES") or "5").strip() or "5"
+    (os.environ.get("PPOMPPU_ENRICH_INTERVAL_MINUTES") or "10").strip() or "10"
 )
 MALL_ENRICH_INTERVAL_SECONDS = max(
     15,
-    int((os.environ.get("MALL_ENRICH_INTERVAL_SECONDS") or "90").strip() or "90"),
+    int((os.environ.get("MALL_ENRICH_INTERVAL_SECONDS") or "300").strip() or "300"),
 )
-PPOMPPU_ENRICH_BATCH = int((os.environ.get("PPOMPPU_ENRICH_BATCH") or "12").strip() or "12")
+PPOMPPU_ENRICH_BATCH = int((os.environ.get("PPOMPPU_ENRICH_BATCH") or "6").strip() or "6")
 
 # LLM category re-classification. The keyword classifier (app.engine.category)
 # still runs inline at collect time; this overrides it in the background when
