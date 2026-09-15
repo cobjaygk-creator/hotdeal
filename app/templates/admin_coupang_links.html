@@ -9,7 +9,7 @@
   <a class="filter-chip {% if status == 'pending' %}on{% endif %}" href="/admin/coupang-links?status=pending">대기</a>
   <a class="filter-chip {% if status == 'converted' %}on{% endif %}" href="/admin/coupang-links?status=converted">완료</a>
 </div>
-<div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>상품</th><th>상태</th><th>원본 URL</th><th>제휴 URL 수정</th><th>저장</th></tr></thead><tbody>
+<p><button class="btn-secondary" id="retry-failed">실패 링크 50건 일괄 재검증</button> <button class="btn-secondary" id="retry-pending">대기 링크 50건 일괄 검증</button></p><div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>상품</th><th>상태</th><th>원본 URL</th><th>제휴 URL 수정</th><th>저장</th></tr></thead><tbody>
 {% for row in rows %}
 <tr>
   <td><strong>{{ row.title }}</strong><br><span class="muted">{{ row.product_id }}</span></td>
@@ -51,5 +51,18 @@ document.querySelectorAll(".restore-link").forEach((button) => {
     status.textContent = data.ok ? "검증 성공 (HTTP " + data.status_code + ")" : "검증 실패: " + (data.error || data.status_code || "응답 오류");
     button.disabled = false;
   });
+});document.getElementById("retry-failed").addEventListener("click", async () => {
+  const status = document.getElementById("link-status");
+  status.textContent = "실패 링크 검증 중…";
+  const res = await fetch("/api/admin/coupang-links/validate-all?status=failed", {method:"POST"});
+  const data = await res.json();
+  status.textContent = "완료: " + data.success + "건 성공, " + data.failed + "건 실패";
+});
+document.getElementById("retry-pending").addEventListener("click", async () => {
+  const status = document.getElementById("link-status");
+  status.textContent = "대기 링크 검증 중…";
+  const res = await fetch("/api/admin/coupang-links/validate-all?status=pending", {method:"POST"});
+  const data = await res.json();
+  status.textContent = "완료: " + data.success + "건 성공, " + data.failed + "건 실패";
 });</script>
 {% endblock %}
