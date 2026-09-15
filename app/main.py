@@ -1666,9 +1666,14 @@ async def admin_settings_save(request: Request):
         saved += 1
     await conn.commit()
     import app.engine.auth as auth_runtime
+    import app.config as config_runtime
     for key in ("NAVER_OAUTH_CLIENT_ID", "NAVER_OAUTH_CLIENT_SECRET", "KAKAO_CLIENT_ID", "KAKAO_CLIENT_SECRET", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"):
         if payload.get(key):
             setattr(auth_runtime, key, str(payload[key]).strip())
+            setattr(config_runtime, key, str(payload[key]).strip())
+    TEMPLATES.env.globals["adsense_publisher_id"] = getattr(config_runtime, "ADSENSE_PUBLISHER_ID", "")
+    TEMPLATES.env.globals["adsense_sidebar_slot_id"] = getattr(config_runtime, "ADSENSE_SIDEBAR_SLOT_ID", "")
+    TEMPLATES.env.globals["coupang_enabled"] = bool(getattr(config_runtime, "COUPANG_PARTNERS_ACCESS_KEY", "") and getattr(config_runtime, "COUPANG_PARTNERS_SECRET_KEY", ""))
     return {"ok": True, "saved": saved}
 @app.get("/admin", response_class=HTMLResponse)
 async def admin_dashboard(request: Request):
