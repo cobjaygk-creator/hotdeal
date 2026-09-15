@@ -465,3 +465,7 @@ h2 {
   .topbar-inner { width: min(var(--maxw), calc(100% - 32px)); }
   .topbar-nav a { flex: none; }
 }
+
+/* Live connection indicator is shown beside the page title. */
+.title-live-dot { display: inline-block; width: 8px; height: 8px; margin-left: 5px; vertical-align: middle; }
+.sort-row { display: none !important; }
