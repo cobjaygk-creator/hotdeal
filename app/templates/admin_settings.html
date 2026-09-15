@@ -5,7 +5,7 @@
 <p class="muted">키는 암호화되어 저장되며 화면에 다시 표시하지 않습니다. 신규 등록 또는 변경할 때 입력하세요. 빈칸으로 저장하면 기존 값이 유지됩니다.</p>
 <form id="settings-form" class="panel">
 {% for key, label in setting_keys.items() %}
-<label style="display:block;margin:14px 0"><strong>{{ label }}</strong>{% if key in saved %}<span class="muted" style="margin-left:8px;color:#16834b">등록됨 · 변경하려면 입력</span>{% endif %}<input name="{{ key }}" type="password" autocomplete="new-password" placeholder="{% if key in saved %}변경할 때만 입력{% else %}신규 등록 입력{% endif %}" style="display:block;width:100%;max-width:620px;margin-top:6px"></label>
+<label style="display:block;margin:14px 0"><strong>{{ label }}</strong>{% if key in saved %}<span class="muted" style="margin-left:8px;color:#16834b">등록됨 · ******** · 변경하려면 입력</span>{% endif %}<input name="{{ key }}" type="password" autocomplete="new-password" placeholder="{% if key in saved %}변경할 때만 입력{% else %}신규 등록 입력{% endif %}" style="display:block;width:100%;max-width:620px;margin-top:6px"></label>
 {% endfor %}
 <button class="btn-primary" type="submit">암호화 저장</button>
 <p id="settings-status" class="muted"></p>
