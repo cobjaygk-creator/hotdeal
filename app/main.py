@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import html
+import httpx
 import json
 import logging
 import math
@@ -1682,6 +1683,28 @@ async def admin_coupang_link_restore(product_id: str, request: Request):
     await conn.commit()
     return {"ok": True, "product_id": product_id}
 
+@app.post("/api/admin/coupang-links/{product_id}/validate")
+async def admin_coupang_link_validate(product_id: str, request: Request):
+    _require_admin(request)
+    conn = _db()
+    cur = await conn.execute("SELECT affiliate_url FROM coupang_deals WHERE product_id=?", (product_id,))
+    row = await cur.fetchone()
+    if not row or not row["affiliate_url"]:
+        raise HTTPException(404, "검증할 제휴 URL이 없습니다")
+    checked_at = utcnow_iso()
+    try:
+        async with httpx.AsyncClient(timeout=15, follow_redirects=True, headers={"User-Agent": "HotdealLinkChecker/1.0"}) as client:
+            response = await client.get(row["affiliate_url"])
+        ok = 200 <= response.status_code < 400
+        status = "converted" if ok else "failed"
+        reason = None if ok else f"HTTP {response.status_code}"
+        await conn.execute("UPDATE coupang_deals SET link_status=?, link_failure_reason=?, link_verified_at=? WHERE product_id=?", (status, reason, checked_at, product_id))
+        await conn.commit()
+        return {"ok": ok, "status_code": response.status_code, "final_url": str(response.url), "link_status": status}
+    except Exception as exc:
+        await conn.execute("UPDATE coupang_deals SET link_status='failed', link_failure_reason=?, link_verified_at=? WHERE product_id=?", (str(exc)[:300], checked_at, product_id))
+        await conn.commit()
+        return JSONResponse({"ok": False, "link_status": "failed", "error": str(exc)[:300]}, status_code=200)
 @app.get("/admin/reports", response_class=HTMLResponse)
 async def admin_reports(request: Request):
     _require_admin(request)

@@ -16,7 +16,7 @@
   <td><span class="deal-tag {% if row.link_status == 'converted' %}deal-tag-mall{% endif %}">{{ row.link_status or 'pending' }}</span>{% if row.link_failure_reason %}<br><small class="muted">{{ row.link_failure_reason }}</small>{% endif %}</td>
   <td><a href="{{ row.original_url or row.buy_url }}" target="_blank" rel="noopener">원본 열기</a></td>
   <td><input class="admin-link-input" data-product-id="{{ row.product_id }}" value="{{ row.affiliate_url or row.buy_url or '' }}" style="width:280px"></td>
-  <td><button class="btn-secondary save-link" data-product-id="{{ row.product_id }}">저장</button><br><button class="btn-secondary restore-link" data-product-id="{{ row.product_id }}" style="margin-top:4px">최근 이력 복구</button></td>
+  <td><button class="btn-secondary save-link" data-product-id="{{ row.product_id }}">저장</button><br><button class="btn-secondary restore-link" data-product-id="{{ row.product_id }}" style="margin-top:4px">최근 이력 복구</button><br><button class="btn-secondary validate-link" data-product-id="{{ row.product_id }}" style="margin-top:4px">링크 검증</button></td>
 </tr>
 {% else %}<tr><td colspan="5">해당 링크가 없습니다.</td></tr>{% endfor %}
 </tbody></table></div>
@@ -41,6 +41,15 @@ document.querySelectorAll(".restore-link").forEach((button) => {
     const res = await fetch("/api/admin/coupang-links/" + encodeURIComponent(button.dataset.productId) + "/restore", {method:"POST"});
     const data = await res.json();
     status.textContent = res.ok ? "복구했습니다. 새로고침하면 반영됩니다." : (data.detail || "복구 실패");
+  });
+});document.querySelectorAll(".validate-link").forEach((button) => {
+  button.addEventListener("click", async () => {
+    const status = document.getElementById("link-status");
+    button.disabled = true;
+    const res = await fetch("/api/admin/coupang-links/" + encodeURIComponent(button.dataset.productId) + "/validate", {method:"POST"});
+    const data = await res.json();
+    status.textContent = data.ok ? "검증 성공 (HTTP " + data.status_code + ")" : "검증 실패: " + (data.error || data.status_code || "응답 오류");
+    button.disabled = false;
   });
 });</script>
 {% endblock %}
