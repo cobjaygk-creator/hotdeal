@@ -811,15 +811,12 @@ function connect() {
     if (!ev.data) return;
     const data = JSON.parse(ev.data);
     const n = Number(data.new_posts) || 0;
-    if (!n) {
-      // Mall-link enrichment can publish existing cards with new_posts: 0.
-      // Only update a card that is already on screen; do not refresh the list.
-      ingest(data.items || [], { allowInsert: false });
-      return;
-    }
+    const items = Array.isArray(data.items) ? data.items : [];
     applyStats(data.stats);
-    setLive(true, `신규 ${n}건 반영`);
-    ingest(data.items || [], { animate: true });
+    if (!n && !items.length) return;
+    const hasReadyItems = items.some((item) => item && item.list_ready);
+    setLive(true, n ? ("신규 " + n + "건 반영") : "실시간 상품 갱신");
+    ingest(items, { animate: n > 0, allowInsert: n > 0 || hasReadyItems });
   };
   es.onerror = () => {
     setLive(false, "연결 끊김 · 재시도 중");
