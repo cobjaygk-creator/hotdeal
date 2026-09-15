@@ -453,7 +453,7 @@ h2 {
 .topbar-wishlist:hover { color: var(--accent); }
 .sidebar, .sidebar-backdrop, .menu-btn { display: none !important; }
 .app-shell { display: block; }
-.main-inner, .site-footer { max-width: var(--maxw); margin-right: auto; margin-left: auto; }
+.main-inner, .site-footer { width: min(var(--maxw), calc(100% - 28px)); max-width: var(--maxw); margin-right: auto; margin-left: auto; }
 .topbar-right > .icon-btn, .theme-toggle { display: none !important; }
 @media (min-width: 960px) {
   .app-topbar { padding: 0; }

@@ -18,20 +18,7 @@
 {% block body %}
 <div class="page-head">
   <div>
-    <h1>실시간 핫딜</h1>
-    <div class="page-meta" id="live-meta" style="margin-top:8px">
-      <span class="dot" id="live-dot"></span>
-      <span id="live-status">연결 중…</span>
-      <span class="status-sep">·</span>
-      <span>오늘 특가 이상 <strong id="stat-strong">{{ stats.strong }}</strong>건</span>
-      <span class="status-sep">·</span>
-      <span>오늘 핫딜 <strong id="stat-hot">{{ stats.today_hot }}</strong>건</span>
-      {% if is_admin %}
-      <span class="status-sep">·</span>
-      <span>수집 <strong id="stat-last">{{ stats.last_collect_at | kst }}</strong></span>
-      {% endif %}
-      <span id="stat-posts" hidden>{{ stats.posts }}</span>
-    </div>
+    <h1>실시간 핫딜 <span class="title-live-dot dot" id="live-dot" aria-label="실시간 연결 상태"></span></h1>
   </div>
   <div class="page-head-actions">
     {% if is_admin %}
