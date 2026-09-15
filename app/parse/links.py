@@ -346,6 +346,9 @@ def is_junk_mall_url(url: str | None) -> bool:
     ):
         return True
     path = (parsed.path or "").lower()
+    # Naver Festa/Onsale pages are campaign landings, not product PDPs.
+    if _host_has(host, "shopping.naver.com") and path.startswith("/festa/onsal"):
+        return True
     if any(tok in path for tok in ("/adbiz/", "/oauth", "/nidlogin", "/authorize")):
         return True
     # Community redirector / short-link *API* endpoints, not a real destination.
