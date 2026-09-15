@@ -2,7 +2,7 @@
 {% block title %}관리자 · 외부 서비스 설정{% endblock %}
 {% block admin_body %}
 <div class="page-head"><h1>외부 서비스 설정</h1></div>
-<p class="muted">키는 암호화되어 저장되며 화면에 다시 표시하지 않습니다. 신규 등록 또는 변경할 때 입력하세요. 빈칸으로 저장하면 기존 값이 유지됩니다.</p>
+<p class="muted">키는 암호화되어 저장되며 화면에 다시 표시하지 않습니다. 신규 등록 또는 변경할 때 입력하세요. 빈칸으로 저장하면 기존 값이 유지됩니다.</p><div class="panel" style="margin:14px 0"><strong>소셜 로그인 연결 상태</strong><p class="muted">네이버: {% if oauth_ready.naver %}연결됨{% else %}미설정{% endif %} · 카카오: {% if oauth_ready.kakao %}연결됨{% else %}미설정{% endif %} · 구글: {% if oauth_ready.google %}연결됨{% else %}미설정{% endif %}</p></div>
 <form id="settings-form" class="panel">
 {% for key, label in setting_keys.items() %}
 <label style="display:block;margin:14px 0"><strong>{{ label }}</strong>{% if key in saved %}<span class="muted" style="margin-left:8px;color:#16834b">등록됨 · ******** · 변경하려면 입력</span>{% endif %}<input name="{{ key }}" type="password" autocomplete="new-password" placeholder="{% if key in saved %}변경할 때만 입력{% else %}신규 등록 입력{% endif %}" style="display:block;width:100%;max-width:620px;margin-top:6px"></label>

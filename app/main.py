@@ -1649,7 +1649,7 @@ async def admin_settings_page(request: Request):
     conn = _db()
     cur = await conn.execute("SELECT key, updated_at FROM app_settings ORDER BY key")
     saved = {row["key"]: row["updated_at"] for row in await cur.fetchall()}
-    return TEMPLATES.TemplateResponse("admin_settings.html", {"request": request, "nav": "admin", "admin_section": "settings", "setting_keys": SETTING_KEYS, "saved": saved})
+    return TEMPLATES.TemplateResponse("admin_settings.html", {"request": request, "nav": "admin", "admin_section": "settings", "setting_keys": SETTING_KEYS, "saved": saved, "oauth_ready": user_auth.providers_ready()})
 
 @app.post("/api/admin/settings")
 async def admin_settings_save(request: Request):
@@ -2630,3 +2630,4 @@ async def _category_counts() -> tuple[dict[str, int], int]:
 async def _distinct_sources() -> list[str]:
     cur = await _db().execute("SELECT DISTINCT source AS v FROM posts ORDER BY v")
     return [r["v"] for r in await cur.fetchall()]
+
