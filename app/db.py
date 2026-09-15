@@ -716,6 +716,8 @@ async def _ensure_coupang_table(conn: aiosqlite.Connection) -> None:
     await conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_coupang_active ON coupang_deals(active, discount_rate)"
     )
+    await conn.execute("CREATE TABLE IF NOT EXISTS coupang_price_history (id INTEGER PRIMARY KEY AUTOINCREMENT, product_id TEXT NOT NULL, price INTEGER NOT NULL, checked_at TEXT NOT NULL)")
+    await conn.execute("CREATE INDEX IF NOT EXISTS idx_coupang_price_history ON coupang_price_history(product_id, checked_at)")
 
 
 async def _unwrap_wrapper_mall_urls(conn: aiosqlite.Connection) -> None:
@@ -1089,6 +1091,7 @@ async def upsert_coupang_deal(conn: aiosqlite.Connection, deal: dict) -> tuple[i
             "active": 1 if deal.get("active", 1) else 0,
         },
     )
+    await conn.execute("INSERT INTO coupang_price_history(product_id, price, checked_at) VALUES (?, ?, ?)", (deal["product_id"], int(deal["price"]), now))
     cur = await conn.execute("SELECT id FROM coupang_deals WHERE product_id=?", (deal["product_id"],))
     row = await cur.fetchone()
     return int(row["id"]), inserted

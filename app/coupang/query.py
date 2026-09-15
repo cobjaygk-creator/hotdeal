@@ -16,7 +16,7 @@ async def list_coupang_deals(db, limit: int = 120, category_id: str | None = Non
     params.append(max(1, min(300, limit)))
     cur = await db.execute(
         f"""
-        SELECT *, COALESCE(NULLIF(category_id, ''), '') AS category_key
+        SELECT *, COALESCE(NULLIF(category_id, ''), '') AS category_key, (SELECT MIN(ph.price) FROM coupang_price_history ph WHERE ph.product_id=coupang_deals.product_id AND ph.checked_at >= datetime('now', '-30 days')) AS recent30_min_price
         FROM coupang_deals
         WHERE {where}
         ORDER BY discount_rate DESC, last_seen_at DESC, id DESC
