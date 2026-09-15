@@ -458,8 +458,7 @@ def _extract_comment_count(tree: HTMLParser, html: str) -> int | None:
 
 
 def _is_detail_stub(source: str, html: str) -> bool:
-    if source == "quasarzone":
-        return "goToLink(" not in html
+    # Current Quasarzone pages may use ordinary anchors instead of goToLink().
     return False
 
 

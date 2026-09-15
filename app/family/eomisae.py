@@ -5,6 +5,7 @@ from selectolax.parser import HTMLParser
 from app.family import RawSale
 from app.family.parse import extract_entry_code, is_family_title, parse_date_range
 from app.http_client import PoliteClient
+from app.parse.links import is_junk_mall_url, is_mall_url
 
 
 class EomisaeFamilySource:
@@ -60,11 +61,11 @@ def enrich_from_detail(sale: RawSale, html: str) -> None:
     if start:
         sale.date_range = f"{start} ~ {end}"
     sale.entry_code = extract_entry_code(sale.body or "")
+    candidates: list[str] = []
     for a in (body.css("a") if body else []):
-        href = a.attributes.get("href") or ""
-        if href.startswith("http") and "eomisae.co.kr" not in href:
-            sale.deal_url = href
-            break
+        href = (a.attributes.get("href") or "").strip()
+        if href.startswith(("http://", "https://")):
+            candidates.append(href)
     for row in tree.css("table tr"):
         cells = [ " ".join((c.text() or "").split()) for c in row.css("th, td") ]
         line = " ".join(cells)
@@ -73,6 +74,12 @@ def enrich_from_detail(sale: RawSale, html: str) -> None:
             sale.entry_code = code
         if "링크" in line:
             for a in row.css("a"):
-                href = a.attributes.get("href") or ""
-                if href.startswith("http"):
-                    sale.deal_url = href
+                href = (a.attributes.get("href") or "").strip()
+                if href.startswith(("http://", "https://")):
+                    candidates.insert(0, href)
+    for href in candidates:
+        if "eomisae.co.kr" in href.lower():
+            continue
+        if is_mall_url(href) and not is_junk_mall_url(href):
+            sale.deal_url = href
+            break
