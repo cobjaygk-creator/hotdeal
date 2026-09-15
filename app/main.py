@@ -1726,6 +1726,7 @@ async def api_ppomppu_enrich_malls(request: Request, limit: int = 12):
     lock = state.get("ppomppu_enrich_lock")
     if lock is None:
         raise HTTPException(503, "enrich lock unavailable")
+    out = await _run_mall_enrich(limit=max(1, min(50, limit)))
     safe = {k: v for k, v in (out or {}).items() if k != "cards"}
     return JSONResponse(safe)
 
