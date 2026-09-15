@@ -1,0 +1,38 @@
+{% extends "admin_base.html" %}
+{% block title %}관리자 · 쿠팡 링크{% endblock %}
+{% block admin_body %}
+<div class="page-head"><h1>쿠팡 제휴 링크</h1></div>
+<p class="muted">수집된 원본 URL과 제휴 URL의 변환 상태를 확인하고 실패 링크를 수동 보정합니다.</p>
+<div class="chip-row" style="margin:14px 0">
+  <a class="filter-chip {% if not status %}on{% endif %}" href="/admin/coupang-links">전체</a>
+  <a class="filter-chip {% if status == 'failed' %}on{% endif %}" href="/admin/coupang-links?status=failed">실패</a>
+  <a class="filter-chip {% if status == 'pending' %}on{% endif %}" href="/admin/coupang-links?status=pending">대기</a>
+  <a class="filter-chip {% if status == 'converted' %}on{% endif %}" href="/admin/coupang-links?status=converted">완료</a>
+</div>
+<div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>상품</th><th>상태</th><th>원본 URL</th><th>제휴 URL 수정</th><th>저장</th></tr></thead><tbody>
+{% for row in rows %}
+<tr>
+  <td><strong>{{ row.title }}</strong><br><span class="muted">{{ row.product_id }}</span></td>
+  <td><span class="deal-tag {% if row.link_status == 'converted' %}deal-tag-mall{% endif %}">{{ row.link_status or 'pending' }}</span>{% if row.link_failure_reason %}<br><small class="muted">{{ row.link_failure_reason }}</small>{% endif %}</td>
+  <td><a href="{{ row.original_url or row.buy_url }}" target="_blank" rel="noopener">원본 열기</a></td>
+  <td><input class="admin-link-input" data-product-id="{{ row.product_id }}" value="{{ row.affiliate_url or row.buy_url or '' }}" style="width:280px"></td>
+  <td><button class="btn-secondary save-link" data-product-id="{{ row.product_id }}">저장</button></td>
+</tr>
+{% else %}<tr><td colspan="5">해당 링크가 없습니다.</td></tr>{% endfor %}
+</tbody></table></div>
+<p id="link-status" class="muted"></p>
+<script>
+document.querySelectorAll(".save-link").forEach((button) => {
+  button.addEventListener("click", async () => {
+    const input = document.querySelector('.admin-link-input[data-product-id="' + button.dataset.productId + '"]');
+    const status = document.getElementById("link-status");
+    button.disabled = true;
+    try {
+      const res = await fetch("/api/admin/coupang-links/" + encodeURIComponent(button.dataset.productId), {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({affiliate_url: input.value})});
+      const data = await res.json();
+      status.textContent = res.ok ? "저장했습니다." : (data.detail || "저장 실패");
+    } finally { button.disabled = false; }
+  });
+});
+</script>
+{% endblock %}

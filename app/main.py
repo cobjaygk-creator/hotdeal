@@ -1641,6 +1641,29 @@ async def admin_dashboard(request: Request):
     )
 
 
+@app.get("/admin/coupang-links", response_class=HTMLResponse)
+async def admin_coupang_links(request: Request, status: str | None = None):
+    _require_admin(request)
+    where = "1=1"
+    params = []
+    if status in ("converted", "failed", "pending"):
+        where += " AND link_status=?"
+        params.append(status)
+    cur = await _db().execute(f"SELECT * FROM coupang_deals WHERE {where} ORDER BY last_seen_at DESC LIMIT 300", params)
+    rows = [dict(row) for row in await cur.fetchall()]
+    return TEMPLATES.TemplateResponse("admin_coupang_links.html", {"request": request, "nav": "admin", "admin_section": "coupang_links", "rows": rows, "status": status})
+
+@app.post("/api/admin/coupang-links/{product_id}")
+async def admin_coupang_link_update(product_id: str, request: Request):
+    _require_admin(request)
+    payload = await request.json()
+    affiliate_url = str(payload.get("affiliate_url") or "").strip()
+    if not affiliate_url:
+        raise HTTPException(400, "제휴 URL이 필요합니다")
+    await _db().execute("UPDATE coupang_deals SET affiliate_url=?, buy_url=?, link_status='converted', link_failure_reason=NULL, link_verified_at=? WHERE product_id=?", (affiliate_url, affiliate_url, utcnow_iso(), product_id))
+    await _db().commit()
+    return {"ok": True, "product_id": product_id}
+
 @app.get("/admin/reports", response_class=HTMLResponse)
 async def admin_reports(request: Request):
     _require_admin(request)
