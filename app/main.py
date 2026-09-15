@@ -1654,6 +1654,34 @@ async def admin_coupang_links(request: Request, status: str | None = None):
     rows = [dict(row) for row in await cur.fetchall()]
     return TEMPLATES.TemplateResponse("admin_coupang_links.html", {"request": request, "nav": "admin", "admin_section": "coupang_links", "rows": rows, "status": status})
 
+@app.post("/api/admin/coupang-links/validate-all")
+async def admin_coupang_links_validate_all(request: Request, status: str = "failed"):
+    _require_admin(request)
+    status = status if status in ("failed", "pending") else "failed"
+    conn = _db()
+    cur = await conn.execute("SELECT product_id, affiliate_url FROM coupang_deals WHERE link_status=? AND affiliate_url IS NOT NULL LIMIT 50", (status,))
+    rows = await cur.fetchall()
+    success = 0
+    failed = 0
+    results = []
+    async with httpx.AsyncClient(timeout=15, follow_redirects=True, headers={"User-Agent": "HotdealLinkChecker/1.0"}) as client:
+        for row in rows:
+            checked_at = utcnow_iso()
+            try:
+                response = await client.get(row["affiliate_url"])
+                ok = 200 <= response.status_code < 400
+                new_status = "converted" if ok else "failed"
+                reason = None if ok else f"HTTP {response.status_code}"
+                await conn.execute("UPDATE coupang_deals SET link_status=?, link_failure_reason=?, link_verified_at=? WHERE product_id=?", (new_status, reason, checked_at, row["product_id"]))
+                success += int(ok)
+                failed += int(not ok)
+                results.append({"product_id": row["product_id"], "ok": ok, "status_code": response.status_code})
+            except Exception as exc:
+                await conn.execute("UPDATE coupang_deals SET link_status='failed', link_failure_reason=?, link_verified_at=? WHERE product_id=?", (str(exc)[:300], checked_at, row["product_id"]))
+                failed += 1
+                results.append({"product_id": row["product_id"], "ok": False, "error": str(exc)[:300]})
+    await conn.commit()
+    return {"requested": len(rows), "success": success, "failed": failed, "results": results}
 @app.post("/api/admin/coupang-links/{product_id}")
 async def admin_coupang_link_update(product_id: str, request: Request):
     me = _require_admin(request)
