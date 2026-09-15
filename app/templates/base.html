@@ -65,7 +65,7 @@
         <a href="/ranking" class="{% if current_nav == 'ranking' %}on{% endif %}">랭킹</a>
         <a href="/family" class="{% if current_nav == 'family' %}on{% endif %}">패밀리세일</a>
         {% if coupang_enabled %}
-        <a href="/coupang" class="{% if current_nav == 'coupang' %}on{% endif %}">쿠팡최저가</a>
+        <a href="/coupang" class="{% if current_nav == 'coupang' %}on{% endif %}">쿠팡특가</a>
         {% endif %}
         {% if amazon_jp_enabled %}
         <a href="/amazon-jp" class="{% if current_nav == 'amazon_jp' %}on{% endif %}">일마존</a>
@@ -136,7 +136,7 @@
         {% if coupang_enabled %}
         <a href="/coupang" class="{% if current_nav == 'coupang' %}on{% endif %}">
           <span class="nav-ico" aria-hidden="true">C</span>
-          쿠팡최저가
+          쿠팡특가
         </a>
         {% endif %}
         {% if amazon_jp_enabled %}

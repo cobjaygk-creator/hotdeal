@@ -902,10 +902,10 @@ async def amazon_jp_index(request: Request):
 
 
 @app.get("/coupang", response_class=HTMLResponse)
-async def coupang_index(request: Request):
+async def coupang_index(request: Request, category: str | None = None):
     if not COUPANG_ENABLED:
-        raise HTTPException(404, "쿠팡최저가 메뉴가 비활성화되어 있습니다")
-    deals = await list_coupang_deals(_db())
+        raise HTTPException(404, "쿠팡특가 메뉴가 비활성화되어 있습니다")
+    deals = await list_coupang_deals(_db(), category_id=category)
     last = await get_meta(_db(), "last_coupang_collect_at")
     return TEMPLATES.TemplateResponse(
         "coupang.html",
@@ -914,8 +914,20 @@ async def coupang_index(request: Request):
             "nav": "coupang",
             "deals": deals,
             "last": last,
+            "category": category,
         },
     )
+
+
+@app.get("/coupang/{product_id}", response_class=HTMLResponse)
+async def coupang_detail(request: Request, product_id: str):
+    if not COUPANG_ENABLED:
+        raise HTTPException(404, "쿠팡특가 메뉴가 비활성화되어 있습니다")
+    cur = await _db().execute("SELECT * FROM coupang_deals WHERE product_id=? AND active=1", (product_id,))
+    deal = await cur.fetchone()
+    if not deal:
+        raise HTTPException(404, "상품을 찾을 수 없습니다")
+    return TEMPLATES.TemplateResponse("coupang_detail.html", {"request": request, "nav": "coupang", "deal": dict(deal)})
 
 
 @app.post("/api/coupang/collect")

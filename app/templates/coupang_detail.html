@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}{{ deal.title }} · 쿠팡특가{% endblock %}
+{% block body %}
+<div class="page-head"><h1>쿠팡특가</h1><a class="btn-secondary" href="/coupang">목록으로</a></div>
+<article class="panel" style="max-width:760px">
+  {% if deal.image_url %}<img src="{{ deal.image_url }}" alt="" style="width:min(420px,100%);aspect-ratio:1;object-fit:contain;border-radius:12px">{% endif %}
+  <div class="deal-tags" style="margin-top:16px"><span class="deal-tag deal-tag-cat">쿠팡 특가</span></div>
+  <h2>{{ deal.title }}</h2>
+  <div class="deal-price-row"><div class="deal-price">{{ "{:,}".format(deal.price) }}<span class="won">원</span></div>{% if deal.original_price %}<span class="muted">정가 {{ "{:,}".format(deal.original_price) }}원</span>{% endif %}</div>
+  <p class="muted">가격 확인 {{ deal.last_seen_at | kst }} · 상품 재고와 최종 가격은 쿠팡에서 확인하세요.</p>
+  <a class="deal-cta-btn" href="{{ deal.buy_url }}" target="_blank" rel="noopener nofollow sponsored">쿠팡에서 구매하기</a>
+  <p class="muted" style="margin-top:14px;font-size:13px">쿠팡 파트너스 활동의 일환으로 일정액의 수수료를 제공받을 수 있습니다.</p>
+</article>
+{% endblock %}
