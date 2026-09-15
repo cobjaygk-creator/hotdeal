@@ -42,6 +42,10 @@ async def collect_coupang(conn) -> dict:
             "link_failure_reason": None if url in deeplinks else "deeplink 변환 결과 없음",
             "link_converted_at": utcnow_iso() if url in deeplinks else None,
             "category_id": raw.category_id,
+            "shipping_fee": raw.shipping_fee,
+            "coupon_text": raw.coupon_text,
+            "option_text": raw.option_text,
+            "quantity_text": raw.quantity_text,
             "active": 1,
         }
         _id, is_new = await upsert_coupang_deal(conn, row)

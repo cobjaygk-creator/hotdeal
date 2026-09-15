@@ -29,6 +29,10 @@ class RawCoupangDeal:
     image_url: str | None
     product_url: str
     category_id: str
+    shipping_fee: int | None = None
+    coupon_text: str | None = None
+    option_text: str | None = None
+    quantity_text: str | None = None
 
 
 def _to_raw(item: dict, category_id: str) -> RawCoupangDeal | None:
@@ -51,6 +55,10 @@ def _to_raw(item: dict, category_id: str) -> RawCoupangDeal | None:
         image_url=item.get("productImage") or None,
         product_url=url,
         category_id=category_id,
+        shipping_fee=int(item.get("shippingFee")) if item.get("shippingFee") is not None else None,
+        coupon_text=str(item.get("coupon") or item.get("couponText") or "").strip() or None,
+        option_text=str(item.get("option") or item.get("optionText") or "").strip() or None,
+        quantity_text=str(item.get("quantity") or item.get("quantityText") or "").strip() or None,
     )
 
 

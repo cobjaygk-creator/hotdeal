@@ -1068,10 +1068,10 @@ async def upsert_coupang_deal(conn: aiosqlite.Connection, deal: dict) -> tuple[i
         """
         INSERT INTO coupang_deals(
             product_id, title, price, original_price, discount_rate, image_url,
-            buy_url, original_url, affiliate_url, link_status, link_failure_reason, link_converted_at, link_verified_at, category_id, first_seen_at, last_seen_at, active
+            buy_url, original_url, affiliate_url, link_status, link_failure_reason, link_converted_at, link_verified_at, shipping_fee, coupon_text, option_text, quantity_text, category_id, first_seen_at, last_seen_at, active
         ) VALUES(
             :product_id, :title, :price, :original_price, :discount_rate, :image_url,
-            :buy_url, :original_url, :affiliate_url, :link_status, :link_failure_reason, :link_converted_at, :link_verified_at, :category_id, :first_seen_at, :last_seen_at, :active
+            :buy_url, :original_url, :affiliate_url, :link_status, :link_failure_reason, :link_converted_at, :link_verified_at, :shipping_fee, :coupon_text, :option_text, :quantity_text, :category_id, :first_seen_at, :last_seen_at, :active
         )
         ON CONFLICT(product_id) DO UPDATE SET
             title=excluded.title,
@@ -1098,6 +1098,10 @@ async def upsert_coupang_deal(conn: aiosqlite.Connection, deal: dict) -> tuple[i
             "link_failure_reason": deal.get("link_failure_reason"),
             "link_converted_at": deal.get("link_converted_at"),
             "link_verified_at": deal.get("link_verified_at"),
+            "shipping_fee": deal.get("shipping_fee"),
+            "coupon_text": deal.get("coupon_text"),
+            "option_text": deal.get("option_text"),
+            "quantity_text": deal.get("quantity_text"),
             "category_id": deal.get("category_id"),
             "first_seen_at": deal.get("first_seen_at") or now,
             "last_seen_at": deal.get("last_seen_at") or now,
