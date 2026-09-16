@@ -552,6 +552,8 @@ async def _ensure_auth_tables(conn: aiosqlite.Connection) -> None:
             user_id INTEGER NOT NULL,
             keyword TEXT NOT NULL,
             min_grade TEXT NOT NULL DEFAULT '핫딜',
+            exclude_keywords TEXT NOT NULL DEFAULT '',
+            enabled INTEGER NOT NULL DEFAULT 1,
             created_at TEXT NOT NULL,
             UNIQUE(user_id, keyword)
         );
@@ -561,9 +563,17 @@ async def _ensure_auth_tables(conn: aiosqlite.Connection) -> None:
     cols = {row[1] for row in await cur.fetchall()}
     if "user_id" not in cols:
         await conn.execute("ALTER TABLE alert_subs ADD COLUMN user_id INTEGER")
+    if "exclude_keywords" not in cols:
+        await conn.execute("ALTER TABLE alert_subs ADD COLUMN exclude_keywords TEXT NOT NULL DEFAULT ''")
     await conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_alert_subs_user ON alert_subs(user_id)"
     )
+    cur = await conn.execute("PRAGMA table_info(user_keywords)")
+    keyword_cols = {row[1] for row in await cur.fetchall()}
+    if "exclude_keywords" not in keyword_cols:
+        await conn.execute("ALTER TABLE user_keywords ADD COLUMN exclude_keywords TEXT NOT NULL DEFAULT ''")
+    if "enabled" not in keyword_cols:
+        await conn.execute("ALTER TABLE user_keywords ADD COLUMN enabled INTEGER NOT NULL DEFAULT 1")
     cur = await conn.execute("PRAGMA table_info(alert_sent)")
     if "read_at" not in {row[1] for row in await cur.fetchall()}:
         await conn.execute("ALTER TABLE alert_sent ADD COLUMN read_at TEXT")

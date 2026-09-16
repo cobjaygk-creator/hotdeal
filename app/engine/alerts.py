@@ -43,12 +43,15 @@ def keyword_tokens(keyword: str) -> list[str]:
     return [t for t in (keyword or "").casefold().split() if t]
 
 
-def matches_keyword(deal: dict, keyword: str) -> bool:
+def matches_keyword(deal: dict, keyword: str, exclude_keywords: str = '') -> bool:
     tokens = keyword_tokens(keyword)
     if not tokens:
         return False
     hay = f"{deal.get('product_name') or ''} {deal.get('seller') or ''}".casefold()
-    return all(t in hay for t in tokens)
+    if not all(t in hay for t in tokens):
+        return False
+    excluded = keyword_tokens(exclude_keywords.replace(',', ' '))
+    return not any(t in hay for t in excluded)
 
 
 def format_alert(deal: dict, keyword: str) -> str:
@@ -219,7 +222,7 @@ async def dispatch_alerts(conn, client, deals: list[dict]) -> dict:
         seen_ids.add(did)
         summary["checked"] += 1
         for sub in subs:
-            if not matches_keyword(deal, sub["keyword"]):
+            if not matches_keyword(deal, sub["keyword"], sub.get("exclude_keywords") or ''):
                 continue
             if not meets_min_grade(deal.get("grade"), sub.get("min_grade")):
                 summary["skipped"] += 1
