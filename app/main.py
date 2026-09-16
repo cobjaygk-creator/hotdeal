@@ -1873,7 +1873,7 @@ async def admin_quality(request: Request, kind: str = "all"):
 
 @app.get("/admin/coupang-links", response_class=HTMLResponse)
 async def admin_coupang_links(request: Request, status: str | None = None):
-    _require_admin(request)
+    _require_role(request, {"operator", "reviewer", "ads", "viewer"})
     where = "1=1"
     params = []
     if status in ("converted", "failed", "pending"):
@@ -1885,7 +1885,7 @@ async def admin_coupang_links(request: Request, status: str | None = None):
 
 @app.post("/api/admin/coupang-links/validate-all")
 async def admin_coupang_links_validate_all(request: Request, status: str = "failed"):
-    _require_admin(request)
+    _require_role(request, {"operator", "reviewer"})
     status = status if status in ("failed", "pending") else "failed"
     conn = _db()
     cur = await conn.execute("SELECT product_id, affiliate_url FROM coupang_deals WHERE link_status=? AND affiliate_url IS NOT NULL LIMIT 50", (status,))
@@ -1930,7 +1930,7 @@ async def admin_coupang_link_update(product_id: str, request: Request):
 
 @app.post("/api/admin/coupang-links/{product_id}/restore")
 async def admin_coupang_link_restore(product_id: str, request: Request):
-    _require_admin(request)
+    _require_role(request, {"operator", "reviewer"})
     conn = _db()
     cur = await conn.execute("SELECT affiliate_url FROM coupang_link_history WHERE product_id=? ORDER BY id DESC LIMIT 1", (product_id,))
     previous = await cur.fetchone()
@@ -1942,7 +1942,7 @@ async def admin_coupang_link_restore(product_id: str, request: Request):
 
 @app.post("/api/admin/coupang-links/{product_id}/validate")
 async def admin_coupang_link_validate(product_id: str, request: Request):
-    _require_admin(request)
+    _require_role(request, {"operator", "reviewer"})
     conn = _db()
     cur = await conn.execute("SELECT affiliate_url FROM coupang_deals WHERE product_id=?", (product_id,))
     row = await cur.fetchone()
