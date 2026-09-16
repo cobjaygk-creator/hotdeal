@@ -1964,7 +1964,7 @@ async def admin_coupang_link_validate(product_id: str, request: Request):
         return JSONResponse({"ok": False, "link_status": "failed", "error": str(exc)[:300]}, status_code=200)
 @app.get("/admin/reports", response_class=HTMLResponse)
 async def admin_reports(request: Request):
-    _require_admin(request)
+    _require_role(request, {"operator", "reviewer", "viewer"})
     rows = await deal_comments.list_reports(_db())
     return TEMPLATES.TemplateResponse(
         "admin_reports.html",
