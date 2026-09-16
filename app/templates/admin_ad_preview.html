@@ -1,0 +1,8 @@
+{% extends "admin_base.html" %}
+{% block title %}광고 미리보기{% endblock %}
+{% block admin_body %}
+<div class="page-head"><h1>광고 미리보기</h1></div>
+<p class="muted">현재 저장된 설정 기준의 광고 영역입니다.</p>
+<div class="panel"><h2>PC 사이드바 광고</h2><p class="muted">Publisher ID: {{ adsense_publisher_id or "미설정" }} · Slot ID: {{ adsense_sidebar_slot_id or "미설정" }}</p></div>
+<div class="panel"><h2>모바일 광고</h2><p class="muted">Publisher ID: {{ adsense_publisher_id or "미설정" }} · Slot ID: {{ adsense_mobile_slot_id or "미설정" }}</p></div>
+{% endblock %}

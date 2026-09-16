@@ -1708,6 +1708,11 @@ async def admin_settings_save(request: Request):
     TEMPLATES.env.globals["adsense_sidebar_enabled"] = str(getattr(config_runtime, "ADSENSE_SIDEBAR_ENABLED", "1")).lower() not in ("0", "false", "off", "no")
     TEMPLATES.env.globals["coupang_enabled"] = bool(getattr(config_runtime, "COUPANG_PARTNERS_ACCESS_KEY", "") and getattr(config_runtime, "COUPANG_PARTNERS_SECRET_KEY", ""))
     return {"ok": True, "saved": saved}
+@app.get("/admin/ad-preview", response_class=HTMLResponse)
+async def admin_ad_preview(request: Request):
+    _require_admin(request)
+    return TEMPLATES.TemplateResponse("admin_ad_preview.html", {"request": request, "nav": "admin", "admin_section": "settings"})
+
 @app.get("/admin", response_class=HTMLResponse)
 async def admin_dashboard(request: Request):
     _require_admin(request)
@@ -2663,6 +2668,7 @@ async def _category_counts() -> tuple[dict[str, int], int]:
 async def _distinct_sources() -> list[str]:
     cur = await _db().execute("SELECT DISTINCT source AS v FROM posts ORDER BY v")
     return [r["v"] for r in await cur.fetchall()]
+
 
 
 
