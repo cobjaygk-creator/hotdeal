@@ -472,3 +472,6 @@ h2 {
 .title-live-dot { animation: live-pulse 1.8s ease-in-out infinite; }
 
 .sort-row { display: none !important; }
+
+@media (max-width: 700px){.mobile-ad{display:block!important;margin:14px 0;min-height:90px}}
+

@@ -74,6 +74,7 @@ ADMIN_USERNAME = (os.environ.get("ADMIN_USERNAME") or "admin").strip() or "admin
 GA_MEASUREMENT_ID = os.environ.get("GA_MEASUREMENT_ID", "").strip()
 ADSENSE_PUBLISHER_ID = os.environ.get("ADSENSE_PUBLISHER_ID", "").strip()
 ADSENSE_SIDEBAR_SLOT_ID = os.environ.get("ADSENSE_SIDEBAR_SLOT_ID", "").strip()
+ADSENSE_MOBILE_SLOT_ID = os.environ.get("ADSENSE_MOBILE_SLOT_ID", "").strip()
 ADSENSE_ENABLED = (os.environ.get("ADSENSE_ENABLED", "1").strip().lower() not in ("0", "false", "off", "no"))
 ADSENSE_SIDEBAR_ENABLED = (os.environ.get("ADSENSE_SIDEBAR_ENABLED", "1").strip().lower() not in ("0", "false", "off", "no"))
 ADSENSE_MOBILE_ENABLED = (os.environ.get("ADSENSE_MOBILE_ENABLED", "1").strip().lower() not in ("0", "false", "off", "no"))
@@ -227,3 +228,4 @@ SMTP_STARTTLS = (os.environ.get("SMTP_STARTTLS") or "1").strip().lower() not in 
 # Local KST hour (0-23) the daily digest goes out.
 EMAIL_DIGEST_HOUR = int((os.environ.get("EMAIL_DIGEST_HOUR") or "8").strip() or "8")
 EMAIL_DIGEST_ENABLED = bool(SMTP_HOST and SMTP_FROM)
+

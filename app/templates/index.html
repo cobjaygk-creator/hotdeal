@@ -46,6 +46,7 @@
   {% endfor %}
 </div>
 
+<div class="mobile-ad" style="display:none" aria-label="광고">{% if adsense_enabled and adsense_mobile_enabled and adsense_publisher_id and adsense_mobile_slot_id %}<ins class="adsbygoogle" style="display:block" data-ad-client="{{ adsense_publisher_id }}" data-ad-slot="{{ adsense_mobile_slot_id }}" data-ad-format="auto" data-full-width-responsive="true"></ins><script>(adsbygoogle = window.adsbygoogle || []).push({});</script>{% endif %}</div>
 <div class="chip-row sort-row">
   <span class="sort-label">정렬</span>
   <div class="sort-pills" id="sort-group" role="tablist" aria-label="정렬">
@@ -87,3 +88,4 @@
 <script src="/static/live.js?v={{ asset_v }}"></script>
 <script src="/static/list-controls.js?v={{ asset_v }}" defer></script>
 {% endblock %}
+

@@ -38,6 +38,7 @@ from app.config import (
     ADMIN_USERNAME,
     ADSENSE_ENABLED,
     ADSENSE_SIDEBAR_ENABLED,
+    ADSENSE_MOBILE_SLOT_ID,
     ADSENSE_MOBILE_ENABLED,
     ADSENSE_PUBLISHER_ID,
     ADSENSE_SIDEBAR_SLOT_ID,
@@ -102,6 +103,7 @@ TEMPLATES.env.globals["mvno_enabled"] = MVNO_ENABLED
 TEMPLATES.env.globals["ga_measurement_id"] = GA_MEASUREMENT_ID
 TEMPLATES.env.globals["adsense_publisher_id"] = ADSENSE_PUBLISHER_ID
 TEMPLATES.env.globals["adsense_sidebar_slot_id"] = ADSENSE_SIDEBAR_SLOT_ID
+TEMPLATES.env.globals["adsense_mobile_slot_id"] = ADSENSE_MOBILE_SLOT_ID
 TEMPLATES.env.globals["adsense_enabled"] = ADSENSE_ENABLED
 TEMPLATES.env.globals["adsense_sidebar_enabled"] = ADSENSE_SIDEBAR_ENABLED
 TEMPLATES.env.globals["adsense_mobile_enabled"] = ADSENSE_MOBILE_ENABLED
@@ -162,6 +164,7 @@ async def lifespan(app: FastAPI):
         import app.config as runtime_config
         TEMPLATES.env.globals["adsense_publisher_id"] = getattr(runtime_config, "ADSENSE_PUBLISHER_ID", "")
         TEMPLATES.env.globals["adsense_sidebar_slot_id"] = getattr(runtime_config, "ADSENSE_SIDEBAR_SLOT_ID", "")
+        TEMPLATES.env.globals["adsense_mobile_slot_id"] = getattr(runtime_config, "ADSENSE_MOBILE_SLOT_ID", "")
         TEMPLATES.env.globals["adsense_enabled"] = getattr(runtime_config, "ADSENSE_ENABLED", True)
         TEMPLATES.env.globals["adsense_sidebar_enabled"] = getattr(runtime_config, "ADSENSE_SIDEBAR_ENABLED", True)
         TEMPLATES.env.globals["adsense_mobile_enabled"] = getattr(runtime_config, "ADSENSE_MOBILE_ENABLED", True)
@@ -2641,5 +2644,6 @@ async def _category_counts() -> tuple[dict[str, int], int]:
 async def _distinct_sources() -> list[str]:
     cur = await _db().execute("SELECT DISTINCT source AS v FROM posts ORDER BY v")
     return [r["v"] for r in await cur.fetchall()]
+
 
 
