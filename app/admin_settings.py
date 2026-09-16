@@ -14,6 +14,7 @@ SETTING_KEYS = {
     "TOSS_PARTNERS_KEY": "토스 제휴 키",
     "ADSENSE_PUBLISHER_ID": "Google AdSense Publisher ID",
     "ADSENSE_SIDEBAR_SLOT_ID": "Google 광고 슬롯 ID",
+    "ADSENSE_ENABLED": "Google 광고 전체 사용 여부 (1/0)",
 }
 
 def _fernet() -> Fernet:

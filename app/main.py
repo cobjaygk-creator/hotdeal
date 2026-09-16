@@ -36,6 +36,7 @@ from app.config import (
     MALL_ENRICH_INTERVAL_SECONDS,
     ENABLE_COLLECT,
     ADMIN_USERNAME,
+    ADSENSE_ENABLED,
     ADSENSE_PUBLISHER_ID,
     ADSENSE_SIDEBAR_SLOT_ID,
     COUPANG_ENABLED,
@@ -99,6 +100,7 @@ TEMPLATES.env.globals["mvno_enabled"] = MVNO_ENABLED
 TEMPLATES.env.globals["ga_measurement_id"] = GA_MEASUREMENT_ID
 TEMPLATES.env.globals["adsense_publisher_id"] = ADSENSE_PUBLISHER_ID
 TEMPLATES.env.globals["adsense_sidebar_slot_id"] = ADSENSE_SIDEBAR_SLOT_ID
+TEMPLATES.env.globals["adsense_enabled"] = ADSENSE_ENABLED
 TEMPLATES.env.globals["coupang_enabled"] = COUPANG_ENABLED
 TEMPLATES.env.globals["webpush_enabled"] = WEBPUSH_ENABLED
 TEMPLATES.env.globals["webpush_public_key"] = VAPID_PUBLIC_KEY
@@ -156,6 +158,7 @@ async def lifespan(app: FastAPI):
         import app.config as runtime_config
         TEMPLATES.env.globals["adsense_publisher_id"] = getattr(runtime_config, "ADSENSE_PUBLISHER_ID", "")
         TEMPLATES.env.globals["adsense_sidebar_slot_id"] = getattr(runtime_config, "ADSENSE_SIDEBAR_SLOT_ID", "")
+        TEMPLATES.env.globals["adsense_enabled"] = getattr(runtime_config, "ADSENSE_ENABLED", True)
         TEMPLATES.env.globals["coupang_enabled"] = bool(getattr(runtime_config, "COUPANG_PARTNERS_ACCESS_KEY", "") and getattr(runtime_config, "COUPANG_PARTNERS_SECRET_KEY", ""))
         log.info("loaded %d encrypted admin settings", loaded_settings)
     except Exception:
@@ -1673,6 +1676,7 @@ async def admin_settings_save(request: Request):
             setattr(config_runtime, key, str(payload[key]).strip())
     TEMPLATES.env.globals["adsense_publisher_id"] = getattr(config_runtime, "ADSENSE_PUBLISHER_ID", "")
     TEMPLATES.env.globals["adsense_sidebar_slot_id"] = getattr(config_runtime, "ADSENSE_SIDEBAR_SLOT_ID", "")
+    TEMPLATES.env.globals["adsense_enabled"] = str(getattr(config_runtime, "ADSENSE_ENABLED", "1")).lower() not in ("0", "false", "off", "no")
     TEMPLATES.env.globals["coupang_enabled"] = bool(getattr(config_runtime, "COUPANG_PARTNERS_ACCESS_KEY", "") and getattr(config_runtime, "COUPANG_PARTNERS_SECRET_KEY", ""))
     return {"ok": True, "saved": saved}
 @app.get("/admin", response_class=HTMLResponse)

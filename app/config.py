@@ -74,6 +74,7 @@ ADMIN_USERNAME = (os.environ.get("ADMIN_USERNAME") or "admin").strip() or "admin
 GA_MEASUREMENT_ID = os.environ.get("GA_MEASUREMENT_ID", "").strip()
 ADSENSE_PUBLISHER_ID = os.environ.get("ADSENSE_PUBLISHER_ID", "").strip()
 ADSENSE_SIDEBAR_SLOT_ID = os.environ.get("ADSENSE_SIDEBAR_SLOT_ID", "").strip()
+ADSENSE_ENABLED = (os.environ.get("ADSENSE_ENABLED", "1").strip().lower() not in ("0", "false", "off", "no"))
 SOLDOUT_REPORT_THRESHOLD = int(os.environ.get("SOLDOUT_REPORT_THRESHOLD") or "3")
 
 
