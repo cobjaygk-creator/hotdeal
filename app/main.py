@@ -1782,6 +1782,20 @@ async def admin_dashboard(request: Request):
     )
 
 
+@app.post("/admin/quality/update")
+async def admin_quality_update(request: Request):
+    _require_admin(request)
+    form = await request.form()
+    deal_id = int(form.get("deal_id") or 0)
+    price_raw = str(form.get("price") or "").strip()
+    price = int(price_raw) if price_raw.isdigit() else None
+    status = str(form.get("status") or "").strip() or None
+    mall_url = str(form.get("mall_url") or "").strip() or None
+    await _db().execute("UPDATE deals SET price=?, status=?, mall_url=? WHERE id=?", (price, status, mall_url, deal_id))
+    await _db().commit()
+    return RedirectResponse("/admin/quality", status_code=303)
+
+
 @app.get("/admin/quality", response_class=HTMLResponse)
 async def admin_quality(request: Request, kind: str = "all"):
     _require_admin(request)
