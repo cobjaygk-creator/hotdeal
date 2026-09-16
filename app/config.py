@@ -78,6 +78,7 @@ ADSENSE_MOBILE_SLOT_ID = os.environ.get("ADSENSE_MOBILE_SLOT_ID", "").strip()
 ADSENSE_ENABLED = (os.environ.get("ADSENSE_ENABLED", "1").strip().lower() not in ("0", "false", "off", "no"))
 ADSENSE_SIDEBAR_ENABLED = (os.environ.get("ADSENSE_SIDEBAR_ENABLED", "1").strip().lower() not in ("0", "false", "off", "no"))
 ADSENSE_MOBILE_ENABLED = (os.environ.get("ADSENSE_MOBILE_ENABLED", "1").strip().lower() not in ("0", "false", "off", "no"))
+ADSENSE_MAX_PER_PAGE = int(os.environ.get("ADSENSE_MAX_PER_PAGE", "3") or "3")
 SOLDOUT_REPORT_THRESHOLD = int(os.environ.get("SOLDOUT_REPORT_THRESHOLD") or "3")
 
 
@@ -228,4 +229,5 @@ SMTP_STARTTLS = (os.environ.get("SMTP_STARTTLS") or "1").strip().lower() not in 
 # Local KST hour (0-23) the daily digest goes out.
 EMAIL_DIGEST_HOUR = int((os.environ.get("EMAIL_DIGEST_HOUR") or "8").strip() or "8")
 EMAIL_DIGEST_ENABLED = bool(SMTP_HOST and SMTP_FROM)
+
 

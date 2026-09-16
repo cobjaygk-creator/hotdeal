@@ -15,6 +15,7 @@ SETTING_KEYS = {
     "ADSENSE_PUBLISHER_ID": "Google AdSense Publisher ID",
     "ADSENSE_SIDEBAR_SLOT_ID": "Google 광고 슬롯 ID",
     "ADSENSE_MOBILE_SLOT_ID": "Google 모바일 광고 슬롯 ID",
+    "ADSENSE_MAX_PER_PAGE": "페이지당 최대 광고 수",
     "ADSENSE_ENABLED": "Google 광고 전체 사용 여부 (1/0)",
     "ADSENSE_SIDEBAR_ENABLED": "PC 사이드바 광고 사용 여부 (1/0)",
     "ADSENSE_MOBILE_ENABLED": "모바일 광고 사용 여부 (1/0)",
@@ -53,3 +54,4 @@ async def load_runtime_settings(conn) -> int:
                 setattr(coupang_api, key, value)
             loaded += 1
     return loaded
+
