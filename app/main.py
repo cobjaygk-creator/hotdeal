@@ -2198,6 +2198,12 @@ async def _stats() -> dict:
         """
     )
     strong = (await cur.fetchone())["c"]
+    cur = await db.execute("SELECT COUNT(*) AS c FROM coupang_deals WHERE link_status='failed'")
+    link_failures = (await cur.fetchone())["c"]
+    cur = await db.execute("SELECT COUNT(*) AS c FROM deals WHERE mall_url IS NULL OR trim(mall_url)=''")
+    missing_links = (await cur.fetchone())["c"]
+    cur = await db.execute("SELECT COUNT(*) AS c FROM deal_comments WHERE report_status IN ('open', 'pending')")
+    reports_pending = (await cur.fetchone())["c"]
     last = await get_meta(db, "last_collect_at")
     summary_raw = await get_meta(db, "last_collect_summary")
     by_source_raw = await get_meta(db, "last_collect_by_source")
@@ -2232,6 +2238,9 @@ async def _stats() -> dict:
         "deals": deals,
         "today_hot": today_hot,
         "strong": strong,
+        "link_failures": link_failures,
+        "missing_links": missing_links,
+        "reports_pending": reports_pending,
         "last_collect_at": last,
         "last_collect": last_collect,
         "collect_by_source": by_source,
