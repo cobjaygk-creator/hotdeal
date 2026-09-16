@@ -1,0 +1,3 @@
+{% extends "admin_base.html" %}
+{% block title %}광고 통계{% endblock %}
+{% block admin_body %}<div class="page-head"><h1>광고 통계</h1></div><div class="metric-grid"><div class="metric-tile"><div class="metric-label">노출</div><div class="metric-value">{{ totals.get("impression", 0) }}</div></div><div class="metric-tile"><div class="metric-label">클릭</div><div class="metric-value">{{ totals.get("click", 0) }}</div></div></div><div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>위치</th><th>이벤트</th><th>건수</th></tr></thead><tbody>{% for row in by_placement %}<tr><td>{{ row.placement }}</td><td>{{ row.event_type }}</td><td>{{ row.count }}</td></tr>{% else %}<tr><td colspan="3">이벤트 없음</td></tr>{% endfor %}</tbody></table></div>{% endblock %}
