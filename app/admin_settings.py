@@ -15,6 +15,8 @@ SETTING_KEYS = {
     "ADSENSE_PUBLISHER_ID": "Google AdSense Publisher ID",
     "ADSENSE_SIDEBAR_SLOT_ID": "Google 광고 슬롯 ID",
     "ADSENSE_ENABLED": "Google 광고 전체 사용 여부 (1/0)",
+    "ADSENSE_SIDEBAR_ENABLED": "PC 사이드바 광고 사용 여부 (1/0)",
+    "ADSENSE_MOBILE_ENABLED": "모바일 광고 사용 여부 (1/0)",
 }
 
 def _fernet() -> Fernet:
