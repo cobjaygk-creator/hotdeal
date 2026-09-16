@@ -40,6 +40,8 @@ from app.config import (
     ADSENSE_SIDEBAR_ENABLED,
     ADSENSE_MOBILE_SLOT_ID,
     ADSENSE_MAX_PER_PAGE,
+    ADSENSE_START_AT,
+    ADSENSE_END_AT,
     ADSENSE_MOBILE_ENABLED,
     ADSENSE_PUBLISHER_ID,
     ADSENSE_SIDEBAR_SLOT_ID,
@@ -118,7 +120,17 @@ TEMPLATES.env.globals["email_digest_enabled"] = EMAIL_DIGEST_ENABLED
 # Cache-busting query param for /static/*.css|js. base.html actually reads
 # `asset_v` (`{% set v = asset_v | default('', true) %}`) — the global must
 # be named to match, or the template's local `v` always falls back to ''.
+def adsense_active_now():
+    now = datetime.now().astimezone()
+    try:
+        start = datetime.fromisoformat(getattr(__import__("app.config", fromlist=["ADSENSE_START_AT"]), "ADSENSE_START_AT", "")) if getattr(__import__("app.config", fromlist=["ADSENSE_START_AT"]), "ADSENSE_START_AT", "") else None
+        end = datetime.fromisoformat(getattr(__import__("app.config", fromlist=["ADSENSE_END_AT"]), "ADSENSE_END_AT", "")) if getattr(__import__("app.config", fromlist=["ADSENSE_END_AT"]), "ADSENSE_END_AT", "") else None
+        return (not start or now >= start) and (not end or now <= end)
+    except ValueError:
+        return False
+
 TEMPLATES.env.globals["asset_v"] = str(int(time.time()))
+TEMPLATES.env.globals["adsense_active_now"] = adsense_active_now
 TEMPLATES.env.globals["website_jsonld"] = {
     "@context": "https://schema.org",
     "@graph": [
@@ -2651,6 +2663,7 @@ async def _category_counts() -> tuple[dict[str, int], int]:
 async def _distinct_sources() -> list[str]:
     cur = await _db().execute("SELECT DISTINCT source AS v FROM posts ORDER BY v")
     return [r["v"] for r in await cur.fetchall()]
+
 
 
 

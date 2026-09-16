@@ -19,7 +19,7 @@
     gtag('config', '{{ ga_measurement_id }}');
   </script>
   {% endif %}
-  {% if adsense_enabled and adsense_publisher_id %}
+  {% if adsense_active_now() and adsense_enabled and adsense_publisher_id %}
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ adsense_publisher_id }}" crossorigin="anonymous"></script>
   {% endif %}
   <script type="application/ld+json">{{ website_jsonld | tojson }}</script>
@@ -250,4 +250,5 @@
   {% endif %}
 </body>
 </html>
+
 
