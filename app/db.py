@@ -563,7 +563,7 @@ async def _ensure_auth_tables(conn: aiosqlite.Connection) -> None:
     cur = await conn.execute("PRAGMA table_info(users)")
     user_cols = {row[1] for row in await cur.fetchall()}
     if "admin_role" not in user_cols:
-        await conn.execute("ALTER TABLE users ADD COLUMN admin_role TEXT NOT NULL DEFAULT 'operator'")
+        await conn.execute("ALTER TABLE users ADD COLUMN admin_role TEXT NOT NULL DEFAULT ''")
         await conn.execute("UPDATE users SET admin_role='admin' WHERE is_admin=1")
     cur = await conn.execute("PRAGMA table_info(alert_subs)")
     cols = {row[1] for row in await cur.fetchall()}
