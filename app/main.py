@@ -962,6 +962,15 @@ async def coupang_index(request: Request, category: str | None = None):
     )
 
 
+@app.get("/out/coupang/{product_id}")
+async def coupang_out(product_id: str):
+    cur = await _db().execute("SELECT buy_url FROM coupang_deals WHERE product_id=? AND active=1", (product_id,))
+    row = await cur.fetchone()
+    if not row or not row["buy_url"]: raise HTTPException(404, "상품을 찾을 수 없습니다")
+    await _db().execute("INSERT INTO affiliate_clicks(platform, product_id, created_at) VALUES (?, ?, ?)", ("coupang", product_id, utcnow_iso()))
+    await _db().commit()
+    return RedirectResponse(row["buy_url"], status_code=302)
+
 @app.get("/coupang/{product_id}", response_class=HTMLResponse)
 async def coupang_detail(request: Request, product_id: str):
     if not COUPANG_ENABLED:
@@ -2694,6 +2703,7 @@ async def _category_counts() -> tuple[dict[str, int], int]:
 async def _distinct_sources() -> list[str]:
     cur = await _db().execute("SELECT DISTINCT source AS v FROM posts ORDER BY v")
     return [r["v"] for r in await cur.fetchall()]
+
 
 
 
