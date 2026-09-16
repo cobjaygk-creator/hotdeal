@@ -105,6 +105,7 @@ TEMPLATES.env.globals["adsense_publisher_id"] = ADSENSE_PUBLISHER_ID
 TEMPLATES.env.globals["adsense_sidebar_slot_id"] = ADSENSE_SIDEBAR_SLOT_ID
 TEMPLATES.env.globals["adsense_mobile_slot_id"] = ADSENSE_MOBILE_SLOT_ID
 TEMPLATES.env.globals["adsense_enabled"] = ADSENSE_ENABLED
+TEMPLATES.env.globals["adsense_mobile_enabled"] = ADSENSE_MOBILE_ENABLED
 TEMPLATES.env.globals["adsense_sidebar_enabled"] = ADSENSE_SIDEBAR_ENABLED
 TEMPLATES.env.globals["adsense_mobile_enabled"] = ADSENSE_MOBILE_ENABLED
 TEMPLATES.env.globals["coupang_enabled"] = COUPANG_ENABLED
@@ -167,6 +168,7 @@ async def lifespan(app: FastAPI):
         TEMPLATES.env.globals["adsense_mobile_slot_id"] = getattr(runtime_config, "ADSENSE_MOBILE_SLOT_ID", "")
         TEMPLATES.env.globals["adsense_enabled"] = getattr(runtime_config, "ADSENSE_ENABLED", True)
         TEMPLATES.env.globals["adsense_sidebar_enabled"] = getattr(runtime_config, "ADSENSE_SIDEBAR_ENABLED", True)
+        TEMPLATES.env.globals["adsense_mobile_enabled"] = getattr(runtime_config, "ADSENSE_MOBILE_ENABLED", True)
         TEMPLATES.env.globals["adsense_mobile_enabled"] = getattr(runtime_config, "ADSENSE_MOBILE_ENABLED", True)
         TEMPLATES.env.globals["coupang_enabled"] = bool(getattr(runtime_config, "COUPANG_PARTNERS_ACCESS_KEY", "") and getattr(runtime_config, "COUPANG_PARTNERS_SECRET_KEY", ""))
         log.info("loaded %d encrypted admin settings", loaded_settings)
@@ -2644,6 +2646,7 @@ async def _category_counts() -> tuple[dict[str, int], int]:
 async def _distinct_sources() -> list[str]:
     cur = await _db().execute("SELECT DISTINCT source AS v FROM posts ORDER BY v")
     return [r["v"] for r in await cur.fetchall()]
+
 
 
 
