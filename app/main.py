@@ -1818,6 +1818,20 @@ async def admin_quality_restore(request: Request):
     return RedirectResponse("/admin/quality", status_code=303)
 
 
+@app.post("/admin/quality/cleanup-security")
+async def admin_quality_cleanup_security(request: Request):
+    _require_admin(request)
+    markers = ["captcha", "security check", "보안검사를 완료", "보안 검사", "접속하려면", "로봇이 아님"]
+    parts = []
+    params = []
+    for m in markers:
+        parts.append("(lower(product_name) LIKE ? OR lower(COALESCE(seller, '')) LIKE ?)")
+        params.extend([f"%{m.casefold()}%", f"%{m.casefold()}%"])
+    cur = await _db().execute("UPDATE deals SET status='blocked' WHERE " + " OR ".join(parts), params)
+    await _db().commit()
+    return RedirectResponse("/admin/quality", status_code=303)
+
+
 @app.get("/admin/quality", response_class=HTMLResponse)
 async def admin_quality(request: Request, kind: str = "all"):
     _require_admin(request)
@@ -2327,7 +2341,7 @@ async def _list_deals(
     before_id=None,
 ) -> list[dict]:
     db = _db()
-    sql = "SELECT * FROM deals WHERE 1=1"
+    sql = "SELECT * FROM deals WHERE COALESCE(status, '') != 'blocked' AND 1=1"
     params: list = []
     if grade:
         sql += " AND grade LIKE ?"
