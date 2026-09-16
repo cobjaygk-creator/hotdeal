@@ -822,6 +822,8 @@ async def alerts_post(
     action: str = Form(...),
     keyword: str | None = Form(None),
     min_grade: str | None = Form(None),
+    exclude_keywords: str | None = Form(None),
+    enabled: str | None = Form(None),
     channel: str | None = Form(None),
     target: str | None = Form(None),
     sub_id: int | None = Form(None),
@@ -843,7 +845,7 @@ async def alerts_post(
             return RedirectResponse("/alerts?error=notify", status_code=303)
     if action == "user_keyword" and user:
         try:
-            await user_auth.add_keyword(_db(), user["id"], keyword or "", min_grade or "핫딜")
+            await user_auth.add_keyword(_db(), user["id"], keyword or "", min_grade or "핫딜", exclude_keywords or "", enabled == "on")
             user = await user_auth.get_user(_db(), user["id"])
             await user_auth.sync_user_alert_subs(_db(), user or {})
             await _db().commit()

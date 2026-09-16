@@ -422,8 +422,9 @@ async def list_keywords(conn, user_id: int) -> list[dict]:
     return [dict(r) for r in await cur.fetchall()]
 
 
-async def add_keyword(conn, user_id: int, keyword: str, min_grade: str) -> None:
+async def add_keyword(conn, user_id: int, keyword: str, min_grade: str, exclude_keywords: str = '', enabled: bool = True) -> None:
     keyword = " ".join((keyword or "").split())
+    exclude_keywords = " ".join((exclude_keywords or "").replace(",", " ").split())
     if not keyword or len(keyword) > 40:
         raise ValueError("keyword required")
     cur = await conn.execute(
@@ -433,11 +434,11 @@ async def add_keyword(conn, user_id: int, keyword: str, min_grade: str) -> None:
         raise ValueError("too many keywords")
     await conn.execute(
         """
-        INSERT INTO user_keywords(user_id, keyword, min_grade, created_at)
-        VALUES(?, ?, ?, ?)
-        ON CONFLICT(user_id, keyword) DO UPDATE SET min_grade=excluded.min_grade
+        INSERT INTO user_keywords(user_id, keyword, min_grade, exclude_keywords, enabled, created_at)
+        VALUES(?, ?, ?, ?, ?, ?)
+        ON CONFLICT(user_id, keyword) DO UPDATE SET min_grade=excluded.min_grade, exclude_keywords=excluded.exclude_keywords, enabled=excluded.enabled
         """,
-        (user_id, keyword, (min_grade or "핫딜").strip() or "핫딜", utcnow_iso()),
+        (user_id, keyword, (min_grade or "핫딜").strip() or "핫딜", exclude_keywords, 1 if enabled else 0, utcnow_iso()),
     )
 
 
@@ -526,7 +527,7 @@ async def sync_user_alert_subs(conn, user: dict) -> None:
     await reconcile_user_subs(
         conn,
         user_id=int(user["id"]),
-        keywords=[(r["keyword"], r.get("min_grade") or "핫딜") for r in rows],
+        keywords=[(r["keyword"], r.get("min_grade") or "핫딜", r.get("exclude_keywords") or "", int(r.get("enabled", 1))) for r in rows],
         channel=user.get("notify_channel") or "",
         target=user.get("notify_target") or "",
     )
