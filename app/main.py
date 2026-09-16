@@ -2202,7 +2202,7 @@ async def _stats() -> dict:
     link_failures = (await cur.fetchone())["c"]
     cur = await db.execute("SELECT COUNT(*) AS c FROM deals WHERE mall_url IS NULL OR trim(mall_url)=''")
     missing_links = (await cur.fetchone())["c"]
-    cur = await db.execute("SELECT COUNT(*) AS c FROM deal_comments WHERE report_status IN ('open', 'pending')")
+    cur = await db.execute("SELECT COUNT(*) AS c FROM deal_reports")
     reports_pending = (await cur.fetchone())["c"]
     last = await get_meta(db, "last_collect_at")
     summary_raw = await get_meta(db, "last_collect_summary")
@@ -2736,6 +2736,7 @@ async def _category_counts() -> tuple[dict[str, int], int]:
 async def _distinct_sources() -> list[str]:
     cur = await _db().execute("SELECT DISTINCT source AS v FROM posts ORDER BY v")
     return [r["v"] for r in await cur.fetchall()]
+
 
 
 
