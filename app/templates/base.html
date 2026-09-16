@@ -177,7 +177,7 @@
         </a>
         {% endif %}
       </nav>
-      {% if adsense_enabled and adsense_publisher_id and adsense_sidebar_slot_id %}
+      {% if adsense_enabled and adsense_sidebar_enabled and adsense_publisher_id and adsense_sidebar_slot_id %}
       <div class="sidebar-ad">
         <ins class="adsbygoogle" style="display:block" data-ad-client="{{ adsense_publisher_id }}" data-ad-slot="{{ adsense_sidebar_slot_id }}" data-ad-format="auto" data-full-width-responsive="true"></ins>
         <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
@@ -250,3 +250,4 @@
   {% endif %}
 </body>
 </html>
+
