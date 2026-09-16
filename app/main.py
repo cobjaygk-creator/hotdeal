@@ -1111,6 +1111,16 @@ def _is_admin(request: Request) -> bool:
     return user_auth.is_admin_user(getattr(request.state, "user", None))
 
 
+def _require_role(request: Request, allowed: set[str]) -> dict:
+    user = getattr(request.state, "user", None)
+    if not user_auth.is_admin_user(user):
+        raise HTTPException(403, "admin role required")
+    role = (user or {}).get("admin_role") or "admin"
+    if role != "admin" and role not in allowed:
+        raise HTTPException(403, "insufficient admin role")
+    return user
+
+
 def _require_user(request: Request) -> dict:
     user = getattr(request.state, "user", None)
     if not user:
@@ -1784,7 +1794,7 @@ async def admin_dashboard(request: Request):
 
 @app.post("/admin/quality/update")
 async def admin_quality_update(request: Request):
-    _require_admin(request)
+    _require_role(request, {"operator", "reviewer"})
     form = await request.form()
     deal_id = int(form.get("deal_id") or 0)
     price_raw = str(form.get("price") or "").strip()
@@ -1820,7 +1830,7 @@ async def admin_quality_restore(request: Request):
 
 @app.post("/admin/quality/cleanup-security")
 async def admin_quality_cleanup_security(request: Request):
-    _require_admin(request)
+    _require_role(request, {"operator", "reviewer"})
     markers = ["captcha", "security check", "보안검사를 완료", "보안 검사", "접속하려면", "로봇이 아님"]
     parts = []
     params = []
@@ -1834,7 +1844,7 @@ async def admin_quality_cleanup_security(request: Request):
 
 @app.post("/admin/quality/unblock")
 async def admin_quality_unblock(request: Request):
-    _require_admin(request)
+    _require_role(request, {"operator", "reviewer"})
     form = await request.form()
     deal_id = int(form.get("deal_id") or 0)
     await _db().execute("UPDATE deals SET status=NULL WHERE id=? AND status='blocked'", (deal_id,))
@@ -1845,7 +1855,7 @@ async def admin_quality_unblock(request: Request):
 
 @app.get("/admin/quality", response_class=HTMLResponse)
 async def admin_quality(request: Request, kind: str = "all"):
-    _require_admin(request)
+    _require_role(request, {"operator", "reviewer", "viewer"})
     where = "price IS NULL OR price < 1000 OR status=?"
     params = ["needs_review"]
     if kind == "blocked":
