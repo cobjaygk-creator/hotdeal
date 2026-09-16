@@ -475,3 +475,6 @@ h2 {
 
 @media (max-width: 700px){.mobile-ad{display:block!important;margin:14px 0;min-height:90px}}
 
+
+.inline-ad{grid-column:1 / -1;min-height:90px;border:1px solid #eee;border-radius:12px;padding:8px 12px;color:#9aa1ad;font-size:11px;text-align:center;background:#fafafa}
+

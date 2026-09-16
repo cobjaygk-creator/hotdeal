@@ -61,6 +61,7 @@
 <ul class="deal-cards" id="deal-body">
   {% for d in deals %}
   {% include "_deal_card.html" %}
+  {% if loop.index == 10 and adsense_enabled and adsense_publisher_id and adsense_sidebar_slot_id %}<li class="inline-ad" aria-label="광고"><span>광고</span><ins class="adsbygoogle" style="display:block" data-ad-client="{{ adsense_publisher_id }}" data-ad-slot="{{ adsense_sidebar_slot_id }}" data-ad-format="auto" data-full-width-responsive="true"></ins><script>(adsbygoogle = window.adsbygoogle || []).push({});</script></li>{% endif %}
   {% else %}
   <li class="empty-row empty">아직 딜이 없습니다. 수집을 실행하세요.</li>
   {% endfor %}
@@ -88,4 +89,5 @@
 <script src="/static/live.js?v={{ asset_v }}"></script>
 <script src="/static/list-controls.js?v={{ asset_v }}" defer></script>
 {% endblock %}
+
 
