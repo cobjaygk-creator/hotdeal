@@ -697,6 +697,8 @@ async def _ensure_amazon_jp_table(conn: aiosqlite.Connection) -> None:
 
 async def _ensure_settings_table(conn: aiosqlite.Connection) -> None:
     await conn.execute("CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, encrypted_value TEXT NOT NULL, updated_at TEXT NOT NULL, updated_by TEXT)")
+    await conn.execute("CREATE TABLE IF NOT EXISTS ad_events (id INTEGER PRIMARY KEY AUTOINCREMENT, event_type TEXT NOT NULL, placement TEXT NOT NULL, device TEXT, created_at TEXT NOT NULL)")
+    await conn.execute("CREATE INDEX IF NOT EXISTS idx_ad_events_created ON ad_events(created_at, event_type)")
 
 async def _ensure_coupang_table(conn: aiosqlite.Connection) -> None:
     await conn.execute(
@@ -1116,5 +1118,6 @@ async def upsert_coupang_deal(conn: aiosqlite.Connection, deal: dict) -> tuple[i
     cur = await conn.execute("SELECT id FROM coupang_deals WHERE product_id=?", (deal["product_id"],))
     row = await cur.fetchone()
     return int(row["id"]), inserted
+
 
 

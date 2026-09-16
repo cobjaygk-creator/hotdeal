@@ -1713,6 +1713,18 @@ async def admin_ad_preview(request: Request):
     _require_admin(request)
     return TEMPLATES.TemplateResponse("admin_ad_preview.html", {"request": request, "nav": "admin", "admin_section": "settings"})
 
+@app.post("/api/ads/event")
+async def api_ad_event(request: Request):
+    payload = await request.json()
+    event_type = str(payload.get("event_type") or "").strip()
+    placement = str(payload.get("placement") or "unknown").strip()[:40]
+    if event_type not in ("impression", "click"):
+        raise HTTPException(400, "invalid ad event")
+    device = str(payload.get("device") or "").strip()[:20]
+    await _db().execute("INSERT INTO ad_events(event_type, placement, device, created_at) VALUES (?, ?, ?, ?)", (event_type, placement, device, utcnow_iso()))
+    await _db().commit()
+    return {"ok": True}
+
 @app.get("/admin", response_class=HTMLResponse)
 async def admin_dashboard(request: Request):
     _require_admin(request)
@@ -2668,6 +2680,7 @@ async def _category_counts() -> tuple[dict[str, int], int]:
 async def _distinct_sources() -> list[str]:
     cur = await _db().execute("SELECT DISTINCT source AS v FROM posts ORDER BY v")
     return [r["v"] for r in await cur.fetchall()]
+
 
 
 

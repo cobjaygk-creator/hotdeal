@@ -248,7 +248,8 @@
   {% if webpush_enabled %}<span id="push-config" data-key="{{ webpush_public_key }}" hidden></span>{% endif %}
   <script src="/static/push.js?v={{ asset_v }}" defer></script>
   {% endif %}
-</body>
+<script src="/static/ad-track.js?v={{ asset_v }}" defer></script></body>
 </html>
+
 
 
