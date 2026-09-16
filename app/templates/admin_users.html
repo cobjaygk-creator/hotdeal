@@ -22,11 +22,10 @@
         <span class="muted">기본 관리자</span>
         {% else %}
         <form method="post" action="/admin/users" style="display:inline">
-          <input type="hidden" name="action" value="toggle_admin">
+          <input type="hidden" name="action" value="set_role">
+          <select name="role"><option value="operator" {% if u.admin_role == "operator" %}selected{% endif %}>운영</option><option value="reviewer" {% if u.admin_role == "reviewer" %}selected{% endif %}>검수</option><option value="ads" {% if u.admin_role == "ads" %}selected{% endif %}>광고</option><option value="viewer" {% if u.admin_role == "viewer" %}selected{% endif %}>조회</option><option value="admin" {% if u.admin_role == "admin" %}selected{% endif %}>최고관리자</option></select>
           <input type="hidden" name="user_id" value="{{ u.id }}">
-          <button type="submit" class="btn-secondary">
-            {% if u.is_admin %}관리자 해제{% else %}관리자 지정{% endif %}
-          </button>
+          <button type="submit" class="btn-secondary">역할 저장</button>
         </form>
         {% endif %}
       </td>

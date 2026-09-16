@@ -1957,8 +1957,15 @@ async def admin_users_post(
     request: Request,
     action: str = Form(...),
     user_id: int = Form(...),
+    role: str | None = Form(None),
 ):
     me = _require_admin(request)
+    if action == "set_role" and user_id != int(me["id"]) and role in ("admin", "operator", "reviewer", "ads", "viewer"):
+        target = await user_auth.get_user(_db(), user_id)
+        if target and (target.get("username") or "") != ADMIN_USERNAME:
+            await _db().execute("UPDATE users SET admin_role=?, is_admin=? WHERE id=?", (role, 1 if role == "admin" else 0, user_id))
+            await _db().commit()
+        return RedirectResponse("/admin/users", status_code=303)
     if action == "toggle_admin" and user_id != int(me["id"]):
         target = await user_auth.get_user(_db(), user_id)
         if target and (target.get("username") or "") != ADMIN_USERNAME:
