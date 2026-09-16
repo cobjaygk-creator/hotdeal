@@ -120,6 +120,12 @@ async def rebuild_recent_deals(conn, hours: int = RECENT_DEAL_HOURS) -> int:
 
 
 async def upsert_deal_from_post(conn, post_row: dict) -> int | None:
+    title_text = str(post_row.get("title") or "").casefold()
+    body_text = str(post_row.get("body") or "").casefold()
+    blocked_markers = ("captcha", "security check", "보안검사를 완료", "보안 검사", "접속하려면", "로봇이 아님")
+    if any(marker.casefold() in title_text or marker.casefold() in body_text[:1000] for marker in blocked_markers):
+        log.warning("skip blocked/security page source=%s title=%s", post_row.get("source"), post_row.get("title"))
+        return None
     offer = parse_title(post_row["title"])
     if not offer.product_key or not offer.price:
         return None
