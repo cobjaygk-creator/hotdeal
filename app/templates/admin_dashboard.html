@@ -12,6 +12,8 @@
   <a class="metric-tile" href="/admin/coupang-links?status=failed"><div class="metric-label">Link failures</div><div class="metric-value">{{ "{:,}".format(stats.link_failures) }}</div></a>
   <a class="metric-tile" href="/admin/reports"><div class="metric-label">Pending reports</div><div class="metric-value">{{ "{:,}".format(stats.reports_pending) }}</div></a>
   <div class="metric-tile"><div class="metric-label">Missing buy links</div><div class="metric-value">{{ "{:,}".format(stats.missing_links) }}</div></div>
+  <div class="metric-tile"><div class="metric-label">Price review</div><div class="metric-value">{{ "{:,}".format(stats.price_review) }}</div></div>
+  <div class="metric-tile"><div class="metric-label">Quality review</div><div class="metric-value">{{ "{:,}".format(stats.quality_review) }}</div></div>
 </div>
 <p class="muted" style="margin-top:10px">마지막 수집 {{ stats.last_collect_at | kst }}</p>
 
