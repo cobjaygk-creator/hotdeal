@@ -1825,8 +1825,8 @@ async def admin_quality_cleanup_security(request: Request):
     parts = []
     params = []
     for m in markers:
-        parts.append("(lower(product_name) LIKE ? OR lower(COALESCE(seller, '')) LIKE ?)")
-        params.extend([f"%{m.casefold()}%", f"%{m.casefold()}%"])
+        parts.append("(lower(product_name) LIKE ? OR lower(COALESCE(seller, '')) LIKE ? OR lower(COALESCE(mall_url, '')) LIKE ? OR lower(COALESCE(deal_url, '')) LIKE ?)")
+        params.extend([f"%{m.casefold()}%", f"%{m.casefold()}%", f"%{m.casefold()}%", f"%{m.casefold()}%"])
     cur = await _db().execute("UPDATE deals SET status='blocked', blocked_reason='security challenge pattern' WHERE " + " OR ".join(parts), params)
     await _db().commit()
     return RedirectResponse("/admin/quality", status_code=303)
@@ -1854,7 +1854,7 @@ async def admin_quality(request: Request, kind: str = "all"):
         where = "price IS NULL OR price < 1000"; params = []
     elif kind == "status":
         where = "status=?"; params = ["needs_review"]
-    cur = await _db().execute(f"SELECT id, product_name, seller, price, status, mall_url, last_seen_at FROM deals WHERE {where} ORDER BY last_seen_at DESC LIMIT 300", params)
+    cur = await _db().execute(f"SELECT id, product_name, seller, price, status, blocked_reason, mall_url, last_seen_at FROM deals WHERE {where} ORDER BY last_seen_at DESC LIMIT 300", params)
     rows = [dict(r) for r in await cur.fetchall()]
     cur = await _db().execute("SELECT * FROM admin_change_log WHERE entity='deal' ORDER BY id DESC LIMIT 50")
     changes = [dict(r) for r in await cur.fetchall()]
