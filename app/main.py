@@ -1782,6 +1782,20 @@ async def admin_dashboard(request: Request):
     )
 
 
+@app.get("/admin/quality", response_class=HTMLResponse)
+async def admin_quality(request: Request, kind: str = "all"):
+    _require_admin(request)
+    where = "price IS NULL OR price < 1000 OR status=?"
+    params = ["needs_review"]
+    if kind == "price":
+        where = "price IS NULL OR price < 1000"; params = []
+    elif kind == "status":
+        where = "status=?"; params = ["needs_review"]
+    cur = await _db().execute(f"SELECT id, product_name, seller, price, status, mall_url, last_seen_at FROM deals WHERE {where} ORDER BY last_seen_at DESC LIMIT 300", params)
+    rows = [dict(r) for r in await cur.fetchall()]
+    return TEMPLATES.TemplateResponse("admin_quality.html", {"request": request, "nav": "admin", "admin_section": "quality", "rows": rows, "kind": kind})
+
+
 @app.get("/admin/coupang-links", response_class=HTMLResponse)
 async def admin_coupang_links(request: Request, status: str | None = None):
     _require_admin(request)

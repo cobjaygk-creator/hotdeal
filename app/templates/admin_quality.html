@@ -1,0 +1,10 @@
+{% extends "admin_base.html" %}
+{% block title %}상품 품질 검수 · 핫딜모음{% endblock %}
+{% block admin_body %}
+<div class="page-head"><h1>상품 품질 검수</h1></div>
+<p class="muted">가격 누락·비정상 가격 또는 검수 상태 상품입니다. 상품을 열어 원문과 구매 링크를 확인하세요.</p>
+<p><a class="filter-chip {% if kind == "all" %}on{% endif %}" href="/admin/quality">전체</a> <a class="filter-chip {% if kind == "price" %}on{% endif %}" href="/admin/quality?kind=price">가격 검수</a> <a class="filter-chip {% if kind == "status" %}on{% endif %}" href="/admin/quality?kind=status">상태 검수</a></p>
+<div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>상품</th><th>판매처</th><th>가격</th><th>상태</th><th>구매 링크</th><th>확인</th></tr></thead><tbody>
+{% for r in rows %}<tr><td>{{ r.product_name }}</td><td>{{ r.seller or "-" }}</td><td>{{ "{:,}".format(r.price) if r.price else "미확인" }}</td><td>{{ r.status or "-" }}</td><td>{{ "있음" if r.mall_url else "없음" }}</td><td><a class="btn-secondary" href="/deal/{{ r.id }}">상품 보기</a></td></tr>{% else %}<tr><td colspan="6">검수 대상이 없습니다.</td></tr>{% endfor %}
+</tbody></table></div>
+{% endblock %}
