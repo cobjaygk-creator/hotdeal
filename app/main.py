@@ -853,6 +853,15 @@ async def alerts_post(
             log.exception("user keyword failed")
             return RedirectResponse("/alerts?error=keyword", status_code=303)
         return RedirectResponse("/alerts", status_code=303)
+    if action == "user_keyword_toggle" and user and keyword_id:
+        cur = await _db().execute("SELECT enabled FROM user_keywords WHERE id=? AND user_id=?", (keyword_id, user["id"]))
+        row = await cur.fetchone()
+        if row:
+            await user_auth.set_keyword_enabled(_db(), user["id"], keyword_id, not bool(row["enabled"]))
+            user = await user_auth.get_user(_db(), user["id"])
+            await user_auth.sync_user_alert_subs(_db(), user or {})
+            await _db().commit()
+        return RedirectResponse("/alerts", status_code=303)
     if action == "user_keyword_delete" and user and keyword_id:
         await user_auth.delete_keyword(_db(), user["id"], keyword_id)
         user = await user_auth.get_user(_db(), user["id"])

@@ -51,6 +51,11 @@
     <strong>{{ s.keyword }}</strong>
     <div class="muted" style="margin-top:4px;font-size:12px">{{ s.min_grade }} 이상{% if s.exclude_keywords %} · 제외: {{ s.exclude_keywords }}{% endif %}{% if not s.enabled %} · 일시중지{% endif %}</div>
     <form method="post" action="/alerts" style="margin-top:8px">
+      <input type="hidden" name="action" value="user_keyword_toggle">
+      <input type="hidden" name="keyword_id" value="{{ s.id }}">
+      <button type="submit" class="btn-secondary">{{ "일시중지" if s.enabled else "다시 사용" }}</button>
+    </form>
+    <form method="post" action="/alerts" style="margin-top:8px">
       <input type="hidden" name="action" value="user_keyword_delete">
       <input type="hidden" name="keyword_id" value="{{ s.id }}">
       <button type="submit" class="btn-secondary">삭제</button>

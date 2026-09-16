@@ -442,6 +442,10 @@ async def add_keyword(conn, user_id: int, keyword: str, min_grade: str, exclude_
     )
 
 
+async def set_keyword_enabled(conn, user_id: int, keyword_id: int, enabled: bool) -> None:
+    await conn.execute("UPDATE user_keywords SET enabled=? WHERE id=? AND user_id=?", (1 if enabled else 0, keyword_id, user_id))
+
+
 async def delete_keyword(conn, user_id: int, keyword_id: int) -> None:
     await conn.execute(
         "DELETE FROM user_keywords WHERE id=? AND user_id=?",
