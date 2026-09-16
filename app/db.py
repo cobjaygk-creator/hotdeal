@@ -574,6 +574,7 @@ async def _ensure_auth_tables(conn: aiosqlite.Connection) -> None:
     report_cols = {row[1] for row in await cur.fetchall()}
     if "status" not in report_cols:
         await conn.execute("ALTER TABLE deal_reports ADD COLUMN status TEXT NOT NULL DEFAULT 'received'")
+    await conn.execute("CREATE TABLE IF NOT EXISTS deal_report_history (id INTEGER PRIMARY KEY AUTOINCREMENT, report_id INTEGER NOT NULL, old_status TEXT, new_status TEXT NOT NULL, changed_by TEXT, changed_at TEXT NOT NULL)")
     cur = await conn.execute("PRAGMA table_info(alert_subs)")
     cols = {row[1] for row in await cur.fetchall()}
     if "user_id" not in cols:

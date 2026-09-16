@@ -1970,7 +1970,10 @@ async def admin_report_status(request: Request):
     status = str(form.get("status") or "received")
     if status not in ("received", "reviewing", "resolved", "dismissed"):
         status = "received"
+    cur = await _db().execute("SELECT status FROM deal_reports WHERE id=?", (report_id,))
+    old = await cur.fetchone()
     await _db().execute("UPDATE deal_reports SET status=? WHERE id=?", (status, report_id))
+    await _db().execute("INSERT INTO deal_report_history(report_id, old_status, new_status, changed_by, changed_at) VALUES(?,?,?,?,?)", (report_id, old["status"] if old else None, status, str((getattr(request.state, "user", None) or {}).get("username") or "admin"), utcnow_iso()))
     await _db().commit()
     return RedirectResponse("/admin/reports", status_code=303)
 
