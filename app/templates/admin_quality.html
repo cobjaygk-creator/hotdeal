@@ -1,5 +1,6 @@
 {% extends "admin_base.html" %}
-{% block title %}상품 품질 검수 · 핫딜모음{% endblock %}
+{% block title %}상품 품질 검수 · 핫딜모음<h2 style="margin-top:28px">최근 변경 이력</h2><div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>시간</th><th>상품 ID</th><th>필드</th><th>이전 값</th><th>변경 값</th></tr></thead><tbody>{% for c in changes %}<tr><td>{{ c.changed_at }}</td><td>{{ c.entity_id }}</td><td>{{ c.field }}</td><td>{{ c.old_value }}</td><td>{{ c.new_value }}</td></tr>{% else %}<tr><td colspan="5">변경 이력이 없습니다.</td></tr>{% endfor %}</tbody></table></div>
+{% endblock %}
 {% block admin_body %}
 <div class="page-head"><h1>상품 품질 검수</h1></div>
 <p class="muted">가격 누락·비정상 가격 또는 검수 상태 상품입니다. 상품을 열어 원문과 구매 링크를 확인하세요.</p>

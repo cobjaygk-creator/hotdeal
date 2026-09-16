@@ -1791,7 +1791,13 @@ async def admin_quality_update(request: Request):
     price = int(price_raw) if price_raw.isdigit() else None
     status = str(form.get("status") or "").strip() or None
     mall_url = str(form.get("mall_url") or "").strip() or None
+    cur = await _db().execute("SELECT price, status, mall_url FROM deals WHERE id=?", (deal_id,))
+    before = await cur.fetchone()
     await _db().execute("UPDATE deals SET price=?, status=?, mall_url=? WHERE id=?", (price, status, mall_url, deal_id))
+    if before:
+        for field, old, newv in (("price", before["price"], price), ("status", before["status"], status), ("mall_url", before["mall_url"], mall_url)):
+            if str(old or "") != str(newv or ""):
+                await _db().execute("INSERT INTO admin_change_log(entity, entity_id, field, old_value, new_value, changed_by, changed_at) VALUES(?,?,?,?,?,?,?)", ("deal", str(deal_id), field, str(old or ""), str(newv or ""), str(getattr(request.state, "user", None) or "admin"), utcnow_iso()))
     await _db().commit()
     return RedirectResponse("/admin/quality", status_code=303)
 
@@ -1807,7 +1813,9 @@ async def admin_quality(request: Request, kind: str = "all"):
         where = "status=?"; params = ["needs_review"]
     cur = await _db().execute(f"SELECT id, product_name, seller, price, status, mall_url, last_seen_at FROM deals WHERE {where} ORDER BY last_seen_at DESC LIMIT 300", params)
     rows = [dict(r) for r in await cur.fetchall()]
-    return TEMPLATES.TemplateResponse("admin_quality.html", {"request": request, "nav": "admin", "admin_section": "quality", "rows": rows, "kind": kind})
+    cur = await _db().execute("SELECT * FROM admin_change_log WHERE entity='deal' ORDER BY id DESC LIMIT 50")
+    changes = [dict(r) for r in await cur.fetchall()]
+    return TEMPLATES.TemplateResponse("admin_quality.html", {"request": request, "nav": "admin", "admin_section": "quality", "rows": rows, "kind": kind, "changes": changes})
 
 
 @app.get("/admin/coupang-links", response_class=HTMLResponse)
