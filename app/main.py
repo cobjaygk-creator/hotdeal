@@ -1832,12 +1832,25 @@ async def admin_quality_cleanup_security(request: Request):
     return RedirectResponse("/admin/quality", status_code=303)
 
 
+@app.post("/admin/quality/unblock")
+async def admin_quality_unblock(request: Request):
+    _require_admin(request)
+    form = await request.form()
+    deal_id = int(form.get("deal_id") or 0)
+    await _db().execute("UPDATE deals SET status=NULL WHERE id=? AND status='blocked'", (deal_id,))
+    await _db().execute("INSERT INTO admin_change_log(entity, entity_id, field, old_value, new_value, changed_by, changed_at) VALUES(?,?,?,?,?,?,?)", ("deal", str(deal_id), "status", "blocked", "", "unblock", utcnow_iso()))
+    await _db().commit()
+    return RedirectResponse("/admin/quality?kind=blocked", status_code=303)
+
+
 @app.get("/admin/quality", response_class=HTMLResponse)
 async def admin_quality(request: Request, kind: str = "all"):
     _require_admin(request)
     where = "price IS NULL OR price < 1000 OR status=?"
     params = ["needs_review"]
-    if kind == "price":
+    if kind == "blocked":
+        where = "status=?" ; params = ["blocked"]
+    elif kind == "price":
         where = "price IS NULL OR price < 1000"; params = []
     elif kind == "status":
         where = "status=?"; params = ["needs_review"]
