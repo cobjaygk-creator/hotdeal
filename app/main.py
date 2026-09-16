@@ -1708,7 +1708,7 @@ async def api_deal_report(request: Request, deal_id: int, payload: ReportIn):
 
 @app.get("/admin/settings", response_class=HTMLResponse)
 async def admin_settings_page(request: Request):
-    _require_admin(request)
+    _require_role(request, {"operator"})
     conn = _db()
     cur = await conn.execute("SELECT key, updated_at FROM app_settings ORDER BY key")
     saved = {row["key"]: row["updated_at"] for row in await cur.fetchall()}
@@ -1716,7 +1716,7 @@ async def admin_settings_page(request: Request):
 
 @app.post("/api/admin/settings")
 async def admin_settings_save(request: Request):
-    me = _require_admin(request)
+    me = _require_role(request, {"operator"})
     payload = await request.json()
     conn = _db()
     now = utcnow_iso()
