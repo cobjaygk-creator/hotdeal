@@ -1871,6 +1871,14 @@ async def admin_quality(request: Request, kind: str = "all"):
     return TEMPLATES.TemplateResponse("admin_quality.html", {"request": request, "nav": "admin", "admin_section": "quality", "rows": rows, "kind": kind, "changes": changes})
 
 
+@app.get("/admin/toss-links", response_class=HTMLResponse)
+async def admin_toss_links(request: Request):
+    _require_role(request, {"operator", "reviewer", "ads", "viewer"})
+    cur = await _db().execute("SELECT id, product_name, seller, mall_url, deal_url, last_seen_at FROM deals WHERE lower(COALESCE(mall_url, '')) LIKE '%toss.im%' ORDER BY last_seen_at DESC LIMIT 300")
+    rows = [dict(r) for r in await cur.fetchall()]
+    return TEMPLATES.TemplateResponse("admin_toss_links.html", {"request": request, "nav": "admin", "admin_section": "toss_links", "rows": rows})
+
+
 @app.get("/admin/coupang-links", response_class=HTMLResponse)
 async def admin_coupang_links(request: Request, status: str | None = None):
     _require_role(request, {"operator", "reviewer", "ads", "viewer"})
