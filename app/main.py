@@ -1742,7 +1742,7 @@ async def admin_settings_save(request: Request):
     return {"ok": True, "saved": saved}
 @app.get("/admin/ad-preview", response_class=HTMLResponse)
 async def admin_ad_preview(request: Request):
-    _require_admin(request)
+    _require_role(request, {"operator", "ads"})
     return TEMPLATES.TemplateResponse("admin_ad_preview.html", {"request": request, "nav": "admin", "admin_section": "settings"})
 
 @app.post("/api/ads/event")
@@ -1759,7 +1759,7 @@ async def api_ad_event(request: Request):
 
 @app.get("/admin/revenue", response_class=HTMLResponse)
 async def admin_revenue(request: Request, days: int = 30, device: str | None = None):
-    _require_admin(request)
+    _require_role(request, {"operator", "ads", "viewer"})
     cur = await _db().execute("SELECT event_type, COUNT(*) AS count FROM ad_events GROUP BY event_type")
     ad = {row["event_type"]: row["count"] for row in await cur.fetchall()}
     cur = await _db().execute("SELECT COUNT(*) AS count FROM affiliate_clicks WHERE created_at >= ?", (cutoff,))
@@ -1770,7 +1770,7 @@ async def admin_revenue(request: Request, days: int = 30, device: str | None = N
 
 @app.get("/admin/ad-stats", response_class=HTMLResponse)
 async def admin_ad_stats(request: Request, days: int = 1, device: str | None = None):
-    _require_admin(request)
+    _require_role(request, {"operator", "ads", "viewer"})
     days = max(1, min(30, days))
     device = device if device in ("pc", "mobile") else None
     where = "created_at >= datetime(\'now\', ?)"
