@@ -1802,6 +1802,22 @@ async def admin_quality_update(request: Request):
     return RedirectResponse("/admin/quality", status_code=303)
 
 
+@app.post("/admin/quality/restore")
+async def admin_quality_restore(request: Request):
+    _require_admin(request)
+    form = await request.form()
+    log_id = int(form.get("log_id") or 0)
+    cur = await _db().execute("SELECT * FROM admin_change_log WHERE id=?", (log_id,))
+    row = await cur.fetchone()
+    if row and row["entity"] == "deal" and row["field"] in ("price", "status", "mall_url"):
+        cur = await _db().execute(f"SELECT {row['field']} FROM deals WHERE id=?", (row["entity_id"],))
+        before = await cur.fetchone()
+        await _db().execute(f"UPDATE deals SET {row['field']}=? WHERE id=?", (row["old_value"] or None, row["entity_id"]))
+        await _db().execute("INSERT INTO admin_change_log(entity, entity_id, field, old_value, new_value, changed_by, changed_at) VALUES(?,?,?,?,?,?,?)", ("deal", row["entity_id"], row["field"], str(before[0] or "") if before else "", row["old_value"] or "", "restore", utcnow_iso()))
+        await _db().commit()
+    return RedirectResponse("/admin/quality", status_code=303)
+
+
 @app.get("/admin/quality", response_class=HTMLResponse)
 async def admin_quality(request: Request, kind: str = "all"):
     _require_admin(request)
