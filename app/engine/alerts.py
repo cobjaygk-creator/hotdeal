@@ -211,6 +211,7 @@ async def dispatch_alerts(conn, client, deals: list[dict]) -> dict:
     if not subs:
         return summary
     seen_ids: set[int] = set()
+    sent_user_deals: set[tuple[int, int]] = set()
     for deal in deals:
         did = deal.get("id")
         if not did or did in seen_ids:
@@ -221,6 +222,10 @@ async def dispatch_alerts(conn, client, deals: list[dict]) -> dict:
             if not matches_keyword(deal, sub["keyword"]):
                 continue
             if not meets_min_grade(deal.get("grade"), sub.get("min_grade")):
+                summary["skipped"] += 1
+                continue
+            user_id = sub.get("user_id")
+            if user_id and (int(user_id), int(did)) in sent_user_deals:
                 summary["skipped"] += 1
                 continue
             sent = await conn.execute(
@@ -236,6 +241,8 @@ async def dispatch_alerts(conn, client, deals: list[dict]) -> dict:
                 "INSERT OR IGNORE INTO alert_sent(sub_id, deal_id, sent_at) VALUES(?,?,?)",
                 (sub["id"], did, utcnow_iso()),
             )
+            if user_id:
+                sent_user_deals.add((int(user_id), int(did)))
             if not sub.get("channel"):
                 summary["sent"] += 1
                 continue
@@ -302,3 +309,4 @@ async def _deliver_webpush(conn, sub: dict, deal: dict) -> None:
             await conn.execute(
                 "DELETE FROM push_subscriptions WHERE id=?", (row["id"],)
             )
+
