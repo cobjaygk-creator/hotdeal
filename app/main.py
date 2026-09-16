@@ -1726,13 +1726,18 @@ async def api_ad_event(request: Request):
     return {"ok": True}
 
 @app.get("/admin/ad-stats", response_class=HTMLResponse)
-async def admin_ad_stats(request: Request):
+async def admin_ad_stats(request: Request, days: int = 1, device: str | None = None):
     _require_admin(request)
-    cur = await _db().execute("SELECT event_type, COUNT(*) AS count FROM ad_events GROUP BY event_type")
+    days = max(1, min(30, days))
+    device = device if device in ("pc", "mobile") else None
+    where = "created_at >= datetime(\'now\', ?)"
+    params = [f"-{days} days"]
+    if device: where += " AND device=?"; params.append(device)
+    cur = await _db().execute(f"SELECT event_type, COUNT(*) AS count FROM ad_events WHERE {where} GROUP BY event_type", params)
     totals = {row["event_type"]: row["count"] for row in await cur.fetchall()}
-    cur = await _db().execute("SELECT placement, event_type, COUNT(*) AS count FROM ad_events GROUP BY placement, event_type ORDER BY placement")
+    cur = await _db().execute(f"SELECT placement, event_type, COUNT(*) AS count FROM ad_events WHERE {where} GROUP BY placement, event_type ORDER BY placement", params)
     by_placement = [dict(row) for row in await cur.fetchall()]
-    return TEMPLATES.TemplateResponse("admin_ad_stats.html", {"request": request, "nav": "admin", "admin_section": "settings", "totals": totals, "by_placement": by_placement})
+    return TEMPLATES.TemplateResponse("admin_ad_stats.html", {"request": request, "nav": "admin", "admin_section": "settings", "totals": totals, "by_placement": by_placement, "days": days, "device": device})
 
 @app.get("/admin", response_class=HTMLResponse)
 async def admin_dashboard(request: Request):
@@ -2689,6 +2694,7 @@ async def _category_counts() -> tuple[dict[str, int], int]:
 async def _distinct_sources() -> list[str]:
     cur = await _db().execute("SELECT DISTINCT source AS v FROM posts ORDER BY v")
     return [r["v"] for r in await cur.fetchall()]
+
 
 
 
