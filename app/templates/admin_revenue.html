@@ -3,6 +3,7 @@
 {% block admin_body %}
 <div class="page-head"><h1>수익화 대시보드</h1></div>
 <form method="get" style="margin:14px 0"><select name="days"><option value="7">최근 7일</option><option value="30" {% if days == 30 %}selected{% endif %}>최근 30일</option><option value="365" {% if days == 365 %}selected{% endif %}>최근 1년</option></select><select name="device"><option value="">전체 기기</option><option value="pc" {% if device == "pc" %}selected{% endif %}>PC</option><option value="mobile" {% if device == "mobile" %}selected{% endif %}>모바일</option></select><button class="btn-secondary">조회</button></form><div class="metric-grid"><div class="metric-tile"><div class="metric-label">광고 노출</div><div class="metric-value">{{ ad.get("impression", 0) }}</div></div><div class="metric-tile"><div class="metric-label">광고 클릭</div><div class="metric-value">{{ ad.get("click", 0) }}</div></div><div class="metric-tile"><div class="metric-label">쿠팡 제휴 클릭</div><div class="metric-value">{{ affiliate_clicks }}</div></div></div>
-<p class="muted">광고 클릭과 제휴 클릭은 확정 수익과 별도 지표입니다.</p>
+<div class="metric-tile"><div class="metric-label">예상 수익</div><div class="metric-value">{{ "{:,.0f}".format(estimated_revenue) }}원</div></div><p class="muted">예상 수익은 관리자 입력 단가를 이용한 추정치이며 확정 수익과 다릅니다.</p>
 {% endblock %}
+
 

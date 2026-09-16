@@ -18,6 +18,8 @@ SETTING_KEYS = {
     "ADSENSE_MAX_PER_PAGE": "페이지당 최대 광고 수",
     "ADSENSE_START_AT": "광고 시작일시 (YYYY-MM-DDTHH:MM)",
     "ADSENSE_END_AT": "광고 종료일시 (YYYY-MM-DDTHH:MM)",
+    "ADSENSE_ESTIMATED_CPC": "광고 클릭당 예상 수익 (원)",
+    "COUPANG_ESTIMATED_EPC": "쿠팡 클릭당 예상 수익 (원)",
     "ADSENSE_ENABLED": "Google 광고 전체 사용 여부 (1/0)",
     "ADSENSE_SIDEBAR_ENABLED": "PC 사이드바 광고 사용 여부 (1/0)",
     "ADSENSE_MOBILE_ENABLED": "모바일 광고 사용 여부 (1/0)",
@@ -56,5 +58,6 @@ async def load_runtime_settings(conn) -> int:
                 setattr(coupang_api, key, value)
             loaded += 1
     return loaded
+
 
 

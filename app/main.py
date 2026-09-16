@@ -42,6 +42,8 @@ from app.config import (
     ADSENSE_MAX_PER_PAGE,
     ADSENSE_START_AT,
     ADSENSE_END_AT,
+    ADSENSE_ESTIMATED_CPC,
+    COUPANG_ESTIMATED_EPC,
     ADSENSE_MOBILE_ENABLED,
     ADSENSE_PUBLISHER_ID,
     ADSENSE_SIDEBAR_SLOT_ID,
@@ -1741,7 +1743,9 @@ async def admin_revenue(request: Request, days: int = 30, device: str | None = N
     ad = {row["event_type"]: row["count"] for row in await cur.fetchall()}
     cur = await _db().execute("SELECT COUNT(*) AS count FROM affiliate_clicks WHERE created_at >= ?", (cutoff,))
     clicks = (await cur.fetchone())["count"]
-    return TEMPLATES.TemplateResponse("admin_revenue.html", {"request": request, "nav": "admin", "admin_section": "settings", "ad": ad, "affiliate_clicks": clicks, "days": days, "device": device})
+    import app.config as revenue_config
+    estimated = ad.get("click", 0) * float(getattr(revenue_config, "ADSENSE_ESTIMATED_CPC", 0)) + clicks * float(getattr(revenue_config, "COUPANG_ESTIMATED_EPC", 0))
+    return TEMPLATES.TemplateResponse("admin_revenue.html", {"request": request, "nav": "admin", "admin_section": "settings", "ad": ad, "affiliate_clicks": clicks, "days": days, "device": device, "estimated_revenue": estimated})
 
 @app.get("/admin/ad-stats", response_class=HTMLResponse)
 async def admin_ad_stats(request: Request, days: int = 1, device: str | None = None):
@@ -2712,6 +2716,7 @@ async def _category_counts() -> tuple[dict[str, int], int]:
 async def _distinct_sources() -> list[str]:
     cur = await _db().execute("SELECT DISTINCT source AS v FROM posts ORDER BY v")
     return [r["v"] for r in await cur.fetchall()]
+
 
 
 
