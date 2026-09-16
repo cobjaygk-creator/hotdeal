@@ -560,6 +560,11 @@ async def _ensure_auth_tables(conn: aiosqlite.Connection) -> None:
         """
     )
     await conn.execute("""CREATE TABLE IF NOT EXISTS admin_change_log (id INTEGER PRIMARY KEY AUTOINCREMENT, entity TEXT NOT NULL, entity_id TEXT NOT NULL, field TEXT NOT NULL, old_value TEXT, new_value TEXT, changed_by TEXT, changed_at TEXT NOT NULL)""")
+    cur = await conn.execute("PRAGMA table_info(users)")
+    user_cols = {row[1] for row in await cur.fetchall()}
+    if "admin_role" not in user_cols:
+        await conn.execute("ALTER TABLE users ADD COLUMN admin_role TEXT NOT NULL DEFAULT 'operator'")
+        await conn.execute("UPDATE users SET admin_role='admin' WHERE is_admin=1")
     cur = await conn.execute("PRAGMA table_info(alert_subs)")
     cols = {row[1] for row in await cur.fetchall()}
     if "user_id" not in cols:

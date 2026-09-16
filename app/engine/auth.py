@@ -495,7 +495,7 @@ async def list_user_providers(conn, user_id: int) -> str:
 async def list_users(conn, limit: int = 200) -> list[dict]:
     cur = await conn.execute(
         """
-        SELECT u.id, u.display_name, u.email, u.username, u.is_admin,
+        SELECT u.id, u.display_name, u.email, u.username, u.is_admin, u.admin_role,
                u.created_at, u.last_login_at,
                (SELECT GROUP_CONCAT(oi.provider)
                   FROM oauth_identities oi WHERE oi.user_id = u.id) AS providers
