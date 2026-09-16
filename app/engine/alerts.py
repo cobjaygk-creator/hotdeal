@@ -149,7 +149,7 @@ async def delete_user_subs(conn, user_id: int) -> None:
 
 
 async def reconcile_user_subs(
-    conn, *, user_id: int, keywords: list[tuple[str, str]], channel: str, target: str
+    conn, *, user_id: int, keywords: list[tuple[str, str, str, int]], channel: str, target: str
 ) -> None:
     """Bring a user's alert_subs in line with their keyword list + notify
     setting WITHOUT churning rows for unchanged (keyword, channel, target)
@@ -163,10 +163,10 @@ async def reconcile_user_subs(
         channel, target = "", ""  # unusable target -> inbox-only
     eff_target = target if channel in TARGET_CHANNELS else f"u{user_id}"
     desired: dict[tuple[str, str, str], str] = {}
-    for kw, grade in keywords:
+    for kw, grade, excluded, enabled in keywords:
         kw = (kw or "").strip()
         if kw:
-            desired[(kw, channel, eff_target)] = (grade or "핫딜").strip() or "핫딜"
+            desired[(kw, channel, eff_target)] = ((grade or "핫딜").strip() or "핫딜", excluded or "", 1 if enabled else 0)
 
     cur = await conn.execute(
         "SELECT id, keyword, channel, target FROM alert_subs WHERE user_id=?",
@@ -181,12 +181,12 @@ async def reconcile_user_subs(
     for (kw, ch, tg), grade in desired.items():
         await conn.execute(
             """
-            INSERT INTO alert_subs(keyword, min_grade, channel, target, enabled, origin, created_at, user_id)
-            VALUES(?, ?, ?, ?, 1, 'user', ?, ?)
+            INSERT INTO alert_subs(keyword, min_grade, channel, target, exclude_keywords, enabled, origin, created_at, user_id)
+            VALUES(?, ?, ?, ?, ?, ?, 'user', ?, ?)
             ON CONFLICT(keyword, channel, target) DO UPDATE SET
-                min_grade=excluded.min_grade, enabled=1, origin='user', user_id=excluded.user_id
+                min_grade=excluded.min_grade, exclude_keywords=excluded.exclude_keywords, enabled=excluded.enabled, origin='user', user_id=excluded.user_id
             """,
-            (kw, grade, ch, tg, now, user_id),
+            (kw, grade[0], ch, tg, grade[1], grade[2], now, user_id),
         )
 
 
