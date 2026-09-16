@@ -1962,6 +1962,19 @@ async def admin_coupang_link_validate(product_id: str, request: Request):
         await conn.execute("UPDATE coupang_deals SET link_status='failed', link_failure_reason=?, link_verified_at=? WHERE product_id=?", (str(exc)[:300], checked_at, product_id))
         await conn.commit()
         return JSONResponse({"ok": False, "link_status": "failed", "error": str(exc)[:300]}, status_code=200)
+@app.post("/admin/reports/status")
+async def admin_report_status(request: Request):
+    _require_role(request, {"operator", "reviewer"})
+    form = await request.form()
+    report_id = int(form.get("report_id") or 0)
+    status = str(form.get("status") or "received")
+    if status not in ("received", "reviewing", "resolved", "dismissed"):
+        status = "received"
+    await _db().execute("UPDATE deal_reports SET status=? WHERE id=?", (status, report_id))
+    await _db().commit()
+    return RedirectResponse("/admin/reports", status_code=303)
+
+
 @app.get("/admin/reports", response_class=HTMLResponse)
 async def admin_reports(request: Request):
     _require_role(request, {"operator", "reviewer", "viewer"})

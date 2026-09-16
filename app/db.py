@@ -570,6 +570,10 @@ async def _ensure_auth_tables(conn: aiosqlite.Connection) -> None:
     if "blocked_reason" not in deal_cols:
         await conn.execute("ALTER TABLE deals ADD COLUMN blocked_reason TEXT")
         await conn.execute("UPDATE deals SET blocked_reason = ? WHERE status = ?", ("security challenge pattern", "blocked"))
+    cur = await conn.execute("PRAGMA table_info(deal_reports)")
+    report_cols = {row[1] for row in await cur.fetchall()}
+    if "status" not in report_cols:
+        await conn.execute("ALTER TABLE deal_reports ADD COLUMN status TEXT NOT NULL DEFAULT 'received'")
     cur = await conn.execute("PRAGMA table_info(alert_subs)")
     cols = {row[1] for row in await cur.fetchall()}
     if "user_id" not in cols:

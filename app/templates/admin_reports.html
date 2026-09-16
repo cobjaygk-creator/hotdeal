@@ -9,7 +9,7 @@
 <div class="table-card"><div class="table-scroll">
 <table class="admin-table">
   <thead>
-    <tr><th>시각</th><th>딜</th><th>사유</th><th>내용</th></tr>
+    <tr><th>시각</th><th>딜</th><th>사유</th><th>내용</th><th>상태</th></tr>
   </thead>
   <tbody>
     {% for r in reports %}
@@ -17,7 +17,7 @@
       <td>{{ r.created_at }}</td>
       <td><a href="/deal/{{ r.deal_id }}">{{ r.product_name or r.deal_id }}</a></td>
       <td>{{ r.reason }}</td>
-      <td>{{ r.detail or "" }}</td>
+      <td>{{ r.detail or "" }}</td><td><form method="post" action="/admin/reports/status"><input type="hidden" name="report_id" value="{{ r.id }}"><select name="status"><option value="received" {% if r.status == "received" %}selected{% endif %}>접수</option><option value="reviewing" {% if r.status == "reviewing" %}selected{% endif %}>확인 중</option><option value="resolved" {% if r.status == "resolved" %}selected{% endif %}>수정 완료</option><option value="dismissed" {% if r.status == "dismissed" %}selected{% endif %}>반영하지 않음</option></select><button class="btn-secondary" type="submit">저장</button></form></td>
     </tr>
     {% endfor %}
   </tbody>
