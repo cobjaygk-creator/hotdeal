@@ -1,0 +1,7 @@
+{% extends "admin_base.html" %}
+{% block title %}수익화 대시보드{% endblock %}
+{% block admin_body %}
+<div class="page-head"><h1>수익화 대시보드</h1></div>
+<div class="metric-grid"><div class="metric-tile"><div class="metric-label">광고 노출</div><div class="metric-value">{{ ad.get("impression", 0) }}</div></div><div class="metric-tile"><div class="metric-label">광고 클릭</div><div class="metric-value">{{ ad.get("click", 0) }}</div></div><div class="metric-tile"><div class="metric-label">쿠팡 제휴 클릭</div><div class="metric-value">{{ affiliate_clicks }}</div></div></div>
+<p class="muted">광고 클릭과 제휴 클릭은 확정 수익과 별도 지표입니다.</p>
+{% endblock %}

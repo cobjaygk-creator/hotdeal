@@ -1734,6 +1734,15 @@ async def api_ad_event(request: Request):
     await _db().commit()
     return {"ok": True}
 
+@app.get("/admin/revenue", response_class=HTMLResponse)
+async def admin_revenue(request: Request):
+    _require_admin(request)
+    cur = await _db().execute("SELECT event_type, COUNT(*) AS count FROM ad_events GROUP BY event_type")
+    ad = {row["event_type"]: row["count"] for row in await cur.fetchall()}
+    cur = await _db().execute("SELECT COUNT(*) AS count FROM affiliate_clicks")
+    clicks = (await cur.fetchone())["count"]
+    return TEMPLATES.TemplateResponse("admin_revenue.html", {"request": request, "nav": "admin", "admin_section": "settings", "ad": ad, "affiliate_clicks": clicks})
+
 @app.get("/admin/ad-stats", response_class=HTMLResponse)
 async def admin_ad_stats(request: Request, days: int = 1, device: str | None = None):
     _require_admin(request)
@@ -2703,6 +2712,7 @@ async def _category_counts() -> tuple[dict[str, int], int]:
 async def _distinct_sources() -> list[str]:
     cur = await _db().execute("SELECT DISTINCT source AS v FROM posts ORDER BY v")
     return [r["v"] for r in await cur.fetchall()]
+
 
 
 
