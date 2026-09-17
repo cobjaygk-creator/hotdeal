@@ -1880,7 +1880,11 @@ async def admin_toss_status(request: Request):
     if status not in ("pending", "approved", "rejected"):
         status = "pending"
     reason = str(form.get("reason") or "").strip() or None
+    cur = await _db().execute("SELECT toss_review_status FROM deals WHERE id=?", (deal_id,))
+    before = await cur.fetchone()
     await _db().execute("UPDATE deals SET toss_review_status=?, toss_review_reason=? WHERE id=?", (status, reason, deal_id))
+    if before and (before["toss_review_status"] or "pending") != status:
+        await _db().execute("INSERT INTO admin_change_log(entity, entity_id, field, old_value, new_value, changed_by, changed_at) VALUES(?,?,?,?,?,?,?)", ("deal", str(deal_id), "toss_review_status", before["toss_review_status"] or "pending", status, "toss-review", utcnow_iso()))
     await _db().commit()
     return RedirectResponse("/admin/toss-links", status_code=303)
 
