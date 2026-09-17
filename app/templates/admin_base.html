@@ -9,8 +9,8 @@
     <a href="/admin/quality" class="{% if admin_section == 'quality' %}on{% endif %}">품질검수</a>
     <a href="/admin/toss-links" class="{% if admin_section == "toss_links" %}on{% endif %}">토스 검수</a>
     <a href="/admin/coupang-links" class="{% if admin_section == 'coupang_links' %}on{% endif %}">쿠팡 링크</a>
-    <a href="/admin/settings" class="{% if admin_section == 'settings' %}on{% endif %}">외부 서비스 설정</a>
-    <a href="/admin#collect" class="{% if admin_section == 'collect' %}on{% endif %}">수집관리</a>
+    {% if user.admin_role in ["admin", "operator"] %}<a href="/admin/settings" class="{% if admin_section == 'settings' %}on{% endif %}">외부 서비스 설정</a>
+    <a href="/admin#collect" class="{% if admin_section == 'collect' %}on{% endif %}">수집관리</a>{% endif %}
   </nav>
   <div class="admin-content">
     {% block admin_body %}{% endblock %}
