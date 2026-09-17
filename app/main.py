@@ -1837,7 +1837,7 @@ async def admin_quality_cleanup_security(request: Request):
     for m in markers:
         parts.append("(lower(product_name) LIKE ? OR lower(COALESCE(seller, '')) LIKE ? OR lower(COALESCE(mall_url, '')) LIKE ? OR lower(COALESCE(deal_url, '')) LIKE ? OR lower(COALESCE(thumbnail_url, '')) LIKE ?)")
         params.extend([f"%{m.casefold()}%", f"%{m.casefold()}%", f"%{m.casefold()}%", f"%{m.casefold()}%", f"%{m.casefold()}%"])
-    cur = await _db().execute("UPDATE deals SET status='blocked', blocked_reason='security challenge pattern' WHERE " + " OR ".join(parts), params)
+    cur = await _db().execute("UPDATE deals SET status='blocked', blocked_reason=CASE WHEN lower(product_name) LIKE '%captcha%' OR lower(product_name) LIKE '%security check%' THEN 'title' WHEN lower(COALESCE(seller,'')) LIKE '%보안%' THEN 'seller' WHEN lower(COALESCE(mall_url,'')) LIKE '%captcha%' OR lower(COALESCE(deal_url,'')) LIKE '%captcha%' THEN 'url' WHEN lower(COALESCE(thumbnail_url,'')) LIKE '%captcha%' THEN 'image' ELSE 'security challenge pattern' END WHERE " + " OR ".join(parts), params)
     await _db().commit()
     return RedirectResponse("/admin/quality", status_code=303)
 
