@@ -1871,10 +1871,24 @@ async def admin_quality(request: Request, kind: str = "all"):
     return TEMPLATES.TemplateResponse("admin_quality.html", {"request": request, "nav": "admin", "admin_section": "quality", "rows": rows, "kind": kind, "changes": changes})
 
 
+@app.post("/admin/toss-links/status")
+async def admin_toss_status(request: Request):
+    _require_role(request, {"operator", "reviewer"})
+    form = await request.form()
+    deal_id = int(form.get("deal_id") or 0)
+    status = str(form.get("status") or "pending")
+    if status not in ("pending", "approved", "rejected"):
+        status = "pending"
+    reason = str(form.get("reason") or "").strip() or None
+    await _db().execute("UPDATE deals SET toss_review_status=?, toss_review_reason=? WHERE id=?", (status, reason, deal_id))
+    await _db().commit()
+    return RedirectResponse("/admin/toss-links", status_code=303)
+
+
 @app.get("/admin/toss-links", response_class=HTMLResponse)
 async def admin_toss_links(request: Request):
     _require_role(request, {"operator", "reviewer", "ads", "viewer"})
-    cur = await _db().execute("SELECT id, product_name, seller, mall_url, deal_url, last_seen_at FROM deals WHERE lower(COALESCE(mall_url, '')) LIKE '%toss.im%' ORDER BY last_seen_at DESC LIMIT 300")
+    cur = await _db().execute("SELECT id, product_name, seller, mall_url, deal_url, toss_review_status, toss_review_reason, last_seen_at FROM deals WHERE lower(COALESCE(mall_url, '')) LIKE '%toss.im%' ORDER BY last_seen_at DESC LIMIT 300")
     rows = [dict(r) for r in await cur.fetchall()]
     return TEMPLATES.TemplateResponse("admin_toss_links.html", {"request": request, "nav": "admin", "admin_section": "toss_links", "rows": rows})
 

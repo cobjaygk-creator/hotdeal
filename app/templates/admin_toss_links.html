@@ -3,7 +3,7 @@
 {% block admin_body %}
 <div class="page-head"><h1>토스 링크 검수</h1><div class="page-meta">{{ rows|length }}건</div></div>
 <p class="muted">토스 링크는 자동 변환하지 않습니다. 원본 링크를 확인한 뒤 제휴 조건이 확인된 상품만 수동 처리하세요.</p>
-<div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>상품</th><th>판매처</th><th>원본 링크</th><th>수집 시각</th></tr></thead><tbody>
-{% for r in rows %}<tr><td><a href="/deal/{{ r.id }}">{{ r.product_name }}</a></td><td>{{ r.seller or "-" }}</td><td><a href="{{ r.mall_url }}" target="_blank" rel="noopener">원본 열기</a></td><td>{{ r.last_seen_at }}</td></tr>{% else %}<tr><td colspan="4">검수 대기 토스 링크가 없습니다.</td></tr>{% endfor %}
+<div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>상품</th><th>판매처</th><th>원본 링크</th><th>검수 상태</th><th>수집 시각</th></tr></thead><tbody>
+{% for r in rows %}<tr><td><a href="/deal/{{ r.id }}">{{ r.product_name }}</a></td><td>{{ r.seller or "-" }}</td><td><a href="{{ r.mall_url }}" target="_blank" rel="noopener">원본 열기</a></td><td><form method="post" action="/admin/toss-links/status"><input type="hidden" name="deal_id" value="{{ r.id }}"><select name="status"><option value="pending" {% if r.toss_review_status == "pending" %}selected{% endif %}>대기</option><option value="approved" {% if r.toss_review_status == "approved" %}selected{% endif %}>승인</option><option value="rejected" {% if r.toss_review_status == "rejected" %}selected{% endif %}>반려</option></select><input name="reason" value="{{ r.toss_review_reason or "" }}" placeholder="사유"><button class="btn-secondary" type="submit">저장</button></form></td><td>{{ r.last_seen_at }}</td></tr>{% else %}<tr><td colspan="5">검수 대기 토스 링크가 없습니다.</td></tr>{% endfor %}
 </tbody></table></div>
 {% endblock %}
