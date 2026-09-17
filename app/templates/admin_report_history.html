@@ -1,0 +1,8 @@
+{% extends "admin_base.html" %}
+{% block title %}신고 처리 이력 · 핫딜모음{% endblock %}
+{% block admin_body %}
+<div class="page-head"><h1>신고 처리 이력</h1><div class="page-meta">{{ rows|length }}건</div></div>
+<div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>시간</th><th>상품</th><th>신고 ID</th><th>이전 상태</th><th>변경 상태</th><th>처리자</th></tr></thead><tbody>
+{% for r in rows %}<tr><td>{{ r.changed_at }}</td><td>{{ r.product_name or r.deal_id }}</td><td>{{ r.report_id }}</td><td>{{ r.old_status or "-" }}</td><td>{{ r.new_status }}</td><td>{{ r.changed_by or "-" }}</td></tr>{% else %}<tr><td colspan="6">처리 이력이 없습니다.</td></tr>{% endfor %}
+</tbody></table></div>
+{% endblock %}

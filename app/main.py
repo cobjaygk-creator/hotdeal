@@ -1986,6 +1986,14 @@ async def admin_report_status(request: Request):
     return RedirectResponse("/admin/reports", status_code=303)
 
 
+@app.get("/admin/reports/history", response_class=HTMLResponse)
+async def admin_report_history(request: Request):
+    _require_role(request, {"operator", "reviewer", "viewer"})
+    cur = await _db().execute("SELECT h.*, r.deal_id, d.product_name FROM deal_report_history h LEFT JOIN deal_reports r ON r.id=h.report_id LEFT JOIN deals d ON d.id=r.deal_id ORDER BY h.id DESC LIMIT 300")
+    rows = [dict(r) for r in await cur.fetchall()]
+    return TEMPLATES.TemplateResponse("admin_report_history.html", {"request": request, "nav": "admin", "admin_section": "reports", "rows": rows})
+
+
 @app.get("/admin/reports", response_class=HTMLResponse)
 async def admin_reports(request: Request):
     _require_role(request, {"operator", "reviewer", "viewer"})

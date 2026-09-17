@@ -3,7 +3,7 @@
 {% block admin_body %}
 <div class="page-head">
   <h1>신고관리</h1>
-  <div class="page-meta">최근 {{ reports|length }}건</div>
+  <div class="page-meta">최근 {{ reports|length }}건 · <a href="/admin/reports/history">처리 이력</a></div>
 </div>
 {% if reports %}
 <div class="table-card"><div class="table-scroll">
