@@ -1890,11 +1890,14 @@ async def admin_toss_status(request: Request):
 
 
 @app.get("/admin/toss-links", response_class=HTMLResponse)
-async def admin_toss_links(request: Request):
+async def admin_toss_links(request: Request, status: str | None = None):
     _require_role(request, {"operator", "reviewer", "ads", "viewer"})
-    cur = await _db().execute("SELECT id, product_name, seller, mall_url, deal_url, toss_review_status, toss_review_reason, last_seen_at FROM deals WHERE lower(COALESCE(mall_url, '')) LIKE '%toss.im%' ORDER BY last_seen_at DESC LIMIT 300")
+    where = "lower(COALESCE(mall_url, '')) LIKE '%toss.im%'"; params = []
+    if status in ("pending", "approved", "rejected"):
+        where += " AND toss_review_status=?"; params.append(status)
+    cur = await _db().execute("SELECT id, product_name, seller, mall_url, deal_url, toss_review_status, toss_review_reason, last_seen_at FROM deals WHERE " + where + " ORDER BY last_seen_at DESC LIMIT 300", params)
     rows = [dict(r) for r in await cur.fetchall()]
-    return TEMPLATES.TemplateResponse("admin_toss_links.html", {"request": request, "nav": "admin", "admin_section": "toss_links", "rows": rows})
+    return TEMPLATES.TemplateResponse("admin_toss_links.html", {"request": request, "nav": "admin", "admin_section": "toss_links", "rows": rows, "status": status})
 
 
 @app.get("/admin/coupang-links", response_class=HTMLResponse)
