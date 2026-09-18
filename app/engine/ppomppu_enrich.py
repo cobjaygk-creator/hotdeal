@@ -13,6 +13,7 @@ from collections import defaultdict
 
 from app.config import PPOMPPU_ENRICH_BATCH, PPOMPPU_PROXY_URL
 from app.db import set_meta, utcnow_iso
+from app.http_client import soft_block_reason
 from app.engine.category import classify
 from app.parse.links import prefers_mall
 from app.parse.sanitize_html import prefers_body_html
@@ -283,6 +284,13 @@ async def enrich_missing_ppomppu_malls(
 
             mall_url = getattr(detail, "mall_url", None)
             title_txt = (getattr(detail, "title", None) or "").strip()
+            # Never persist partial fields from a refused/security response,
+            # even if a future fetch adapter accidentally supplies them.
+            if getattr(detail, "blocked", False) or (title_txt and soft_block_reason(title_txt)):
+                blocked += 1
+                by_source[source]["blocked"] += 1
+                consec_blocked += 1
+                continue
             body_html = (getattr(detail, "body_html", None) or "").strip() or None
             mall_better = prefers_mall(mall_url, row.get("mall_url"))
             title_update = len(title_txt) >= 4

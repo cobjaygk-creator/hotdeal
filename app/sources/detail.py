@@ -43,6 +43,9 @@ TITLE_SELECTORS = (
 )
 
 BODY_SELECTORS = (
+    # Quasarzone v2: exclude sibling comment editors and banners.
+    ".view-content #new_contents",
+    ".view-content .note-editor",
     # FMKorea (XE): the real post body sits in .rd_body/<article>; the header
     # (.rd_hd) carries the 링크·쇼핑몰·상품명·가격·배송 hotdeal_table, which must
     # never end up in body_html — target the article content first.
@@ -317,13 +320,13 @@ async def resolve_outbound_mall(
 
 def parse_detail(html: str, page_url: str = "") -> DetailEnrichment:
     if _looks_blocked(html):
-        return DetailEnrichment()
+        return DetailEnrichment(blocked=True)
     tree = HTMLParser(html)
     title = _meta_content(tree, "og:title") or _first_text(tree, TITLE_SELECTORS)
     if title:
         title = " ".join(title.split())
-        if _BLOCKED_TITLE.match(title):
-            title = None
+        if _BLOCKED_TITLE.match(title) or soft_block_reason(title):
+            return DetailEnrichment(blocked=True)
         else:
             title = re.sub(
                 r"\s*[-|]\s*(루리웹|뽐뿌|클리앙|퀘이사존|아카라이브|다모앙|쿨엔조이|어미새|딜바다|에펨코리아|펨코).*$",
@@ -632,6 +635,8 @@ def _extract_body_html(tree: HTMLParser, page_url: str = "") -> str | None:
             best_raw = local_raw
         # Strong FMKorea / board roots: stop once we have real prose or images.
         if sel.startswith("#bd_capture") or sel in {
+            ".view-content #new_contents",
+            ".view-content .note-editor",
             "#new_bbs_content",
             ".board-contents",
             ".bbs-contents",

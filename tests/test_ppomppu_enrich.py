@@ -235,3 +235,21 @@ async def test_enrich_ignores_lower_comment_count(monkeypatch):
     out = await enrich_missing_ppomppu_malls(conn, object(), limit=5)
     assert out["count_bumped"] == 0
     assert not any("UPDATE posts SET comments" in sql for sql, _ in conn.updates)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("blocked,title", [(True, "정상처럼 보이는 제목"), (False, "퀘이사존에 접속하려면 보안검사를 완료하세요.")])
+async def test_enrich_never_persists_security_response(monkeypatch, blocked, title):
+    from app.sources.detail import DetailEnrichment
+    conn = _RowsConn(1)
+    conn.rows[0]["source"] = "quasarzone"
+    _patch_common(monkeypatch, conn)
+    async def fake_enrich(*args):
+        return DetailEnrichment(title=title, blocked=blocked,
+            mall_url="https://store.ohou.se/goods/3689762",
+            body_html="<p>보안 안내 내용입니다.</p>")
+    monkeypatch.setattr(_pe, "enrich_post", fake_enrich)
+    out = await enrich_missing_ppomppu_malls(conn, object(), deal_ids=[1])
+    assert out["blocked"] == 1
+    assert out["filled"] == 0
+    assert not conn.updates

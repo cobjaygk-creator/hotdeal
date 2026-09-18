@@ -412,3 +412,42 @@ def test_looks_like_image_magic_numbers():
     assert not _looks_like_image(b"<html>not an image</html>")
     assert not _looks_like_image(b"\xff\xd8\xff")  # too short
     assert not _looks_like_image(None)
+
+
+def test_quasarzone_security_heading_after_large_stylesheet():
+    html = '<html><head><title>퀘이사존 QUASARZONE</title><style>' + ' ' * 27000
+    html += '</style></head><body><h2 class="title">퀘이사존에 접속하려면 보안검사를 완료하세요.</h2></body></html>'
+    detail = parse_detail(html, "https://quasarzone.com/bbs/qb_saleinfo/views/1")
+    assert detail.blocked
+    assert detail.title is None
+    assert detail.body_html is None
+    assert detail.thumbnail_url is None
+
+
+def test_quasarzone_v2_body_excludes_comments_and_banners():
+    html = """<html><head><meta property="og:title" content="테스트 상품 (39,500원)"></head>
+    <body><div class="v2-view-body"><div class="view-content"><div class="note-editor">
+    <div id="new_contents"><p>남녀공용 스트레치 팬츠 상품 설명입니다.</p>
+    <img src="//img2.quasarzone.com/editor/product.webp"><script>alert(1)</script></div>
+    </div></div><div class="note-editor content-view-ok">댓글 내용<img src="/comment.jpg"></div>
+    <div class="board-contents">광고 내용<img src="/ad.jpg"><img src="/ad2.jpg"></div>
+    </div></body></html>"""
+    detail = parse_detail(html, "https://quasarzone.com/bbs/qb_saleinfo/views/1")
+    assert not detail.blocked
+    assert "팬츠 상품 설명" in detail.body_html
+    assert 'https://img2.quasarzone.com/editor/product.webp' in detail.body_html
+    assert "댓글" not in detail.body_html
+    assert "광고" not in detail.body_html
+    assert "script" not in detail.body_html
+    assert detail.thumbnail_url == 'https://img2.quasarzone.com/editor/product.webp'
+
+
+def test_quasarzone_v2_editor_fallback_text_only():
+    detail = parse_detail('<div class="view-content"><div class="note-editor"><p>이미지 없이 작성된 상품 설명도 수집합니다.</p></div></div>')
+    assert "상품 설명" in detail.body_html
+
+
+def test_security_notice_quoted_in_body_is_not_a_gate():
+    html = '<html><head><style>' + ' ' * 5000 + '</style></head><body>'
+    html += '<h1>정상 상품 이름</h1><div class="view-content"><div id="new_contents"><p>퀘이사존에 접속하려면 보안검사를 완료하세요.</p></div></div></body></html>'
+    assert not parse_detail(html).blocked

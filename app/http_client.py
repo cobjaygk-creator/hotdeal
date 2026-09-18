@@ -7,6 +7,7 @@ import sys
 from dataclasses import dataclass
 
 import httpx
+from selectolax.parser import HTMLParser
 
 from app.config import (
     HTTP_TIMEOUT_SEC,
@@ -23,6 +24,16 @@ def soft_block_reason(text: str | None) -> str | None:
     raw = text or ""
     if not raw.strip():
         return "empty body"
+    # Quasarzone's security heading follows ~27 KB of CSS. Inspect headings
+    # across the document, not arbitrary post/comment text, before the fast
+    # generic head checks below.
+    if "보안" in raw:
+        tree = HTMLParser(raw)
+        for node in tree.css("title, h1, h2, meta[property='og:title']"):
+            text = node.attributes.get("content", "") if node.tag == "meta" else node.text()
+            compact = "".join(text.split())
+            if "접속하려면보안검사를완료" in compact:
+                return "quasarzone security check"
     head = raw[:4000]
     head_l = head.lower()
     for marker in (
