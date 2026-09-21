@@ -187,6 +187,9 @@
 
     <div class="app-main">
       <div class="main-inner">
+        {% if request.url.path in ['/', '/ranking', '/search', '/mypage', '/coupang'] or request.url.path.startswith('/deal/') or request.url.path.startswith('/coupang/') %}
+        {% include "_affiliate_notice.html" %}
+        {% endif %}
         {% block body %}{% endblock %}
       </div>
       <footer class="site-footer">

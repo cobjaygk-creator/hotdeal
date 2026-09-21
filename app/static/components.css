@@ -1597,3 +1597,17 @@ body.modal-open { overflow: hidden; }
   font-weight: 800;
 }
 .badge.down { background: var(--watch-bg); color: var(--watch); border-color: var(--watch-line); }
+
+/* Keep the affiliate disclosure visible above product content on every screen. */
+.affiliate-notice {
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--surface-sunken);
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.dd-main-col > .affiliate-notice { margin: 16px 16px 0; }
