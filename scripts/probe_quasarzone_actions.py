@@ -1,5 +1,7 @@
 """Probe Quasarzone from a GitHub runner; never writes production data."""
 from __future__ import annotations
+import argparse
+import asyncio
 import json
 import time
 from datetime import datetime, timezone
@@ -50,5 +52,60 @@ def main():
         raise SystemExit(1)
 
 
+async def browser_probe():
+    from playwright.async_api import async_playwright, TimeoutError as BrowserTimeout
+
+    report = {"checked_at": datetime.now(timezone.utc).isoformat(), "method": "chromium",
+              "list": {}, "details": [], "success": False}
+    async with async_playwright() as pw:
+        browser = await pw.chromium.launch(headless=True)
+        context = await browser.new_context(locale="ko-KR", timezone_id="Asia/Seoul")
+        page = await context.new_page()
+
+        async def read_page(url, selector):
+            response = await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+            try:
+                await page.wait_for_selector(selector, state="attached", timeout=20000)
+            except BrowserTimeout:
+                pass
+            html = await page.content()
+            return html, {"status": response.status if response else None,
+                          "blocked": soft_block_reason(html), "page_title": await page.title()}
+
+        try:
+            html, row = await read_page(LIST_URL, "div.v2-list-row--hotdeal")
+            posts = parse_list(html) if not row["blocked"] else []
+            row["count"] = len(posts)
+            report["list"] = row
+            await page.screenshot(path="quasarzone-browser-list.png", full_page=False)
+            for post in posts[:3]:
+                await asyncio.sleep(2)
+                html, row = await read_page(post.url, ".view-content #new_contents, .view-content .note-editor")
+                detail = parse_detail(html, post.url)
+                row.update(url=post.url, title=detail.title,
+                           body_chars=len(detail.body_html or ""),
+                           image_count=(detail.body_html or "").count("<img "))
+                report["details"].append(row)
+            report["success"] = bool(posts) and any(
+                not r["blocked"] and r.get("title") and r["body_chars"] > 0
+                for r in report["details"]
+            )
+        except Exception as exc:
+            report["error"] = type(exc).__name__
+        finally:
+            await browser.close()
+    Path("quasarzone-browser-probe.json").write_text(
+        json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(json.dumps(report, ensure_ascii=True, indent=2))
+    if not report["success"]:
+        raise SystemExit(1)
+
+
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--browser", action="store_true")
+    args = parser.parse_args()
+    if args.browser:
+        asyncio.run(browser_probe())
+    else:
+        main()
