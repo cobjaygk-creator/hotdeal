@@ -1,0 +1,30 @@
+name: Quasarzone runner probe
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/quasarzone-probe.yml
+      - scripts/probe_quasarzone_actions.py
+permissions:
+  contents: read
+concurrency:
+  group: quasarzone-probe
+  cancel-in-progress: false
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install 'httpx[socks]==0.28.1' 'curl_cffi==0.16.3' 'selectolax==0.3.29'
+      - run: python -m scripts.probe_quasarzone_actions
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: quasarzone-probe
+          path: quasarzone-probe.json
+          retention-days: 7
