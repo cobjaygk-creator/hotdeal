@@ -48,6 +48,8 @@ def main():
     )
     Path("quasarzone-probe.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     print(json.dumps(report, ensure_ascii=True, indent=2))
+    if __import__("os").environ.get("GITHUB_ACTIONS"):
+        print("::notice title=Quasarzone diagnostic::" + json.dumps(report, ensure_ascii=True).replace("%", "%25"))
     if not report["success"]:
         raise SystemExit(1)
 
@@ -97,6 +99,8 @@ async def browser_probe():
     Path("quasarzone-browser-probe.json").write_text(
         json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     print(json.dumps(report, ensure_ascii=True, indent=2))
+    if __import__("os").environ.get("GITHUB_ACTIONS"):
+        print("::notice title=Quasarzone diagnostic::" + json.dumps(report, ensure_ascii=True).replace("%", "%25"))
     if not report["success"]:
         raise SystemExit(1)
 
