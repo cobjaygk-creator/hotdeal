@@ -377,6 +377,18 @@ function guessMallFromHost(host) {
   return { label: display, key: key || "guess" };
 }
 
+function coupangDisclosureHtml(deal) {
+  try {
+    const url = new URL(deal.mall_url);
+    const host = url.hostname.toLowerCase();
+    if (!["http:", "https:"].includes(url.protocol)) return "";
+    if (!["coupang.com", "coupa.ng"].some(domain => host === domain || host.endsWith("." + domain))) return "";
+  } catch (e) {
+    return "";
+  }
+  return '<p class="affiliate-notice">이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.</p>';
+}
+
 function mallFromUrl(url) {
   if (!isPostUrl(url)) return { label: "", key: "" };
   let host = "";
@@ -1123,7 +1135,8 @@ async function openModal(id, opts) {
             : ""
         }</h2><div class="dd-body-html">${deal.body_html}</div>`
       : ""}
-    <h2 class="dd-section">원문 ${posts.length ? `<span class="dd-section-sub">${posts.length}건</span>` : ""}</h2>
+    ${coupangDisclosureHtml(deal)}
+    <h2 class="dd-section" data-original-sources>원문 ${posts.length ? `<span class="dd-section-sub">${posts.length}건</span>` : ""}</h2>
     <ul class="dd-posts">${postHtml}</ul>
     <div class="dd-tags">
       ${deal.seller ? `<span class="dd-tag">#${esc(deal.seller)}</span>` : ""}
@@ -1233,6 +1246,10 @@ async function pollModalMall(id, deal) {
       const fresh = await res.json();
       if (!isPostUrl(fresh.mall_url)) continue;
       patchRowMall(fresh);
+      if (modalBody) {
+        modalBody.querySelector(".affiliate-notice")?.remove();
+        modalBody.querySelector("[data-original-sources]")?.insertAdjacentHTML("beforebegin", coupangDisclosureHtml(fresh));
+      }
       if (!modalCta || modalCta.querySelector(".dd-cta-buy")) return;
       const label = fresh.seller
         ? `${esc(fresh.seller)}에서 ${won(fresh.price)} 구매`

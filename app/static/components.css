@@ -1598,19 +1598,14 @@ body.modal-open { overflow: hidden; }
 }
 .badge.down { background: var(--watch-bg); color: var(--watch); border-color: var(--watch-line); }
 
-/* Keep the affiliate disclosure visible above product content on every screen. */
+/* Disclosure belongs to Coupang product details, above the source links. */
 .affiliate-notice {
-  margin: 0 0 16px;
-  padding: 12px 16px;
-  border: 1px solid var(--border-strong);
-  border-radius: 8px;
-  background: var(--surface-sunken);
-  color: var(--ink);
-  font-size: 14px;
+  margin: 16px 0 8px;
+  color: var(--ink-muted);
+  font-size: 12px;
   line-height: 1.6;
   overflow-wrap: anywhere;
 }
-.dd-main-col > .affiliate-notice { margin: 16px 16px 0; }
 
 /* Optional portrait cards; shared DOM keeps live updates and filters intact. */
 .list-view-toolbar { display: flex; justify-content: flex-end; margin: 0 0 12px; }
