@@ -56,8 +56,15 @@
     <button type="button" class="sort-pill" data-sort="comments" role="tab" aria-selected="false">댓글 많은순</button>
     <button type="button" class="sort-pill" id="hide-soldout" aria-pressed="false">품절 숨기기</button>
   </div>
+
 </div>
 
+<div class="list-view-toolbar">
+  <div class="list-view-switch" role="group" aria-label="목록 보기 방식">
+    <button type="button" class="list-view-btn on" data-list-view="horizontal" aria-pressed="true" aria-controls="deal-body">가로형</button>
+    <button type="button" class="list-view-btn" data-list-view="vertical" aria-pressed="false" aria-controls="deal-body">세로형</button>
+  </div>
+</div>
 <ul class="deal-cards" id="deal-body">
   {% for d in deals %}
   {% include "_deal_card.html" %}

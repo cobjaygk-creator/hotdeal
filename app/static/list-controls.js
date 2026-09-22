@@ -5,6 +5,29 @@
   var hide = document.getElementById("hide-soldout");
   if (!list) return;
 
+  var viewSwitch = document.querySelector(".list-view-switch");
+  var view = "horizontal";
+  try { if (localStorage.getItem("deal-list-view") === "vertical") view = "vertical"; } catch (e) {}
+  function applyView() {
+    list.dataset.view = view;
+    if (!viewSwitch) return;
+    viewSwitch.querySelectorAll("[data-list-view]").forEach(function (button) {
+      var selected = button.dataset.listView === view;
+      button.classList.toggle("on", selected);
+      button.setAttribute("aria-pressed", selected ? "true" : "false");
+    });
+  }
+  if (viewSwitch) {
+    viewSwitch.addEventListener("click", function (event) {
+      var button = event.target.closest("[data-list-view]");
+      if (!button) return;
+      view = button.dataset.listView === "vertical" ? "vertical" : "horizontal";
+      try { localStorage.setItem("deal-list-view", view); } catch (e) {}
+      applyView();
+    });
+  }
+  applyView();
+
   var mode = "recent";
   try { mode = localStorage.getItem("deal-sort") || "recent"; } catch (e) {}
   var hideSoldout = false;
