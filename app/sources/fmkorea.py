@@ -18,6 +18,10 @@ class FmkoreaSource:
     name = "fmkorea"
 
     async def fetch_latest(self, client: PoliteClient) -> list[RawPost]:
+        from app.sources import brightdata
+
+        if brightdata.enabled(self.name):
+            return await brightdata.fetch_posts(LIST_URL, parse_list)
         try:
             return await fetch_parsed(client, LIST_URL, parse_list)
         except RuntimeError as exc:

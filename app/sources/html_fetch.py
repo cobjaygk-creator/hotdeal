@@ -38,6 +38,10 @@ async def fetch_parsed(
     timeout: float | None = None,
 ) -> list[RawPost]:
     host = (urlparse(url).hostname or "").lower()
+    from app.sources import brightdata
+
+    if url in brightdata.URLS and brightdata.enabled(brightdata.URLS[url]):
+        return await brightdata.fetch_posts(url, parse_fn)
     prefer_proxy = bool(PPOMPPU_PROXY_URL) and any(
         host == item or host.endswith("." + item) for item in PROXY_FIRST_HOSTS
     )

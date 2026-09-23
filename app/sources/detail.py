@@ -113,6 +113,11 @@ _BLOCKED_TITLE = re.compile(
 
 
 async def enrich_post(client: PoliteClient, source: str, url: str) -> DetailEnrichment:
+    from app.sources import brightdata
+
+    # List-only mode: do not spend on detail APIs or fall back to old proxies.
+    if brightdata.enabled_host(url):
+        return DetailEnrichment()
     if not url or not url.startswith(("http://", "https://")):
         return DetailEnrichment()
     is_ppomppu = source == "ppomppu" or "ppomppu.co.kr" in url
