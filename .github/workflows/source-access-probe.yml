@@ -1,0 +1,30 @@
+name: Proxy-free source access probe
+on:
+  push:
+    branches: [codex/source-access-probe]
+    paths:
+      - .github/workflows/source-access-probe.yml
+      - scripts/probe_source_access.py
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PPOMPPU_PROXY_URL: ''
+      FMKOREA_PROXY_URL: ''
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install 'httpx[socks]==0.28.1' 'curl_cffi==0.16.3' 'selectolax==0.3.29' 'playwright==1.62.0'
+      - run: python -m playwright install --with-deps chromium
+      - run: python -m scripts.probe_source_access
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: source-access-probe
+          path: source-access-probe.json
+          retention-days: 7
