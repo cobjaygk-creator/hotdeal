@@ -1655,7 +1655,7 @@ body.modal-open { overflow: hidden; }
   aspect-ratio: 2.15 / 1;
   border-radius: 7px;
 }
-.deal-cards[data-view="vertical"] .deal-thumb { object-fit: contain; }
+.deal-cards[data-view="vertical"] .deal-thumb { object-fit: cover; }
 .deal-cards[data-view="vertical"] .deal-row-main { padding: 9px 11px 12px; }
 .deal-cards[data-view="vertical"] .deal-body { justify-content: flex-start; gap: 7px; }
 .deal-cards[data-view="vertical"] .deal-tags { gap: 5px; }
