@@ -19,9 +19,10 @@ the production application. Set credentials through Railway Variables.
 Keep `DATA_DIR` on the existing persistent volume (or use
 `RAILWAY_VOLUME_MOUNT_PATH`). `brightdata-budget.db` stores UTC-calendar-month
 attempt counts and per-source cooldowns. The default is at most one request
-per source per hour, including failed attempts. Existing scheduler ticks may
-make the effective interval longer. Four sources use at most approximately
-2,976 list requests in a 31-day month. Hourly collection can miss posts that
+per source per hour, including failed attempts. FMKorea can retry once only
+when rendering returns an empty page. Existing scheduler ticks may make the
+effective interval longer. Four sources use at most approximately 2,976 list
+requests in a 31-day month before this bounded retry. Hourly collection can miss posts that
 leave the first page between runs.
 
 The cap applies to this deployment and counts outgoing API requests, not the

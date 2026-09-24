@@ -32,7 +32,7 @@ def enabled_host(url: str) -> bool:
     return any(host == urlparse(u).hostname and enabled(s) for u, s in URLS.items())
 
 
-def reserve(source: str) -> bool:
+def reserve(source: str, *, enforce_cadence: bool = True) -> bool:
     """Charge attempts before I/O; never refund failures or retry automatically.
 
     BEGIN IMMEDIATE serializes reservations across workers. The volume keeps
@@ -52,7 +52,7 @@ def reserve(source: str) -> bool:
         if (count[0] if count else 0) >= limit:
             raise RuntimeError('Bright Data monthly request limit reached')
         last = db.execute('SELECT last FROM cadence WHERE source=?', (source,)).fetchone()
-        if last and now - last[0] < interval:
+        if enforce_cadence and last and now - last[0] < interval:
             return False
         db.execute('INSERT INTO usage VALUES (?, 1) ON CONFLICT(month) DO UPDATE SET count=count+1', (month,))
         db.execute('INSERT INTO cadence VALUES (?, ?) ON CONFLICT(source) DO UPDATE SET last=excluded.last', (source, now))
@@ -71,15 +71,23 @@ async def fetch_posts(url, parse_fn):
     if source == 'fmkorea':
         payload.update(country='kr', render='true')
     async with httpx.AsyncClient(timeout=180, trust_env=False) as client:
-        response = await client.post('https://api.brightdata.com/request',
-            headers={'Authorization': f'Bearer {key}'}, json=payload)
-    if response.status_code != 200:
-        # Never include request headers, credentials or provider response body.
-        raise RuntimeError(f'Bright Data HTTP {response.status_code}')
-    reason = soft_block_reason(response.text)
-    if reason:
-        raise RuntimeError(f'Bright Data blocked: {reason}')
-    posts = parse_fn(response.text)
-    if not posts:
-        raise RuntimeError('Bright Data returned no parsed posts')
-    return posts
+        # Rendering FMKorea occasionally produces a successful HTTP response
+        # with no page body. Retry it once only; every attempt is budgeted.
+        attempts = 2 if source == 'fmkorea' else 1
+        last_reason = 'unknown response'
+        for attempt in range(attempts):
+            if attempt and not reserve(source, enforce_cadence=False):
+                break
+            response = await client.post('https://api.brightdata.com/request',
+                headers={'Authorization': f'Bearer {key}'}, json=payload)
+            if response.status_code != 200:
+                # Never include request headers, credentials or provider response body.
+                raise RuntimeError(f'Bright Data HTTP {response.status_code}')
+            reason = soft_block_reason(response.text)
+            if not reason:
+                posts = parse_fn(response.text)
+                if posts:
+                    return posts
+                reason = 'no parsed posts'
+            last_reason = reason
+    raise RuntimeError(f'Bright Data blocked: {last_reason}')

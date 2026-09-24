@@ -38,6 +38,7 @@ def test_concurrent_reservations_do_not_overspend(budget, monkeypatch):
 
 @pytest.mark.asyncio
 async def test_fmkorea_options_and_no_proxy_fallback(budget, monkeypatch):
+    monkeypatch.setenv('BRIGHTDATA_MONTHLY_LIMIT', '3')
     calls = []
     async def post(self, url, **kwargs):
         calls.append(kwargs)
@@ -47,9 +48,11 @@ async def test_fmkorea_options_and_no_proxy_fallback(budget, monkeypatch):
         await FmkoreaSource().fetch_latest(None)
     assert calls[0]['json']['country'] == 'kr'
     assert calls[0]['json']['render'] == 'true'
-    # Failure is still charged and holds the cooldown, preventing retry storms.
+    # FMKorea gets one bounded retry, and the next scheduler tick is held.
     assert await FmkoreaSource().fetch_latest(None) == []
-    assert len(calls) == 1
+    assert len(calls) == 2
+    assert await FmkoreaSource().fetch_latest(None) == []
+    assert len(calls) == 2
 
 
 @pytest.mark.asyncio
