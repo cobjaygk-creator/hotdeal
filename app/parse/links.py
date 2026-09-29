@@ -102,6 +102,8 @@ WRAPPER_HOST_PARTS = (
 )
 
 JUNK_HOST_PARTS = (
+    # Coupang Partners embeds are ad widgets, not purchasable product pages.
+    "ads-partners.coupang.com",
     "youtube.com",
     "youtu.be",
     "facebook.com",

@@ -167,6 +167,7 @@ async def enrich_missing_ppomppu_malls(
                 )
                 OR lower(d.mall_url) LIKE '%link.coupang.com/%'
                 OR lower(d.mall_url) LIKE '%coupa.ng/%'
+                OR lower(d.mall_url) LIKE '%ads-partners.coupang.com/widgets%'
                 OR lower(d.mall_url) LIKE '%saedu.naver.com%'
                 OR lower(d.mall_url) LIKE '%searchad.naver.com%'
                 OR lower(d.mall_url) LIKE '%nid.naver.com%'

@@ -16,6 +16,15 @@ def test_coupang_ok():
     assert extract_mall_url("링크 https://link.coupang.com/a/AbC") == "https://link.coupang.com/a/AbC"
 
 
+def test_reject_coupang_partner_widget():
+    widget = (
+        "https://ads-partners.coupang.com/widgets.html?id=886498"
+        "&template=carousel&trackingCode=AF7095438"
+    )
+    assert not is_mall_url(widget)
+    assert extract_mall_url(widget) is None
+
+
 def test_prefer_coupang_pdp_over_partner_gate():
     html = """
     <a href="https://unsafelink.com/https://www.coupang.com/vp/products/8174473713?itemId=19977722612&amp;vendorItemId=88377301608">링크</a>

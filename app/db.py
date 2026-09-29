@@ -466,6 +466,18 @@ async def _ensure_columns(conn: aiosqlite.Connection) -> None:
         )
         await set_meta(conn, "cleaned_junk_mall_urls_v3", "1")
 
+    # Coupang Partners widget embeds were previously mistaken for product links.
+    coupang_partner_widgets = await get_meta(conn, "cleaned_coupang_partner_widgets_v1")
+    if coupang_partner_widgets != "1":
+        await conn.execute(
+            """
+            UPDATE deals
+            SET mall_url=NULL
+            WHERE lower(mall_url) LIKE '%ads-partners.coupang.com/widgets%'
+            """
+        )
+        await set_meta(conn, "cleaned_coupang_partner_widgets_v1", "1")
+
     weak_malls = await get_meta(conn, "cleaned_weak_mall_urls_v1")
     if weak_malls != "1":
         await conn.execute(
