@@ -397,23 +397,23 @@ async def _scheduled_watchdog() -> None:
 
 
 async def _scheduled_collect() -> None:
-    await _run_collect(["ppomppu"])
+    await _run_collect_serialized(["ppomppu"])
 
 
 async def _scheduled_collect_fast() -> None:
-    await _run_collect(COLLECT_FAST_SOURCES)
+    await _run_collect_serialized(COLLECT_FAST_SOURCES)
 
 
 async def _scheduled_collect_proxy() -> None:
-    await _run_collect(COLLECT_PROXY_SOURCES)
+    await _run_collect_serialized(COLLECT_PROXY_SOURCES)
 
 
 async def _scheduled_collect_quasarzone() -> None:
-    await _run_collect(COLLECT_QUASARZONE_SOURCES)
+    await _run_collect_serialized(COLLECT_QUASARZONE_SOURCES)
 
 
 async def _scheduled_collect_slow() -> None:
-    await _run_collect(COLLECT_SLOW_SOURCES)
+    await _run_collect_serialized(COLLECT_SLOW_SOURCES)
 
 
 async def _scheduled_family() -> None:
@@ -446,7 +446,11 @@ async def _scheduled_mvno() -> None:
 
 
 async def _scheduled_ppomppu_mall_enrich() -> None:
-    await _run_mall_enrich()
+    # Detail-link writes share SQLite with every collection tier.  WAL still
+    # permits only one writer; serialise this sweep with collectors so a link
+    # fill cannot abort either transaction with "database is locked".
+    async with state["collect_lock"]:
+        await _run_mall_enrich()
 
 
 async def _scheduled_llm_classify() -> None:
@@ -578,6 +582,12 @@ async def _run_collect(names: list[str] | None) -> dict:
         return summary
     finally:
         await conn.close()
+
+
+async def _run_collect_serialized(names: list[str] | None) -> dict:
+    """Run a collection transaction while excluding every other DB writer."""
+    async with state["collect_lock"]:
+        return await _run_collect(names)
 
 
 def _db():
@@ -2107,7 +2117,7 @@ async def api_collect(request: Request, source: str | None = None):
     _require_collect()
     _require_admin(request)
     names = [source] if source else None
-    summary = await _run_collect(names)
+    summary = await _run_collect_serialized(names)
     return JSONResponse(summary)
 
 
