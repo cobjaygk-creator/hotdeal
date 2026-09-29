@@ -8,7 +8,7 @@
   padding: 0;
   margin: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(max(180px, calc((100% - 56px) / 5)), 1fr));
   gap: 14px;
 }
 .fam-card {
@@ -36,7 +36,7 @@
 }
 .fam-cover.has-img {
   padding: 0;
-  aspect-ratio: 16 / 10;
+  aspect-ratio: 2.15 / 1;
   min-height: 0;
   background: var(--surface-sunken);
 }
@@ -80,7 +80,7 @@
 .fam-badge.status { background: var(--surface); color: var(--ink-muted); border: 1px solid var(--border); }
 .fam-badge.status.live { color: var(--success); border-color: color-mix(in srgb, var(--success) 40%, var(--border)); }
 .fam-badge.code { background: var(--accent); color: var(--accent-ink); }
-.fam-body { display: flex; flex-direction: column; gap: 6px; padding: 14px 16px 16px; flex: 1; }
+.fam-body { display: flex; flex-direction: column; gap: 6px; padding: 9px 11px 12px; flex: 1; }
 .fam-title {
   font-size: var(--text-card-title);
   font-weight: 700;
@@ -424,3 +424,11 @@
 .mp-comments a { color: var(--ink); font-weight: 600; text-decoration: none; }
 .mp-comments a:hover { color: var(--accent); }
 .mp-comments .mp-comment-meta { margin-top: 4px; font-size: var(--text-label); color: var(--ink-faint); }
+
+@media (max-width: 639px) {
+  .fam-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+}
+@media (max-width: 359px) {
+  .fam-grid { grid-template-columns: 1fr; }
+}
+
