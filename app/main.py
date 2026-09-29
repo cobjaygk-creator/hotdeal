@@ -2194,7 +2194,7 @@ async def api_debug_probe(source: str):
 
 
 @app.get("/api/debug/enrich/{deal_id}")
-async def api_debug_enrich(deal_id: int, apply: int = 0):
+async def api_debug_enrich(deal_id: int, apply: int = 0, source: str | None = None):
     """Fetch community detail for a deal on the server and show parse result.
 
     Pass apply=1 to persist mall_url/thumbnail_url onto the deal/post.
@@ -2208,7 +2208,16 @@ async def api_debug_enrich(deal_id: int, apply: int = 0):
     posts = await _deal_posts(deal_id)
     if not posts:
         raise HTTPException(404, "deal posts not found")
-    post = posts[0]
+    if source:
+        requested_source = source.strip().lower()
+        post = next(
+            (row for row in posts if (row.get("source") or "").strip().lower() == requested_source),
+            None,
+        )
+        if post is None:
+            raise HTTPException(404, f"post for source not found: {requested_source}")
+    else:
+        post = posts[0]
     source = post.get("source") or ""
     url = post.get("url") or ""
     detail = await enrich_post(state["http"], source, url)
