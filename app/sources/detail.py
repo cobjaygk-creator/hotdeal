@@ -146,6 +146,7 @@ async def enrich_post(client: PoliteClient, source: str, url: str) -> DetailEnri
     encoding = "euc-kr" if is_ppomppu else None
     last_err: Exception | None = None
     blocked = False
+    fmkorea_partial: DetailEnrichment | None = None
     for proxy in proxy_tries:
         timeout = 20.0 if proxy else (5.0 if is_ppomppu else None)
         for candidate in urls:
@@ -180,6 +181,13 @@ async def enrich_post(client: PoliteClient, source: str, url: str) -> DetailEnri
                 if parsed.mall_url:
                     parsed.blocked = False
                     return parsed
+                # A plain/proxied FMKorea response can carry the article shell
+                # but omit the hotdeal-table link until its WASM gate has run.
+                # Preserve it as a fallback, then let the configured proxy
+                # browser finish the page before accepting the partial result.
+                if source == "fmkorea" and FMKOREA_BROWSER_DETAIL:
+                    fmkorea_partial = parsed
+                    continue
                 # Slim/login shells often have og:title but no buy link. Keep trying.
                 if _is_detail_stub(source, result.text):
                     continue
@@ -193,10 +201,12 @@ async def enrich_post(client: PoliteClient, source: str, url: str) -> DetailEnri
             break
     if last_err:
         log.warning("detail enrich exhausted source=%s url=%s", source, url)
-    if blocked and source == "fmkorea" and FMKOREA_BROWSER_DETAIL:
+    if source == "fmkorea" and FMKOREA_BROWSER_DETAIL:
         enriched = await _enrich_fmkorea_via_browser(client, url)
         if enriched is not None:
             return enriched
+        if fmkorea_partial is not None:
+            return fmkorea_partial
     return DetailEnrichment(blocked=blocked)
 
 
