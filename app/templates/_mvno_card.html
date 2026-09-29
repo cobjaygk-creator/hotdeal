@@ -1,7 +1,7 @@
 <li class="deal-card" data-plan-id="{{ p.plan_id }}">
   <div class="deal-thumb-wrap">
     {% if p.brand_image %}
-    <img class="deal-thumb" src="{{ p.brand_image }}" alt="" loading="lazy" referrerpolicy="no-referrer" style="object-fit:contain;background:#fff">
+    <img class="deal-thumb" src="{{ p.brand_image }}" alt="" loading="lazy" referrerpolicy="no-referrer">
     {% else %}
     <div class="deal-thumb placeholder" aria-hidden="true"></div>
     {% endif %}
@@ -35,3 +35,4 @@
     </div>
   </div>
 </li>
+

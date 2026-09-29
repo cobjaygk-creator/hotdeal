@@ -34,7 +34,7 @@
   <span class="summary-chip">이벤트 요금제 <strong>{{ plans|length }}</strong></span>
 </div>
 
-<ul class="deal-cards" id="mvno-body">
+<ul class="deal-cards" id="mvno-body" data-view="vertical" aria-label="알뜰요금제 목록">
   {% for p in plans %}
   {% include "_mvno_card.html" %}
   {% else %}
@@ -62,3 +62,4 @@ document.getElementById("mvno-collect")?.addEventListener("click", async () => {
 });
 </script>
 {% endblock %}
+
