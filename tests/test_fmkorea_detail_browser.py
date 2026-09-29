@@ -22,7 +22,6 @@ async def test_fmkorea_partial_proxy_html_continues_to_browser(monkeypatch):
     async def canonicalize(client, url):
         return url
 
-    monkeypatch.setattr("app.sources.brightdata.enabled_host", lambda url: False)
     monkeypatch.setattr(detail, "FMKOREA_BROWSER_DETAIL", True)
     monkeypatch.setattr("app.sources.fm_browser.fetch_html", browser_html)
     monkeypatch.setattr(detail, "canonicalize_mall_url", canonicalize)
