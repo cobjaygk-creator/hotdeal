@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import re
+import logging
 from urllib.parse import parse_qs, urlparse
 
 from selectolax.parser import HTMLParser
 
 from app.http_client import PoliteClient
+from app.config import PPOMPPU_PROXY_URL
 from app.sources import RawPost
 from app.util.timeparse import parse_int, parse_kr_datetime
 
@@ -13,6 +15,7 @@ BOARDS = (
     "deal_domestic",
     "deal_oversea",
 )
+log = logging.getLogger(__name__)
 
 
 class DealbadaSource:
@@ -23,7 +26,28 @@ class DealbadaSource:
         seen: set[str] = set()
         for board in BOARDS:
             url = f"https://www.dealbada.com/bbs/board.php?bo_table={board}"
-            result = await client.get(url)
+            try:
+                result = await client.get(url)
+            except Exception as direct_error:  # noqa: BLE001 - try the configured KR exit
+                if not PPOMPPU_PROXY_URL:
+                    log.warning("dealbada %s fetch failed: %s", board, direct_error)
+                    continue
+                try:
+                    result = await client.get(
+                        url,
+                        proxy=PPOMPPU_PROXY_URL,
+                        timeout=20.0,
+                        max_retries=2,
+                    )
+                    log.info("dealbada %s recovered through configured proxy", board)
+                except Exception as proxy_error:  # noqa: BLE001 - preserve other board
+                    log.warning(
+                        "dealbada %s direct=%s proxy=%s",
+                        board,
+                        type(direct_error).__name__,
+                        type(proxy_error).__name__,
+                    )
+                    continue
             if result.not_modified:
                 continue
             for post in parse_list(result.text, board):
