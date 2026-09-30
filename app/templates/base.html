@@ -63,7 +63,7 @@
       <nav class="topbar-nav" aria-label="주요 메뉴">
         <a href="/" class="{% if current_nav == 'hotdeal' %}on{% endif %}">핫딜</a>
         <a href="/ranking" class="{% if current_nav == 'ranking' %}on{% endif %}">랭킹</a>
-        <a href="/family" class="{% if current_nav == 'family' %}on{% endif %}">패밀리세일</a>
+        <a href="/family" class="{% if current_nav == 'family' %}on{% endif %}">패밀리세일</a>`r`n        <a href="/flights" class="{% if current_nav == 'flights' %}on{% endif %}">항공권특가</a>
         {% if coupang_enabled %}
         <a href="/coupang" class="{% if current_nav == 'coupang' %}on{% endif %}">쿠팡특가</a>
         {% endif %}
@@ -250,6 +250,7 @@
   {% endif %}
 <script src="/static/ad-track.js?v={{ asset_v }}" defer></script></body>
 </html>
+
 
 
 

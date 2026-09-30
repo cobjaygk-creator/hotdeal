@@ -101,6 +101,26 @@ CREATE TABLE IF NOT EXISTS family_sales (
     UNIQUE(source_name, source_post_id)
 );
 
+CREATE TABLE IF NOT EXISTS flight_offers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    provider TEXT NOT NULL,
+    airline TEXT,
+    origin TEXT NOT NULL,
+    destination TEXT NOT NULL,
+    depart_at TEXT,
+    return_at TEXT,
+    duration_days INTEGER,
+    seats INTEGER,
+    price INTEGER NOT NULL,
+    baggage TEXT,
+    booking_url TEXT NOT NULL,
+    thumbnail_url TEXT,
+    collected_at TEXT NOT NULL,
+    expires_at TEXT,
+    active INTEGER NOT NULL DEFAULT 1,
+    UNIQUE(provider, booking_url)
+);
+CREATE INDEX IF NOT EXISTS idx_flight_offers_active ON flight_offers(active, price, depart_at);
 CREATE TABLE IF NOT EXISTS meta (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
@@ -1163,6 +1183,7 @@ async def upsert_coupang_deal(conn: aiosqlite.Connection, deal: dict) -> tuple[i
     cur = await conn.execute("SELECT id FROM coupang_deals WHERE product_id=?", (deal["product_id"],))
     row = await cur.fetchone()
     return int(row["id"]), inserted
+
 
 
 

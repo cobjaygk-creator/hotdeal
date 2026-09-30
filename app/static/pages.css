@@ -432,3 +432,7 @@
   .fam-grid { grid-template-columns: 1fr; }
 }
 
+
+.flight-card .deal-thumb-wrap { display:block; text-decoration:none; }
+.flight-card .flight-date { font-size:12px; margin-top:2px; }
+.flight-disclaimer { margin-top:16px; font-size:12px; }

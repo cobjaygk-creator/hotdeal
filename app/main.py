@@ -1061,6 +1061,26 @@ async def api_admin_digest_send(request: Request):
         return JSONResponse(result)
 
 
+@app.get("/flights", response_class=HTMLResponse)
+async def flights_index(request: Request, origin: str = "", destination: str = "", max_price: str = ""):
+    db = _db()
+    where = ["active=1"]
+    params: list = []
+    if origin.strip():
+        where.append("origin LIKE ?"); params.append(f"%{origin.strip()}%")
+    if destination.strip():
+        where.append("destination LIKE ?"); params.append(f"%{destination.strip()}%")
+    try:
+        if max_price.strip():
+            where.append("price <= ?"); params.append(int(max_price.replace(",", "")))
+    except ValueError:
+        max_price = ""
+    cur = await db.execute(
+        "SELECT * FROM flight_offers WHERE " + " AND ".join(where) + " ORDER BY price ASC, depart_at ASC LIMIT 200", params
+    )
+    offers = [dict(row) for row in await cur.fetchall()]
+    return TEMPLATES.TemplateResponse("flights.html", {"request": request, "nav": "flights", "offers": offers, "origin": origin, "destination": destination, "max_price": max_price})
+
 @app.get("/mvno", response_class=HTMLResponse)
 async def mvno_index(request: Request, sort: str = "fee", mno: str | None = None):
     if not MVNO_ENABLED:
@@ -2910,6 +2930,7 @@ async def _category_counts() -> tuple[dict[str, int], int]:
 async def _distinct_sources() -> list[str]:
     cur = await _db().execute("SELECT DISTINCT source AS v FROM posts ORDER BY v")
     return [r["v"] for r in await cur.fetchall()]
+
 
 
 

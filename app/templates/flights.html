@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}항공권 특가 · 핫딜모음{% endblock %}
+{% block body %}
+<div class="page-head"><h1>항공권 특가</h1><div class="page-meta">땡처리·특가 항공권 모음</div></div>
+<p class="muted" style="margin:-6px 0 14px;font-size:13px">여행사와 항공사의 특가 항공권을 한곳에서 비교합니다. 가격과 좌석은 예약 시점에 달라질 수 있습니다.</p>
+<form class="toolbar" method="get" action="/flights" style="margin-bottom:14px">
+  <input name="origin" value="{{ origin }}" placeholder="출발지" aria-label="출발지">
+  <input name="destination" value="{{ destination }}" placeholder="도착지" aria-label="도착지">
+  <input name="max_price" value="{{ max_price }}" inputmode="numeric" placeholder="최대 가격" aria-label="최대 가격">
+  <button type="submit">검색</button>
+</form>
+<ul class="deal-cards" data-view="vertical" aria-label="항공권 특가 목록">
+{% for f in offers %}
+<li class="deal-card flight-card">
+  <a class="deal-thumb-wrap" href="{{ f.booking_url }}" target="_blank" rel="noopener sponsored">
+    {% if f.thumbnail_url %}<img class="deal-thumb" src="{{ f.thumbnail_url }}" alt="" loading="lazy">{% else %}<div class="deal-thumb placeholder" aria-hidden="true">✈</div>{% endif %}
+  </a>
+  <div class="deal-body"><div class="deal-tags"><span class="deal-tag">{{ f.origin }} → {{ f.destination }}</span>{% if f.airline %}<span class="deal-tag deal-tag-source">{{ f.airline }}</span>{% endif %}</div>
+    <a class="deal-title" href="{{ f.booking_url }}" target="_blank" rel="noopener sponsored">{{ f.provider }}{% if f.airline %} {{ f.airline }}{% endif %}</a>
+    <div class="muted flight-date">{{ f.depart_at or '일정 확인' }}{% if f.duration_days %} · {{ f.duration_days }}일{% endif %}{% if f.seats %} · {{ f.seats }}석 남음{% endif %}</div>
+    <div class="deal-price-row"><div class="deal-price">{{ "{:,}".format(f.price) }}<span class="won">원</span></div></div>
+    <div class="deal-foot"><a class="deal-cta-btn" href="{{ f.booking_url }}" target="_blank" rel="noopener sponsored">예약하기</a></div>
+  </div>
+</li>
+{% else %}<li class="empty-row empty">현재 등록된 항공권 특가가 없습니다. 제휴 피드가 연결되면 이곳에 표시됩니다.</li>{% endfor %}
+</ul>
+<p class="muted flight-disclaimer">항공권 가격·좌석·운항 일정은 예약 시점에 변동될 수 있으며 예약·결제·취소는 각 판매처에서 진행됩니다.</p>
+{% endblock %}
