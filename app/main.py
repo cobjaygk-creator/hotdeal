@@ -51,6 +51,8 @@ from app.config import (
     EMAIL_DIGEST_ENABLED,
     EMAIL_DIGEST_HOUR,
     FAMILY_SALE_INTERVAL_MINUTES,
+    FLIGHT_FEED_URL,
+    FLIGHT_INTERVAL_MINUTES,
     GA_MEASUREMENT_ID,
     LLM_CLASSIFY_ENABLED,
     LLM_CLASSIFY_INTERVAL_SECONDS,
@@ -257,6 +259,15 @@ async def lifespan(app: FastAPI):
             next_run_time=datetime.now() + timedelta(seconds=55),
         )
         scheduler.add_job(
+            _scheduled_flights,
+            "interval",
+            minutes=FLIGHT_INTERVAL_MINUTES,
+            id="collect_flights",
+            max_instances=1,
+            coalesce=True,
+            next_run_time=datetime.now() + timedelta(seconds=70),
+        )
+        scheduler.add_job(
             _scheduled_family,
             "interval",
             minutes=FAMILY_SALE_INTERVAL_MINUTES,
@@ -414,6 +425,18 @@ async def _scheduled_collect_quasarzone() -> None:
 
 async def _scheduled_collect_slow() -> None:
     await _run_collect_serialized(COLLECT_SLOW_SOURCES)
+
+
+async def _scheduled_flights() -> None:
+    if not FLIGHT_FEED_URL:
+        return
+    from app.flights.pipeline import collect_flight_offers
+    try:
+        async with _own_db() as conn:
+            result = await collect_flight_offers(conn, state["http"])
+            log.info("flight feed collect: %s", result)
+    except Exception:
+        log.exception("flight feed collect failed")
 
 
 async def _scheduled_family() -> None:

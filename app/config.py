@@ -39,6 +39,8 @@ WATCHDOG_CHECK_SECONDS = int(
 )
 # Legacy name: unused by the scheduler after source-tier jobs landed.
 COLLECT_INTERVAL_MINUTES = 3
+FLIGHT_FEED_URL = (os.environ.get("FLIGHT_FEED_URL") or "").strip()
+FLIGHT_INTERVAL_MINUTES = max(5, int((os.environ.get("FLIGHT_INTERVAL_MINUTES") or "15").strip() or "15"))
 PPOMPPU_INTERVAL_SECONDS = int((os.environ.get("PPOMPPU_INTERVAL_SECONDS") or "30").strip() or "30")
 COLLECT_FAST_SECONDS = int((os.environ.get("COLLECT_FAST_SECONDS") or "30").strip() or "30")
 COLLECT_PROXY_SECONDS = int((os.environ.get("COLLECT_PROXY_SECONDS") or "480").strip() or "240")
