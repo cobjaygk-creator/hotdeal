@@ -21,7 +21,10 @@ class QuasarzoneSource:
     name = "quasarzone"
 
     async def fetch_latest(self, client: PoliteClient) -> list[RawPost]:
-        return await fetch_parsed(client, LIST_URL, parse_list)
+        # Quasarzone is the most expensive source: one list request is enough
+        # per cadence, and repeated challenge retries only add traffic without
+        # improving the result. Operators can override the cadence via env.
+        return await fetch_parsed(client, LIST_URL, parse_list, max_retries=1)
 
 
 def parse_list(html: str) -> list[RawPost]:

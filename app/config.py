@@ -48,7 +48,7 @@ COLLECT_SLOW_MINUTES = int((os.environ.get("COLLECT_SLOW_MINUTES") or "30").stri
 # Quasarzone has no RSS, so its list page is the heaviest proxy fetch left.
 # Give it its own (slower) cadence instead of dragging arca down with it.
 QUASARZONE_INTERVAL_MINUTES = int(
-    (os.environ.get("QUASARZONE_INTERVAL_MINUTES") or "10").strip() or "10"
+    (os.environ.get("QUASARZONE_INTERVAL_MINUTES") or "30").strip() or "30"
 )
 FAMILY_SALE_INTERVAL_MINUTES = 30
 AMAZON_JP_INTERVAL_MINUTES = 30

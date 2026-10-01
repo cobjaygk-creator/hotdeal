@@ -36,6 +36,7 @@ async def fetch_parsed(
     *,
     encoding: str | None = None,
     timeout: float | None = None,
+    max_retries: int | None = None,
 ) -> list[RawPost]:
     host = (urlparse(url).hostname or "").lower()
     prefer_proxy = bool(PPOMPPU_PROXY_URL) and any(
@@ -59,6 +60,7 @@ async def fetch_parsed(
                 url,
                 encoding=encoding,
                 timeout=timeout or (20.0 if proxy else None),
+                max_retries=max_retries,
                 proxy=proxy,
             )
         except Exception as exc:  # noqa: BLE001 — timeout/conn error: try next exit
