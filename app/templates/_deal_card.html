@@ -40,6 +40,7 @@
   </a>
   <div class="deal-row-side">
     {% if is_lowest %}<span class="deal-tag deal-tag-lowest">역대 최저가</span>{% endif %}
+    {% if d.mall_url %}<a class="deal-buy-btn" href="{{ d.mall_url }}" target="_blank" rel="noopener" onclick="event.stopPropagation()">구매하기</a>{% endif %}
     <span class="deal-comments">댓글 {{ (d.user_comments or 0) + (d.comments or 0) }}</span>
     <time class="time-abs" datetime="{{ d.last_seen_at or '' }}" data-ts="{{ d.last_seen_at or '' }}">{{ d.last_seen_at | reltime }}</time>
   </div>
