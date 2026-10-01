@@ -1722,6 +1722,15 @@ body.modal-open { overflow: hidden; }
 .deal-layout .deal-comments, .deal-layout .time-abs { color:var(--grey-500); font-size:var(--text-body-sm); white-space:nowrap; }
 .deal-layout .deal-tag-lowest { color:var(--accent); font-size:var(--text-label); font-weight:700; white-space:nowrap; }
 .deal-layout .deal-price-row { gap:var(--space-2); }
+.dd-modal-head { display:flex; align-items:center; justify-content:space-between; min-height:64px; padding:0 var(--space-6); border-bottom:1px solid var(--border); background:var(--surface); }
+.dd-breadcrumb { color:var(--grey-600); font-size:var(--text-body-sm); }
+.dd-breadcrumb span { padding:0 var(--space-2); color:var(--grey-400); }
+.dd-modal-actions { display:flex; align-items:center; gap:var(--space-2); }
+.dd-modal-nav, .dd-modal-link { width:36px; height:36px; border:0; border-radius:var(--radius); background:transparent; color:var(--grey-700); font-size:24px; cursor:pointer; }
+.dd-modal-nav:hover, .dd-modal-link:hover { background:var(--grey-100); }
+.dd-modal-divider { width:1px; height:24px; margin:0 var(--space-2); background:var(--border); }
+.dd-modal-head .modal-close { position:static; width:36px; height:36px; border:0; box-shadow:none; background:transparent; font-size:24px; }
+@media (min-width:960px) { #deal-modal .dd-hero { min-height:360px; padding:var(--space-6); margin:0 calc(var(--space-6) * -1) var(--space-6); background:var(--grey-50); } #deal-modal .dd-hero .modal-thumb-wrap { flex-basis:400px; width:400px; height:400px; } #deal-modal .dd-hero .modal-thumb { width:400px; max-width:100%; height:400px; max-height:400px; object-fit:contain; border-radius:var(--radius-lg); background:var(--grey-100); } #deal-modal .dd-hero-body { flex:1; padding:var(--space-2) 0; } }
 .rail-ad { min-height: 600px; padding: var(--space-2); border: 1px dashed var(--grey-300); border-radius: var(--radius-md); background: var(--grey-50); color: var(--grey-500); font-size: var(--text-caption); }
 .deal-expired-overlay { position: absolute; inset: 0; display: grid; place-items: center; border-radius: var(--radius-md); background: color-mix(in srgb, var(--surface) 72%, transparent); color: var(--grey-700); font-size: var(--text-label); font-weight: 700; z-index: 2; }
 .deal-card.is-expired .deal-title, .deal-card.is-expired .deal-price { color: var(--grey-500); }

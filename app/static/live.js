@@ -1333,6 +1333,19 @@ if (window.__initialDealId) {
 }
 
 document.addEventListener("click", (e) => {
+  if (e.target.closest("[data-copy-modal-link]")) {
+    e.preventDefault();
+    navigator.clipboard?.writeText(location.href).catch(() => {});
+    return;
+  }
+  const modalNav = e.target.closest("[data-modal-prev], [data-modal-next]");
+  if (modalNav && modalOpenId) {
+    const cards = [...document.querySelectorAll("#deal-body > .deal-card:not([hidden])")];
+    const index = cards.findIndex((card) => Number(card.dataset.id) === Number(modalOpenId));
+    const nextIndex = modalNav.hasAttribute("data-modal-next") ? index + 1 : index - 1;
+    if (cards[nextIndex]) openModal(cards[nextIndex].dataset.id);
+    return;
+  }
   const mark = e.target.closest(".bookmark-btn");
   if (mark) {
     e.preventDefault();
