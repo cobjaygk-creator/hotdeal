@@ -59,11 +59,11 @@
       <button type="button" class="menu-btn" id="menu-btn" aria-label="메뉴 열기">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M2.5 4h11M2.5 8h11M2.5 12h11"></path></svg>
       </button>
-      <a class="topbar-brand" href="/">HOTDEAL</a>
+      <a class="topbar-brand" href="/"><span class="brand-mark">쥬</span><span>핫딜이쥬</span></a>
       <nav class="topbar-nav" aria-label="주요 메뉴">
         <a href="/" class="{% if current_nav == 'hotdeal' %}on{% endif %}">핫딜</a>
         <a href="/ranking" class="{% if current_nav == 'ranking' %}on{% endif %}">랭킹</a>
-        <a href="/family" class="{% if current_nav == 'family' %}on{% endif %}">패밀리세일</a>`r`n        <a href="/flights" class="{% if current_nav == 'flights' %}on{% endif %}">항공권특가</a>
+        <a href="/family" class="{% if current_nav == 'family' %}on{% endif %}">패밀리세일</a>
         {% if coupang_enabled %}
         <a href="/coupang" class="{% if current_nav == 'coupang' %}on{% endif %}">쿠팡특가</a>
         {% endif %}
