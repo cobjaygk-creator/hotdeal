@@ -954,3 +954,6 @@
 @media (max-width: 959px) {
   .dd-chat .chat-head { padding-right: 16px; }
 }
+
+/* Design §5 modal */
+@media (min-width:960px) { #deal-modal { align-items:center; padding:var(--space-9) var(--space-6); } #deal-modal .modal-panel.is-detail { width:min(var(--modal-w),100%); max-height:min(960px,calc(100vh - var(--space-9) * 2)); min-height:0; border-radius:var(--radius-modal); overflow:hidden; background:var(--surface); box-shadow:var(--shadow-lg); } #deal-modal .modal-panel.is-detail .dd-main-col { overflow:auto; max-height:min(960px,calc(100vh - var(--space-9) * 2)); border:0; border-radius:0; box-shadow:none; } #deal-modal .modal-panel.is-detail .dd-side { height:100%; max-height:none; border:0; border-left:1px solid var(--border); border-radius:0; box-shadow:none; } #deal-modal .modal-panel.is-detail .modal-close { position:absolute; top:var(--space-4); right:var(--space-4); } }

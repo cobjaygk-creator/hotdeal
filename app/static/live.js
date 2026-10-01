@@ -1074,7 +1074,7 @@ async function openModal(id, opts) {
         ? window.demoPricePoints(deal.price, deal.baseline_price)
         : [])
     : priceHistory;
-  const showChart = chartPoints.length >= 2;
+  const showChart = chartPoints.length >= 3;
   const cheaper =
     hasBaseline && deal.price && Number(deal.baseline_price) > Number(deal.price);
   const saveAmt = cheaper ? Number(deal.baseline_price) - Number(deal.price) : 0;

@@ -46,7 +46,7 @@
   {% endfor %}
 </div>
 
-<div class="mobile-ad" style="display:none" aria-label="광고">{% if adsense_active_now() and adsense_enabled and adsense_mobile_enabled and adsense_publisher_id and adsense_mobile_slot_id %}<ins class="adsbygoogle" style="display:block" data-ad-client="{{ adsense_publisher_id }}" data-ad-slot="{{ adsense_mobile_slot_id }}" data-ad-format="auto" data-full-width-responsive="true"></ins><script>(adsbygoogle = window.adsbygoogle || []).push({});</script>{% endif %}</div>
+<div class="mobile-ad" aria-label="광고">{% if adsense_active_now() and adsense_enabled and adsense_mobile_enabled and adsense_publisher_id and adsense_mobile_slot_id %}<ins class="adsbygoogle" style="display:block" data-ad-client="{{ adsense_publisher_id }}" data-ad-slot="{{ adsense_mobile_slot_id }}" data-ad-format="auto" data-full-width-responsive="true"></ins><script>(adsbygoogle = window.adsbygoogle || []).push({});</script>{% endif %}</div>
 <div class="chip-row sort-row">
   <span class="sort-label">정렬</span>
   <div class="sort-pills" id="sort-group" role="tablist" aria-label="정렬">
@@ -61,22 +61,28 @@
 
 <div class="list-view-toolbar">
   <div class="list-view-switch" role="group" aria-label="목록 보기 방식">
-    <button type="button" class="list-view-btn on" data-list-view="horizontal" aria-pressed="true" aria-controls="deal-body">가로형</button>
-    <button type="button" class="list-view-btn" data-list-view="vertical" aria-pressed="false" aria-controls="deal-body">세로형</button>
+    <button type="button" class="list-view-btn on" data-list-view="horizontal" aria-pressed="true" aria-controls="deal-body">목록</button>
+    <button type="button" class="list-view-btn" data-list-view="vertical" aria-pressed="false" aria-controls="deal-body">4열</button>
   </div>
 </div>
+<div class="deal-layout"><main class="deal-list-column">
 <ul class="deal-cards" id="deal-body">
   {% for d in deals %}
   {% include "_deal_card.html" %}
-  {% if loop.index == 10 and adsense_enabled and adsense_publisher_id and adsense_sidebar_slot_id and adsense_max_per_page > 1 %}<li class="inline-ad" aria-label="광고"><span>광고</span><ins class="adsbygoogle" style="display:block" data-ad-client="{{ adsense_publisher_id }}" data-ad-slot="{{ adsense_sidebar_slot_id }}" data-ad-format="auto" data-full-width-responsive="true"></ins><script>(adsbygoogle = window.adsbygoogle || []).push({});</script></li>{% endif %}
+  {% if (loop.index == 5 or (loop.index > 5 and (loop.index - 5) % 8 == 0)) and adsense_active_now() and adsense_enabled and adsense_sidebar_enabled and adsense_publisher_id and adsense_sidebar_slot_id and adsense_max_per_page > 1 %}<li class="inline-ad" aria-label="광고"><span>광고</span><ins class="adsbygoogle" style="display:block" data-ad-client="{{ adsense_publisher_id }}" data-ad-slot="{{ adsense_sidebar_slot_id }}" data-ad-format="auto" data-full-width-responsive="true"></ins><script>(adsbygoogle = window.adsbygoogle || []).push({});</script></li>{% endif %}
   {% else %}
   <li class="empty-row empty">아직 딜이 없습니다. 수집을 실행하세요.</li>
   {% endfor %}
 </ul>
 <p id="filter-empty" class="empty" hidden>선택한 조건의 딜이 이 목록에 없습니다. 아래에서 더 불러보세요.</p>
-<div class="more-wrap">
+{% if adsense_active_now() and adsense_enabled and adsense_sidebar_enabled and adsense_publisher_id and adsense_sidebar_slot_id and adsense_max_per_page > 0 %}<div class="list-bottom-ad" aria-label="광고"><span>광고</span><ins class="adsbygoogle" data-ad-client="{{ adsense_publisher_id }}" data-ad-slot="{{ adsense_sidebar_slot_id }}"></ins></div>{% endif %}<div class="more-wrap">
   <button type="button" id="more-btn" class="btn-secondary" {% if not has_more %}hidden{% endif %}>더보기</button>
 </div>
+</main><aside class="deal-rail" aria-label="핫딜 보조 정보">
+  <section class="rail-panel"><h2>지금 많이 보는 딜</h2>{% for d in deals[:3] %}<a class="rail-deal" href="/deal/{{ d.id }}"><strong>{{ loop.index }}</strong><span>{{ d.product_name | clean_title }}</span></a>{% else %}<p class="muted">아직 인기 딜이 없습니다.</p>{% endfor %}</section>
+  <section class="rail-panel rail-alert"><h2>키워드 알림</h2><p class="muted">관심 키워드 새 딜을 알려드립니다.</p><a class="btn" href="/alerts">알림 설정</a></section>
+  {% if adsense_active_now() and adsense_enabled and adsense_sidebar_enabled and adsense_publisher_id and adsense_sidebar_slot_id %}<div class="rail-ad" aria-label="광고"><span>광고</span><ins class="adsbygoogle" data-ad-client="{{ adsense_publisher_id }}" data-ad-slot="{{ adsense_sidebar_slot_id }}"></ins></div>{% endif %}
+</aside></div>
 <script id="live-config" type="application/json">{{ {
   "live": true,
   "grade": "",

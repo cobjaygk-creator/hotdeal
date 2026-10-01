@@ -7,6 +7,7 @@
       <div class="deal-thumb placeholder" aria-hidden="true"></div>
       {% endif %}
     </a>
+    {% if d.status == 'expired' %}<span class="deal-expired-overlay">종료</span>{% endif %}
     {% with deal_id=d.id, starred=false %}
     {% include "_wish_btn.html" %}
     {% endwith %}
@@ -27,12 +28,14 @@
       </div>
       <span class="deal-title">{{ d.product_name | clean_title }}</span>
       <div class="deal-price-row">
+        {% if d.discount_rate is defined and d.discount_rate is not none and d.discount_rate < 0 %}<span class="deal-discount">{{ (-d.discount_rate * 100)|round(0)|int }}%</span>{% endif %}
         <div class="deal-price">{% if d.price %}{{ "{:,}".format(d.price) }}<span class="won">원</span>{% else %}-{% endif %}</div>
         {% set list_source = d.first_source or (d.sources.split(",")[0] if d.sources else '') %}
         {% if list_source %}
         <span class="deal-meta-sep" aria-hidden="true">|</span>
         <span class="deal-source">{{ source_labels.get(list_source, list_source) }}</span>
         {% endif %}
+        {% if d.shipping_fee == 0 %}<span class="deal-shipping">무료배송</span>{% endif %}
         <span class="deal-meta-sep" aria-hidden="true">|</span>
         <time class="time-rel" datetime="{{ d.last_seen_at or '' }}" data-ts="{{ d.last_seen_at or '' }}">{{ d.last_seen_at | reltime }}</time>
         {% if d.status == 'expired' %}

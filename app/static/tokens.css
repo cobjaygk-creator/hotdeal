@@ -1,32 +1,34 @@
 /* ============================================================
-   hotdeal design tokens — v2
-   변경 요지: 타이포 13종 → 7단계 / 브랜드 블루 4종 → 1종
-              라운드 8종 → 3종 / 다크 대응 값 1:1 정의
-   기존 변수명은 전부 유지(별칭으로 매핑)하므로 이 파일만
-   교체해도 나머지 CSS가 깨지지 않습니다.
+   hotdeal design tokens — v3 (2026.10 리뉴얼, 블루 시스템)
+   - 브랜드 오렌지 → 액션 블루(#3182F6) 1색
+   - 가격은 검정, 할인율만 빨강
+   - 기존 변수명은 전부 유지(별칭)하므로 이 파일만 교체해도 기존 CSS가 깨지지 않습니다.
+   기준 디자인: 핫딜이쥬 목록·상세.dc.html / DESIGN.md
    ============================================================ */
 :root {
   color-scheme: light;
 
-  /* ---- 타이포 스케일 (7단계) ---- */
-  --text-caption: 11px;      /* 시각·메타·카운트 */
-  --text-label: 12px;        /* 태그·칩·축 라벨 */
-  --text-body-sm: 13px;      /* 보조 설명·스펙 값 */
-  --text-body: 14px;         /* 기본 본문·버튼 */
-  --text-card-title: 15px;   /* 목록 제목 (유지) */
-  --text-title: 19px;        /* 상세 제목 */
-  --text-display: 26px;      /* 페이지 제목 */
-  --text-price: 17px;        /* 목록 가격 */
+  /* ---- 타이포 ---- */
+  --text-caption: 11px;      /* 광고 라벨 */
+  --text-label: 12px;        /* 배지, 차트 축, 카드 메타(4열) */
+  --text-body-sm: 13px;      /* 메타(몰·출처·시간), 세그먼트, 보조 */
+  --text-body: 14px;         /* 본문, 댓글, 입력, 랭킹 제목, 4열 카드 제목 */
+  --text-card-title: 16px;   /* 목록 행 제목 */
+  --text-section: 20px;      /* 상세 섹션 h2 */
+  --text-title: 26px;        /* 상세 상품명 */
+  --text-display: 26px;      /* 페이지 h1 */
+  --text-price: 18px;        /* 목록 가격·할인율 */
+  --text-price-grid: 16px;   /* 4열 카드 가격 */
   --text-price-lg: 30px;     /* 상세 가격 */
 
   --lh-tight: 1.2;
-  --lh-title: 1.4;
-  --lh-body: 1.6;
-  --ls-display: -0.02em;     /* 한글 제목 자간 상한 */
+  --lh-title: 1.38;
+  --lh-body: 1.55;
+  --ls-display: -0.02em;
   --ls-title: -0.02em;
-  --ls-num: -0.03em;
+  --ls-section: -0.01em;
+  --ls-num: -0.01em;
 
-  /* 구 토큰 별칭 — 기존 선언이 그대로 동작 */
   --text-xs: var(--text-caption);
   --text-sm: var(--text-label);
   --text-md: var(--text-body-sm);
@@ -34,60 +36,84 @@
   --text-xl: var(--text-display);
   --text-2xl: var(--text-display);
 
-  /* ---- 표면 / 잉크 ---- */
-  --bg: #fafafa;
-  --surface: #ffffff;
-  --surface-sunken: #f1f1f2;
-  --surface-hover: #f6f6f7;
-  --ink: #16181d;
-  --ink-muted: #5b6472;
-  --ink-faint: #8b94a3;
-  --border: #e9e3dc;
-  --border-strong: #d3cbc1;
+  /* ---- 그레이 스케일 ---- */
+  --grey-50:  #F9FAFB;   /* 패널 배경, 광고 슬롯, 행 hover */
+  --grey-100: #F2F4F6;   /* 구분선, 입력/세그먼트 배경, 보조 버튼 */
+  --grey-200: #E5E8EB;   /* 보조 버튼 hover, 강한 구분선 */
+  --grey-300: #D1D6DB;   /* 광고 점선, 칩 테두리 */
+  --grey-400: #B0B8C1;   /* placeholder, 정가 취소선, 비활성 아이콘 */
+  --grey-500: #8B95A1;   /* 메타 텍스트, 비활성 탭 */
+  --grey-600: #6B7684;   /* 설명 텍스트 */
+  --grey-700: #4E5968;   /* 몰 이름, 아이콘, 보조 버튼 텍스트 */
+  --grey-800: #333D4B;   /* 본문 */
+  --grey-900: #191F28;   /* 제목, 가격 */
 
-  /* ---- 프라이머리: 브랜드 오렌지 ---- */
-  --accent: #f26522;
-  --accent-hover: #d64f10;
-  --accent-ink: #ffffff;
-  --accent-soft: #fdeee3;
+  /* ---- 표면 / 잉크 ---- */
+  --bg: #FFFFFF;
+  --surface: #FFFFFF;
+  --surface-sunken: var(--grey-100);
+  --surface-hover: var(--grey-50);
+  --surface-selected: #F2F8FF;  /* 현재 열린 딜 행 */
+  --ink: var(--grey-900);
+  --ink-body: var(--grey-800);
+  --ink-muted: var(--grey-600);
+  --ink-faint: var(--grey-500);
+  --border: var(--grey-100);
+  --border-strong: var(--grey-200);
+
+  /* ---- 액션 블루 (버튼·선택·최저가 배지에만) ---- */
+  --accent: #3182F6;
+  --accent-hover: #1B64DA;
+  --accent-ink: #FFFFFF;
+  --accent-soft: #E8F3FF;
+  --accent-soft-ink: #1B64DA;
 
   /* ---- 의미색 ---- */
-  --success: #167c4a;        /* 최저가 갱신·라이브 정상 */
-  --warning: #b7791f;
-  --danger: #c81e1e;         /* 초특가·경고·에러 */
-  --price: #e11d48;          /* 가격 = 붉은색 */
+  --discount: #F04452;       /* 할인율 % 전용 */
+  --price: var(--grey-900);  /* 가격은 검정 */
+  --success: #03B26C;
+  --warning: #FE9800;
+  --danger: #F04452;
 
-  /* 선택 상태는 파랑이 아니라 잉크 */
-  --seg-active: var(--ink);
-  --seg-active-ink: #ffffff;
+  --seg-bg: var(--grey-100);
+  --seg-active: #FFFFFF;
+  --seg-active-ink: var(--grey-900);
+  --seg-ink: var(--grey-500);
+  --seg-shadow: 0 1px 3px rgba(0,0,0,.08);
 
-  /* ---- 등급 ---- */
-  --super: #ffffff;          /* 초특가: 채운 배지 */
-  --super-bg: #c81e1e;
-  --super-line: #c81e1e;
-  --special: #c81e1e;        /* 특가: 테두리 배지 */
-  --special-bg: #fef0f0;
-  --special-line: #f0c4c0;
-  --hot: #c2410c;
-  --hot-bg: #fff3e8;
-  --hot-line: #fbd9be;
-  --fresh: #ff9a3c;          /* 신규 카드 보더 (밝은 주황) */
-  --watch: #96690e;
-  --watch-bg: #fff8e6;
-  --watch-line: #f3e1b4;
-  --quiet: var(--ink-faint);
-  --quiet-bg: #f1f3f6;
+  /* ---- 등급 (기존 클래스 호환. 신규 UI는 "역대 최저가" 배지 1종만 사용) ---- */
+  --super: #FFFFFF;
+  --super-bg: var(--discount);
+  --super-line: var(--discount);
+  --special: var(--discount);
+  --special-bg: #FFEEEE;
+  --special-line: #FFD4D6;
+  --hot: var(--discount);
+  --hot-bg: #FFEEEE;
+  --hot-line: #FFD4D6;
+  --fresh: var(--accent);
+  --watch: var(--grey-700);
+  --watch-bg: var(--grey-100);
+  --watch-line: var(--grey-200);
+  --quiet: var(--grey-500);
+  --quiet-bg: var(--grey-100);
 
-  /* ---- 라운드 3종 ---- */
-  --radius-sm: 8px;          /* 칩·인풋·버튼 */
-  --radius: 8px;
-  --radius-lg: 16px;         /* 카드·패널 (소프트 커머스) */
-  --radius-pill: 999px;      /* 배지·아바타 */
+  /* ---- 라운드 ---- */
+  --radius-xs: 6px;          /* 배지 */
+  --radius-sm: 8px;          /* 세그먼트 버튼 */
+  --radius: 10px;            /* 입력, 아이콘 버튼, 세그먼트 컨테이너 */
+  --radius-md: 12px;         /* 썸네일, 광고 슬롯, 일반 버튼 */
+  --radius-btn-lg: 14px;     /* 56px CTA */
+  --radius-lg: 16px;         /* 패널, 댓글 박스 */
+  --radius-xl: 20px;         /* 상세 대표 이미지 */
+  --radius-modal: 24px;
+  --radius-pill: 999px;
 
-  /* ---- 그림자: 떠 있는 것에만 (따뜻한 틴트) ---- */
+  /* ---- 그림자: 떠 있는 것에만 ---- */
   --shadow-sm: none;
-  --shadow: 0 6px 24px rgba(74,50,30,0.07), 0 1px 3px rgba(74,50,30,0.05);
-  --shadow-lg: 0 12px 32px rgba(74,50,30,0.14);
+  --shadow: 0 1px 3px rgba(0,0,0,.06);
+  --shadow-lg: 0 24px 64px rgba(0,12,30,.24);   /* 모달 */
+  --dim: rgba(0,12,30,.48);                     /* 모달 딤 */
 
   /* ---- 간격 ---- */
   --space-1: 4px;
@@ -96,106 +122,60 @@
   --space-4: 16px;
   --space-5: 20px;
   --space-6: 28px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 48px;
 
   /* ---- 레이아웃 ---- */
-  --header-h: 56px;
-  --sidebar-w: 216px;
+  --header-h: 64px;
+  --sidebar-w: 300px;        /* 우측 레일 */
   --maxw: 1280px;
+  --page-pad-x: 40px;
+  --modal-w: 1040px;
+  --thumb-row: 88px;
 
-  --font: "Pretendard Variable", "Pretendard", "Apple SD Gothic Neo",
+  --font: "Pretendard Variable", "Pretendard", -apple-system, "Apple SD Gothic Neo",
     "Noto Sans KR", sans-serif;
 
-  /* 기존 별칭 유지 */
   --bg-elevated: var(--surface);
   --card: var(--surface);
   --muted: var(--ink-muted);
   --line: var(--border);
   --line-strong: var(--border-strong);
   --chip-ink: var(--ink);
-  --down: var(--price);
+  --down: var(--discount);
   --up: var(--success);
   --ok: var(--success);
 }
 
-/* ==================== DARK (OS 설정 + 수동 토글) ==================== */
+/* ==================== DARK ==================== */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --bg: #16130f;
-    --surface: #1e1a16;
-    --surface-sunken: #241f19;
-    --surface-hover: #282219;
-    --ink: #edeff3;
-    --ink-muted: #97a1b0;
-    --ink-faint: #6b7382;
-    --border: #2f2a24;
-    --border-strong: #403a30;
-    --accent: #ff8a4c;
-    --accent-hover: #ffa570;
-    --accent-ink: #4a1c05;
-    --accent-soft: #3a1e0c;
-    --success: #4caf7d;
-    --warning: #e0a940;
-    --danger: #e0685f;
-    --price: #fb7185;
-    --seg-active: #edeff3;
-    --seg-active-ink: #12151b;
-    --super: #12151b;
-    --super-bg: #f0918b;
-    --super-line: #f0918b;
-    --special: #f0918b;
-    --special-bg: #2a1414;
-    --special-line: #45201d;
-    --hot: #f6a970;
-    --hot-bg: #2a1a10;
-    --hot-line: #45291a;
-    --fresh: #ffb26b;
-    --watch: #e0a940;
-    --watch-bg: #2a2410;
-    --watch-line: #453c1a;
-    --quiet: #6b7382;
-    --quiet-bg: #20242d;
-    --shadow: 0 4px 16px #00000059, 0 1px 3px #0000004d;
-    --shadow-lg: 0 12px 32px #00000073;
+    --grey-50: #1E1E24; --grey-100: #2C2C35; --grey-200: #3C3C47; --grey-300: #4D4D59;
+    --grey-400: #62626D; --grey-500: #7E7E87; --grey-600: #9E9EA4; --grey-700: #C3C3C6;
+    --grey-800: #E4E4E5; --grey-900: #FFFFFF;
+    --bg: #17171C; --surface: #17171C; --surface-selected: #1A2638;
+    --accent: #3182F6; --accent-hover: #4D94F7; --accent-soft: #1A2B45; --accent-soft-ink: #90C2FF;
+    --discount: #FF5F6A; --danger: #FF5F6A;
+    --special-bg: #3A1C20; --special-line: #5A2A30; --hot-bg: #3A1C20; --hot-line: #5A2A30;
+    --seg-active: var(--grey-200);
+    --shadow: 0 1px 3px rgba(0,0,0,.4);
+    --shadow-lg: 0 24px 64px rgba(0,0,0,.6);
+    --dim: rgba(0,0,0,.64);
   }
 }
-
 [data-theme="dark"] {
   color-scheme: dark;
-  --bg: #16130f;
-  --surface: #1e1a16;
-  --surface-sunken: #241f19;
-  --surface-hover: #282219;
-  --ink: #edeff3;
-  --ink-muted: #97a1b0;
-  --ink-faint: #6b7382;
-  --border: #2f2a24;
-  --border-strong: #403a30;
-  --accent: #ff8a4c;
-  --accent-hover: #ffa570;
-  --accent-ink: #4a1c05;
-  --accent-soft: #3a1e0c;
-  --success: #4caf7d;
-  --warning: #e0a940;
-  --danger: #e0685f;
-  --price: #fb7185;
-  --seg-active: #edeff3;
-  --seg-active-ink: #12151b;
-  --super: #12151b;
-  --super-bg: #f0918b;
-  --super-line: #f0918b;
-  --special: #f0918b;
-  --special-bg: #2a1414;
-  --special-line: #45201d;
-  --hot: #f6a970;
-  --hot-bg: #2a1a10;
-  --hot-line: #45291a;
-  --fresh: #ffb26b;
-  --watch: #e0a940;
-  --watch-bg: #2a2410;
-  --watch-line: #453c1a;
-  --quiet: #6b7382;
-  --quiet-bg: #20242d;
-  --shadow: 0 4px 16px #00000059, 0 1px 3px #0000004d;
-  --shadow-lg: 0 12px 32px #00000073;
+  --grey-50: #1E1E24; --grey-100: #2C2C35; --grey-200: #3C3C47; --grey-300: #4D4D59;
+  --grey-400: #62626D; --grey-500: #7E7E87; --grey-600: #9E9EA4; --grey-700: #C3C3C6;
+  --grey-800: #E4E4E5; --grey-900: #FFFFFF;
+  --bg: #17171C; --surface: #17171C; --surface-selected: #1A2638;
+  --accent: #3182F6; --accent-hover: #4D94F7; --accent-soft: #1A2B45; --accent-soft-ink: #90C2FF;
+  --discount: #FF5F6A; --danger: #FF5F6A;
+  --special-bg: #3A1C20; --special-line: #5A2A30; --hot-bg: #3A1C20; --hot-line: #5A2A30;
+  --seg-active: var(--grey-200);
+  --shadow: 0 1px 3px rgba(0,0,0,.4);
+  --shadow-lg: 0 24px 64px rgba(0,0,0,.6);
+  --dim: rgba(0,0,0,.64);
 }
