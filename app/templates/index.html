@@ -18,7 +18,8 @@
 {% block body %}
 <div class="page-head">
   <div>
-    <h1>실시간 핫딜 <span class="title-live-dot dot" id="live-dot" aria-label="실시간 연결 상태"></span></h1>
+    <h1>실시간 핫딜</h1>
+    <p class="page-meta"><span class="title-live-dot dot" id="live-dot" aria-label="실시간 연결 상태"></span> 9개 커뮤니티에서 방금 전 업데이트 · 오늘 <strong>{{ "{:,}".format(deals_total|default(0)) }}</strong>건</p>
   </div>
   <div class="page-head-actions">
     {% if is_admin %}

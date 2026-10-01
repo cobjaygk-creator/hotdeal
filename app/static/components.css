@@ -1718,6 +1718,7 @@ body.modal-open { overflow: hidden; }
 .rail-alert form { display:flex; gap:var(--space-2); margin-top:var(--space-3); }
 .rail-alert input { min-width:0; flex:1; height:var(--space-9); padding:0 var(--space-3); border:0; border-radius:var(--radius); background:var(--grey-100); color:var(--ink); font:inherit; }
 .rail-alert input::placeholder { color:var(--grey-500); }
+.page-head ~ #cat-chips .filter-chip .count { display:none; }
 .deal-layout .deal-row-side { min-width:110px; align-items:flex-end; justify-content:center; gap:var(--space-2); }
 .deal-layout .deal-comments, .deal-layout .time-abs { color:var(--grey-500); font-size:var(--text-body-sm); white-space:nowrap; }
 .deal-layout .deal-tag-lowest { color:var(--accent); font-size:var(--text-label); font-weight:700; white-space:nowrap; }
