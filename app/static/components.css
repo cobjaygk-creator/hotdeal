@@ -1715,6 +1715,13 @@ body.modal-open { overflow: hidden; }
 .rail-deal span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rail-alert { border: 1px solid var(--border-strong); background: var(--surface); }
 .rail-alert .btn { display: inline-flex; align-items: center; justify-content: center; min-height: var(--space-8); padding: 0 var(--space-4); border-radius: var(--radius); background: var(--accent); color: var(--accent-ink); font-size: var(--text-body-sm); font-weight: 600; text-decoration: none; }
+.rail-alert form { display:flex; gap:var(--space-2); margin-top:var(--space-3); }
+.rail-alert input { min-width:0; flex:1; height:var(--space-9); padding:0 var(--space-3); border:0; border-radius:var(--radius); background:var(--grey-100); color:var(--ink); font:inherit; }
+.rail-alert input::placeholder { color:var(--grey-500); }
+.deal-layout .deal-row-side { min-width:110px; align-items:flex-end; justify-content:center; gap:var(--space-2); }
+.deal-layout .deal-comments, .deal-layout .time-abs { color:var(--grey-500); font-size:var(--text-body-sm); white-space:nowrap; }
+.deal-layout .deal-tag-lowest { color:var(--accent); font-size:var(--text-label); font-weight:700; white-space:nowrap; }
+.deal-layout .deal-price-row { gap:var(--space-2); }
 .rail-ad { min-height: 600px; padding: var(--space-2); border: 1px dashed var(--grey-300); border-radius: var(--radius-md); background: var(--grey-50); color: var(--grey-500); font-size: var(--text-caption); }
 .deal-expired-overlay { position: absolute; inset: 0; display: grid; place-items: center; border-radius: var(--radius-md); background: color-mix(in srgb, var(--surface) 72%, transparent); color: var(--grey-700); font-size: var(--text-label); font-weight: 700; z-index: 2; }
 .deal-card.is-expired .deal-title, .deal-card.is-expired .deal-price { color: var(--grey-500); }
