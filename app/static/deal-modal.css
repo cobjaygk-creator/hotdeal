@@ -161,3 +161,14 @@ body.dm-open { overflow: hidden; }
   .dm-body { padding: var(--space-6) var(--space-5) var(--space-8); gap: var(--space-8); }
   .dm-mrow { grid-template-columns: 88px minmax(0, 1fr) 92px; gap: var(--space-3); }
 }
+
+/* Live chat compatibility: behavior keeps legacy IDs/classes while the shell uses dm-* */
+.dm-chat .chat-log { display:flex; flex-direction:column; max-height:360px; overflow:auto; padding:var(--space-1) var(--space-5); }
+.dm-chat .chat-composer { border-top:1px solid var(--border); background:var(--surface); padding:14px var(--space-5) 18px; }
+.dm-chat .chat-reactions { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+.dm-chat .chat-react { border:1px solid var(--grey-200); border-radius:16px; background:var(--surface); padding:7px 10px; color:var(--grey-700); }
+.dm-chat .chat-input-row { display:flex; gap:8px; }
+.dm-chat #chat-input { flex:1; min-height:42px; border:1px solid var(--grey-200); border-radius:var(--radius-md); padding:10px; resize:none; font:inherit; }
+.dm-chat .chat-send { width:42px; border:0; border-radius:var(--radius-md); background:var(--accent); color:var(--accent-ink); font-size:20px; }
+.dm-chat .chat-foot { display:flex; justify-content:space-between; margin-top:5px; color:var(--ink-faint); font-size:var(--text-caption); }
+.dm-chat .chat-empty { padding:80px 20px; text-align:center; color:var(--ink-faint); }
