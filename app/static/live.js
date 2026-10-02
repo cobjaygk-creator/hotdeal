@@ -1038,6 +1038,9 @@ async function openModal(id, opts) {
   const cheaper = hasBaseline && deal.price && Number(deal.baseline_price) > Number(deal.price);
   const saveAmt = cheaper ? Number(deal.baseline_price) - Number(deal.price) : 0;
   const isLowest = hasBaseline && deal.min_price && deal.price && Number(deal.price) <= Number(deal.min_price);
+  const chartIsDemo = priceHistory.length < 2;
+  const chartPoints = chartIsDemo ? (window.demoPricePoints ? window.demoPricePoints(deal.price, deal.baseline_price) : []) : priceHistory;
+  const showChart = chartPoints.length >= 3;
   const verdictHtml = cheaper ? `<p class="dm-verdict"><span aria-hidden="true">✓</span>${isLowest ? "역대 최저가" : "평소보다 저렴"} · 평소가보다 ${Number(saveAmt).toLocaleString("ko-KR")}원 저렴해요</p>` : "";
   const chartHtml = showChart ? `<section id="dd-chart-root"><div class="dm-sec-head"><h2 class="dm-h2">가격 변동</h2><div class="dm-seg" role="tablist" aria-label="기간"><button type="button" data-range="30">1개월</button><button type="button" class="on" data-range="90">3개월</button><button type="button" data-range="all">전체</button></div></div><div class="dm-chart"><canvas id="modal-chart"></canvas></div></section>` : "";
   const adHtml = config.showAds ? `<div class="dm-ad is-mid" aria-label="광고"><span>광고</span></div>` : "";
