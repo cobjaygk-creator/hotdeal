@@ -94,7 +94,8 @@
   "hasMore": has_more,
   "sourceLabels": source_labels,
   "sources": sources,
-  "loggedIn": user is not none
+  "loggedIn": user is not none,
+  "showAds": adsense_enabled and adsense_active_now()
 } | tojson | safe }}</script>
 {% include "_deal_modal.html" %}
 {% if initial_deal_id %}<script>window.__initialDealId = {{ initial_deal_id }};</script>{% endif %}

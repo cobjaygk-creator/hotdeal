@@ -1,43 +1,10 @@
-<aside class="dd-chat" id="dd-chat">
-  <div class="dd-chat-pin" id="dd-chat-pin" hidden aria-hidden="true">
-    <div class="dd-chat-pin-clip">
-      <button type="button" class="dd-chat-pin-inner" id="dd-chat-pin-btn" aria-label="상품 정보로 이동">
-        <span class="dd-chat-pin-thumb" id="dd-chat-pin-thumb" aria-hidden="true"></span>
-        <span class="dd-chat-pin-body">
-          <span class="dd-chat-pin-title" id="dd-chat-pin-title"></span>
-          <span class="dd-chat-pin-price" id="dd-chat-pin-price"></span>
-        </span>
-      </button>
-    </div>
-  </div>
-  <div class="chat-head">
-    <span class="chat-head-title">댓글 <span data-chat-count>0</span></span>
-    <span class="chat-me" id="chat-me" aria-label="내 표시 이름"></span>
-  </div>
+<aside class="dm-chat" id="dd-chat">
+  <div class="dd-chat-pin" id="dd-chat-pin" hidden aria-hidden="true"><div class="dd-chat-pin-clip"><button type="button" class="dd-chat-pin-inner" id="dd-chat-pin-btn" aria-label="상품 정보로 이동"><span class="dd-chat-pin-thumb" id="dd-chat-pin-thumb" aria-hidden="true"></span><span class="dd-chat-pin-body"><span class="dd-chat-pin-title" id="dd-chat-pin-title"></span><span class="dd-chat-pin-price" id="dd-chat-pin-price"></span></span></button></div></div>
+  <div class="dm-chat-head"><span class="chat-head-title">댓글 <span data-chat-count>0</span></span><span class="chat-me" id="chat-me" aria-label="내 표시 이름"></span></div>
   <div class="chat-log" id="chat-log"></div>
-  <div class="chat-composer">
-    <div class="chat-reactions" id="chat-reactions" role="group" aria-label="반응">
-      <button type="button" class="chat-react" data-kind="like">🔥 좋아요 <span data-count>0</span></button>
-      <button type="button" class="chat-react" data-kind="meh">🤔 글쎄 <span data-count>0</span></button>
-      <button type="button" class="chat-react" data-kind="bought">💸 샀어요 <span data-count>0</span></button>
-      <button type="button" class="chat-react" data-kind="soldout">⛔ 품절 <span data-count>0</span></button>
-    </div>
-    <div class="chat-reply-bar" id="chat-reply-bar" hidden>
-      <span id="chat-reply-label"></span>
-      <button type="button" class="chat-reply-cancel" id="chat-reply-cancel">취소</button>
-    </div>
-    <div class="chat-input-row">
-      <textarea id="chat-input" rows="1" maxlength="300" placeholder="댓글을 남겨 보세요"></textarea>
-      <button type="button" class="chat-send" id="chat-send" aria-label="보내기">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13V3.5M3.8 7.7 8 3.5l4.2 4.2"></path></svg>
-      </button>
-    </div>
-    <div class="chat-foot">
-      <span class="chat-foot-id" id="chat-foot-id"></span>
-      <span class="chat-count" id="chat-len">0/300</span>
-    </div>
-    {# 닉네임·PIN은 화면에서 제거하고 chat-id.js가 자동 발급합니다 #}
-    <input type="hidden" id="chat-nick" value="">
-    <input type="hidden" id="chat-pin" value="">
+  <div class="dm-chat-composer chat-composer">
+    <div class="chat-reactions" id="chat-reactions" role="group" aria-label="반응"><button type="button" class="chat-react" data-kind="like">좋아요 <span data-count>0</span></button><button type="button" class="chat-react" data-kind="meh">괜찮은 가격 <span data-count>0</span></button><button type="button" class="chat-react" data-kind="bought">샀어요 <span data-count>0</span></button><button type="button" class="chat-react" data-kind="soldout">종료됐어요 <span data-count>0</span></button></div>
+    <div class="chat-reply-bar" id="chat-reply-bar" hidden><span id="chat-reply-label"></span><button type="button" class="chat-reply-cancel" id="chat-reply-cancel">취소</button></div>
+    <div class="chat-input-row"><textarea id="chat-input" rows="1" maxlength="300" placeholder="댓글을 남겨 보세요"></textarea><button type="button" class="chat-send" id="chat-send" aria-label="보내기">↑</button></div><div class="chat-foot"><span class="chat-foot-id" id="chat-foot-id"></span><span class="chat-count" id="chat-len">0/300</span></div><input type="hidden" id="chat-nick" value=""><input type="hidden" id="chat-pin" value="">
   </div>
 </aside>

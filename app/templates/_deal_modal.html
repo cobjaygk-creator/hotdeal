@@ -1,19 +1,20 @@
-<div id="deal-modal" class="modal" hidden>
-  <div class="modal-backdrop" data-close></div>
-  <div class="modal-panel is-detail" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-    <div class="dd-modal-head"><span class="dd-breadcrumb">핫딜 <span aria-hidden="true">›</span> 상세</span><div class="dd-modal-actions"><button type="button" class="dd-modal-nav" data-modal-prev aria-label="이전 딜">‹</button><button type="button" class="dd-modal-nav" data-modal-next aria-label="다음 딜">›</button><span class="dd-modal-divider" aria-hidden="true"></span><button type="button" class="dd-modal-link" data-copy-modal-link aria-label="링크 복사">↗</button><button type="button" class="modal-close" data-close aria-label="닫기">×</button></div></div>
-    <div class="dd-mobile-tabs seg-group" role="tablist" aria-label="상세와 댓글">
-      <button type="button" class="seg-chip on" data-dd-pane="info" role="tab" aria-selected="true">상세</button>
-      <button type="button" class="seg-chip" data-dd-pane="chat" role="tab" aria-selected="false">댓글 <span data-chat-count></span></button>
-    </div>
-    <div class="dd-split">
-      <div class="dd-main-col">
-        <div class="dd-main" id="modal-body"></div>
+<div id="deal-modal" class="dm" role="presentation" hidden>
+  <div class="dm-dim" data-close></div>
+  <div class="dm-panel" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <header class="dm-head">
+      <nav class="dm-crumb" aria-label="위치"><span>핫딜</span><span aria-hidden="true">›</span><b data-dm-cat>상세</b></nav>
+      <div class="dm-tools">
+        <button type="button" class="dm-icon" data-dm-prev aria-label="이전 딜">‹</button>
+        <button type="button" class="dm-icon" data-dm-next aria-label="다음 딜">›</button>
+        <span class="dm-vsep" aria-hidden="true"></span>
+        <button type="button" class="dm-icon" data-dm-copy aria-label="링크 복사">↗</button>
+        <button type="button" class="dm-icon is-close" data-close aria-label="닫기">×</button>
       </div>
-      <div class="dd-side">
-        {% include "_deal_chat.html" %}
-        <div class="dd-cta" id="modal-cta" hidden></div>
-      </div>
+    </header>
+    <div class="dm-scroll" data-dm-scroll>
+      <div id="modal-body"></div>
     </div>
   </div>
 </div>
+
+<div id="dm-chat-source" hidden>{% include "_deal_chat.html" %}</div>
