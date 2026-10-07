@@ -1722,6 +1722,9 @@ body.modal-open { overflow: hidden; }
 .page-head ~ #cat-chips .filter-chip svg, .page-head ~ #cat-chips .filter-chip .cat-icon { display:none; }
 .page-head ~ #cat-chips { gap:var(--space-3); margin-top:var(--space-4); }
 .page-head ~ #cat-chips .filter-chip { min-height:38px; padding:0 var(--space-4); border-radius:var(--radius-pill); }
+.ranking-tabs { gap:var(--space-3); margin:var(--space-5) 0 var(--space-3); }
+.ranking-tabs .filter-chip { min-height:38px; padding:0 var(--space-4); border-radius:var(--radius-pill); }
+.ranking-list > .deal-card::before { z-index:3; top:50%; transform:translateY(-50%); }
 .deal-layout .deal-row-side { min-width:110px; align-items:flex-end; justify-content:center; gap:var(--space-2); }
 .deal-layout .deal-comments, .deal-layout .time-abs { color:var(--grey-500); font-size:var(--text-body-sm); white-space:nowrap; }
 .deal-layout .deal-tag-lowest { color:var(--accent); font-size:var(--text-label); font-weight:700; white-space:nowrap; }

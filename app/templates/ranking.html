@@ -6,18 +6,16 @@
 <meta property="og:url" content="{{ site_url }}/ranking">
 {% endblock %}
 {% block body %}
-<div class="page-head">
-  <h1>인기 랭킹</h1>
-  <div class="page-meta">최근 12시간 · 조회·찜·댓글·리액션 종합</div>
-</div>
-<p class="muted" style="margin:-6px 0 14px;font-size:13px">원문 조회수·추천, 사이트 찜·댓글·리액션을 합산해 정렬합니다.</p>
-
-<ol class="deal-cards ranking-list">
+<div class="page-head"><div><p class="page-kicker">HOTDEAL RANKING</p><h1>인기 랭킹</h1><p class="page-meta"><span class="title-live-dot dot"></span>최근 12시간 · 조회·찜·댓글·리액션 종합</p></div></div>
+<div class="chip-row ranking-tabs" role="tablist" aria-label="랭킹 범위"><button class="filter-chip on" type="button">전체</button><button class="filter-chip" type="button">식품</button><button class="filter-chip" type="button">디지털</button><button class="filter-chip" type="button">가전</button><button class="filter-chip" type="button">생활</button></div>
+<div class="list-view-toolbar"><div class="list-view-switch" role="group" aria-label="목록 보기 방식"><button type="button" class="list-view-btn on" data-list-view="horizontal" aria-pressed="true" aria-controls="ranking-body">목록</button><button type="button" class="list-view-btn" data-list-view="vertical" aria-pressed="false" aria-controls="ranking-body">4열</button></div></div>
+<div class="deal-layout"><main class="deal-list-column"><ol class="deal-cards ranking-list" id="ranking-body" data-view="horizontal">
   {% for d in deals %}
   {% include "_deal_card.html" %}
   {% else %}
   <li class="empty-row empty">아직 순위를 매길 딜이 없습니다.</li>
   {% endfor %}
-</ol>
+</ol></main><aside class="deal-rail" aria-label="인기 딜 보조 정보"><section class="rail-panel"><h2>지금 많이 보는 딜</h2>{% for d in deals[:3] %}<a class="rail-deal" href="/deal/{{ d.id }}"><strong>{{ loop.index }}</strong><span>{{ d.product_name | clean_title }}</span></a>{% else %}<p class="muted">아직 인기 딜이 없습니다.</p>{% endfor %}</section><section class="rail-panel rail-alert"><h2>키워드 알림</h2><p class="muted">원하는 상품이 올라오면 알려드려요.</p><a class="btn" href="/alerts">알림 설정</a></section></aside></div>
 {% include "_deal_modal_bundle.html" %}
+<script src="/static/list-controls.js?v={{ asset_v }}" defer></script>
 {% endblock %}

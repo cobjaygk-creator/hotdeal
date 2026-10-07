@@ -1,6 +1,6 @@
 /* 불러온 목록 내 정렬 + 품절 숨기기 (클라이언트 전용) */
 (function () {
-  var list = document.getElementById("deal-body");
+  var list = document.getElementById("deal-body") || document.getElementById("ranking-body");
   var group = document.getElementById("sort-group");
   var hide = document.getElementById("hide-soldout");
   if (!list) return;
