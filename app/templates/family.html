@@ -1,11 +1,7 @@
 {% extends "base.html" %}
 {% block title %}패밀리세일 · 핫딜모음{% endblock %}
 {% block body %}
-<div class="page-head">
-  <h1>패밀리세일</h1>
-  <div class="page-meta">마지막 수집 {{ stats.last | kst }}</div>
-</div>
-<p class="muted" style="margin:-6px 0 14px;font-size:13px">브랜드 창고·패밀리세일 일정을 한곳에 모읍니다.</p>
+<div class="page-head"><div><p class="page-kicker">FAMILY SALE</p><h1>패밀리세일</h1><p class="page-meta"><span class="title-live-dot dot"></span>브랜드 창고·패밀리세일 일정 · 마지막 수집 {{ stats.last | kst }}</p></div></div>
 
 <div class="summary-chips">
   <span class="summary-chip">진행중 <strong>{{ stats.live }}</strong></span>
@@ -13,7 +9,7 @@
   <span class="summary-chip">입장코드 <strong>{{ stats.codes }}</strong></span>
 </div>
 
-<form class="toolbar" method="get" action="/family">
+<form class="toolbar family-toolbar" method="get" action="/family">
   <div class="chip-row" style="margin:0;width:100%">
   {% for c in all_cats %}
   <label class="chip"><input type="checkbox" name="cat" value="{{ c }}" {% if c in cats %}checked{% endif %}> {{ c }}</label>
@@ -25,7 +21,8 @@
   <a class="ghost" href="/family/admin">수동 등록</a>
 </form>
 
-<ul class="fam-grid">
+<div class="list-view-toolbar"><div class="list-view-switch" role="group" aria-label="목록 보기 방식"><button type="button" class="list-view-btn on" data-family-view="horizontal" aria-pressed="true">목록</button><button type="button" class="list-view-btn" data-family-view="vertical" aria-pressed="false">4열</button></div></div>
+<div class="deal-layout"><main class="deal-list-column"><ul class="fam-grid" id="family-body" data-view="horizontal">
   {% for s in sales %}
   <li class="fam-card{% if s.has_entry_code %} has-code{% endif %}">
     <a class="fam-card-link" href="/family/{{ s.id }}">
@@ -57,7 +54,7 @@
   {% else %}
   <li class="fam-empty muted">해당 조건의 세일이 없습니다.</li>
   {% endfor %}
-</ul>
+</ul></main><aside class="deal-rail" aria-label="패밀리세일 보조 정보"><section class="rail-panel"><h2>패밀리세일 안내</h2><p class="muted">진행 중인 세일과 입장코드를 한곳에서 확인하세요.</p><div class="rank"><b>{{ stats.live }}</b> 진행중</div><div class="rank"><b>{{ stats.upcoming }}</b> 예정</div></section><section class="rail-panel rail-alert"><h2>키워드 알림</h2><p class="muted">새 세일 정보를 알려드립니다.</p><a class="btn" href="/alerts">알림 설정</a></section></aside></div>
 <script>
 document.getElementById("family-collect")?.addEventListener("click", async () => {
   const btn = document.getElementById("family-collect");
@@ -71,5 +68,8 @@ document.getElementById("family-collect")?.addEventListener("click", async () =>
     btn.textContent = "지금 수집";
   }
 });
+</script>
+<script>
+(() => { const list=document.getElementById('family-body'), sw=document.querySelectorAll('[data-family-view]'); if(!list) return; let view=localStorage.getItem('family-list-view')||'horizontal'; const apply=()=>{list.dataset.view=view;sw.forEach(b=>{const on=b.dataset.familyView===view;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on?'true':'false')})}; sw.forEach(b=>b.addEventListener('click',()=>{view=b.dataset.familyView;localStorage.setItem('family-list-view',view);apply()})); apply(); })();
 </script>
 {% endblock %}
