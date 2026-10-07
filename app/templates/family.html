@@ -3,24 +3,12 @@
 {% block body %}
 <div class="page-head"><div><p class="page-kicker">FAMILY SALE</p><h1>패밀리세일</h1><p class="page-meta"><span class="title-live-dot dot"></span>브랜드 창고·패밀리세일 일정 · 마지막 수집 {{ stats.last | kst }}</p></div></div>
 
-<div class="summary-chips">
-  <span class="summary-chip">진행중 <strong>{{ stats.live }}</strong></span>
-  <span class="summary-chip">예정 <strong>{{ stats.upcoming }}</strong></span>
-  <span class="summary-chip">입장코드 <strong>{{ stats.codes }}</strong></span>
+<div class="chip-row" id="family-cats" role="tablist" aria-label="패밀리세일 분류">
+  <a class="filter-chip {% if not cats %}on{% endif %}" href="/family">전체 <span class="count">{{ stats.live + stats.upcoming }}</span></a>
+  {% for c in all_cats %}<a class="filter-chip {% if c in cats %}on{% endif %}" href="/family?cat={{ c }}">{{ c }}</a>{% endfor %}
+  <a class="filter-chip {% if entry_only %}on{% endif %}" href="/family?code=1">입장코드</a>
 </div>
-
-<form class="toolbar family-toolbar" method="get" action="/family">
-  <div class="chip-row" style="margin:0;width:100%">
-  {% for c in all_cats %}
-  <label class="chip"><input type="checkbox" name="cat" value="{{ c }}" {% if c in cats %}checked{% endif %}> {{ c }}</label>
-  {% endfor %}
-  <label class="chip"><input type="checkbox" name="code" value="1" {% if entry_only %}checked{% endif %}> 입장코드만</label>
-  </div>
-  <button type="submit">적용</button>
-  <button type="button" id="family-collect" class="btn-secondary">지금 수집</button>
-  <a class="ghost" href="/family/admin">수동 등록</a>
-</form>
-
+<div class="chip-row sort-row family-sort-row"><span class="sort-label">패밀리세일</span><div class="sort-pills"><button type="button" class="sort-pill on">진행중 {{ stats.live }}</button><button type="button" class="sort-pill">예정 {{ stats.upcoming }}</button><button type="button" class="sort-pill">입장코드 {{ stats.codes }}</button><button type="button" id="family-collect" class="sort-pill">지금 수집</button><a class="sort-pill" href="/family/admin">수동 등록</a></div></div>
 <div class="list-view-toolbar"><div class="list-view-switch" role="group" aria-label="목록 보기 방식"><button type="button" class="list-view-btn on" data-family-view="horizontal" aria-pressed="true">목록</button><button type="button" class="list-view-btn" data-family-view="vertical" aria-pressed="false">4열</button></div></div>
 <div class="deal-layout"><main class="deal-list-column"><ul class="fam-grid" id="family-body" data-view="horizontal">
   {% for s in sales %}

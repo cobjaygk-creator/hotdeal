@@ -442,3 +442,6 @@
 .flight-card .deal-thumb-wrap { display:block; text-decoration:none; }
 .flight-card .flight-date { font-size:12px; margin-top:2px; }
 .flight-disclaimer { margin-top:16px; font-size:12px; }
+
+.family-sort-row { display:flex !important; margin-bottom:var(--space-3); }
+#family-cats { margin-bottom:var(--space-3); }
