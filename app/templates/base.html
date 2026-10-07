@@ -48,7 +48,7 @@
     })();
   </script>
 </head>
-<body>
+<body data-page="{{ current_nav }}">
   {% set current_nav = nav|default("hotdeal") %}
   {% set account_label = (user.display_name if user else "로그인") %}
   {% set account_initial = (account_label[:1] if account_label else "U") %}
@@ -121,6 +121,17 @@
     </div>
     </div>
   </header>
+  {% if current_nav == 'hotdeal' %}
+  <nav class="homepage-nav" aria-label="홈페이지 주요 메뉴">
+    <div class="homepage-nav-inner">
+      <a class="on" href="/">핫딜 모아보기</a>
+      <a href="/ranking">랭킹 ↗</a>
+      <a href="/family">패밀리세일 ↗</a>
+      {% if mvno_enabled %}<a href="/mvno">알뜰요금제 ↗</a>{% endif %}
+      <span class="homepage-nav-note"><i></i> 여러 커뮤니티의 핫딜을 한곳에</span>
+    </div>
+  </nav>
+  {% endif %}
 
   <div class="app-shell">
     <aside class="sidebar" id="sidebar" aria-label="메뉴">
