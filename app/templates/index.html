@@ -16,21 +16,6 @@
 {% endif %}
 {% endblock %}
 {% block body %}
-<div class="page-head">
-  <div>
-    <h1>실시간 핫딜</h1>
-    <p class="page-subtitle">커뮤니티 핫딜을 한곳에서, 가격과 구매 조건까지.</p>
-    <p class="page-meta"><span class="title-live-dot dot" id="live-dot" aria-label="실시간 연결 상태"></span> 9개 커뮤니티에서 방금 전 업데이트 · 오늘 <strong>{{ "{:,}".format(deals_total|default(0)) }}</strong>건</p>
-  </div>
-  <div class="page-head-actions">
-    {% if is_admin %}
-    <button type="button" id="collect-btn" class="btn-secondary">
-      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3 4v3.5h3.5M13 12V8.5H9.5"></path><path d="M4 9a4.5 4.5 0 0 0 8 1.5M12 7a4.5 4.5 0 0 0-8-1.5"></path></svg>
-      지금 수집
-    </button>
-    {% endif %}
-  </div>
-</div>
 {% if not is_admin %}
 <span id="stat-last" hidden>{{ stats.last_collect_at | kst }}</span>
 {% endif %}
@@ -60,12 +45,10 @@
   </div>
 </section>
 
-<form class="homepage-search" method="get" action="/search" role="search">
-  <label class="sr-only" for="homepage-search-input">상품·판매처 검색</label>
-  <input id="homepage-search-input" type="search" name="q" placeholder="찾는 상품이나 판매처를 검색하세요" autocomplete="off">
-  <button type="submit" class="btn-primary">검색</button>
-</form>
-
+<div class="homepage-feed-head">
+  <div><h1>핫딜 모아보기 <small>전체 상품</small></h1><p><span class="title-live-dot dot" id="live-dot" aria-label="실시간 연결 상태"></span> 9개 커뮤니티에서 방금 전 업데이트</p></div>
+  {% if is_admin %}<button type="button" id="collect-btn" class="btn-secondary">지금 수집</button>{% endif %}
+</div>
 <div class="chip-row" id="cat-chips" role="tablist" aria-label="카테고리">
   <a class="filter-chip {% if not category %}on{% endif %}" href="/" role="tab" aria-selected="{{ 'true' if not category else 'false' }}">
     {% with name='전체' %}{% include "_cat_icon.html" %}{% endwith %}
@@ -80,7 +63,7 @@
 </div>
 
 <div class="mobile-ad" aria-label="광고">{% if adsense_active_now() and adsense_enabled and adsense_mobile_enabled and adsense_publisher_id and adsense_mobile_slot_id %}<ins class="adsbygoogle" style="display:block" data-ad-client="{{ adsense_publisher_id }}" data-ad-slot="{{ adsense_mobile_slot_id }}" data-ad-format="auto" data-full-width-responsive="true"></ins><script>(adsbygoogle = window.adsbygoogle || []).push({});</script>{% endif %}</div>
-<div class="chip-row sort-row">
+<div class="chip-row sort-row homepage-filters">
   <span class="sort-label">정렬</span>
   <div class="sort-pills" id="sort-group" role="tablist" aria-label="정렬">
     <button type="button" class="sort-pill on" data-sort="recent" role="tab" aria-selected="true">최신</button>

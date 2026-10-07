@@ -19,6 +19,7 @@
 .deal-discovery-list { gap: var(--space-8); }
 .deal-discovery-item { min-width: 0; }
 @media (max-width: 700px) {
+  .topbar-search { min-width: 0; }
   .homepage-search { max-width: none; margin-top: var(--space-5); }
   .homepage-search .btn-primary { min-width: 64px; }
   .list-view-toolbar { margin-top: var(--space-4); }
@@ -501,6 +502,22 @@
 .deal-discovery-price { color:var(--price); font-size:var(--text-price); font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:-.02em; }
 .deal-discovery-price small { margin-left:2px; font-size:var(--text-body-sm); font-weight:650; }
 .deal-discovery-meta { overflow:hidden; max-width:100%; color:var(--ink-muted); font-size:var(--text-label); text-overflow:ellipsis; white-space:nowrap; }
+.topbar-brand-copy { display:inline-flex; flex-direction:column; line-height:1.05; }
+.topbar-inner { min-height: calc(var(--header-h) + var(--space-4)); }
+.topbar-search { min-width: 280px; }
+.topbar-brand-copy small { margin-top: var(--space-1); color: var(--ink-faint); font-size: var(--text-caption); font-weight: 600; letter-spacing: 0; }
+.topbar-brand { gap: var(--space-2); }
+.topbar-brand .brand-mark { width: 34px; height: 34px; border-radius: var(--radius-md); }
+.homepage-feed-head { display:flex; align-items:flex-end; justify-content:space-between; gap:var(--space-4); margin:var(--space-8) 0 var(--space-4); }
+.homepage-feed-head h1 { margin:0; color:var(--ink); font-size:var(--text-section); line-height:var(--lh-tight); letter-spacing:var(--ls-section); }
+.homepage-feed-head h1 small { margin-left:var(--space-2); color:var(--ink-faint); font-size:var(--text-body-sm); font-weight:600; letter-spacing:0; }
+.homepage-feed-head p { margin:var(--space-2) 0 0; color:var(--ink-muted); font-size:var(--text-body-sm); }
+.homepage-filters { display:flex !important; align-items:center; justify-content:flex-start; gap:var(--space-3); margin:0 0 var(--space-3); padding:var(--space-3) 0; border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+.homepage-filters .sort-label { color:var(--ink-muted); font-size:var(--text-body-sm); }
+.homepage-filters .sort-pills { display:flex; flex-wrap:wrap; gap:var(--space-2); }
+.homepage-filters .sort-pill { min-height:32px; padding:0 var(--space-3); border:1px solid var(--border-strong); border-radius:var(--radius-pill); background:var(--surface); color:var(--ink-muted); font-size:var(--text-body-sm); }
+.homepage-filters .sort-pill.on { border-color:var(--ink); background:var(--ink); color:var(--surface); }
+.homepage-feed-head + .chip-row { margin-top:0; }
 @media (max-width: 959px) {
   .deal-discovery-list { gap:var(--space-4); }
   .deal-discovery-item { grid-template-columns:88px minmax(0,1fr); gap:var(--space-3); }
