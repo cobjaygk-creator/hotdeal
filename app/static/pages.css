@@ -14,9 +14,20 @@
 .deal-layout .fam-grid[data-view="horizontal"] { grid-template-columns: 1fr; gap: 0; }
 .deal-layout .fam-grid[data-view="horizontal"] .fam-card { min-height: 116px; }
 .deal-layout .fam-grid[data-view="horizontal"] .fam-card-link { flex-direction: row; align-items: stretch; }
-.deal-layout .fam-grid[data-view="horizontal"] .fam-cover { width: 160px; flex: 0 0 160px; height: auto; min-height: 116px; }
+.deal-layout .fam-grid[data-view="horizontal"] .fam-cover { width: 88px; flex: 0 0 88px; height: 88px; min-height: 88px; margin: var(--space-4); border-radius: var(--radius-md); }
 .deal-layout .fam-grid[data-view="horizontal"] .fam-body { padding: var(--space-5); }
 @media (min-width: 1280px) { .deal-layout .fam-grid[data-view="vertical"] { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.family-modal { position:fixed; inset:0; z-index:1000; display:grid; place-items:center; padding:var(--space-6); }
+.family-modal[hidden] { display:none; }
+.family-modal-dim { position:absolute; inset:0; background:var(--dim); }
+.family-modal-panel { position:relative; z-index:1; width:min(var(--modal-w),100%); max-height:calc(100vh - 64px); overflow:auto; display:grid; grid-template-columns:400px 1fr; gap:var(--space-8); padding:var(--space-7); border-radius:var(--radius-modal); background:var(--surface); box-shadow:var(--shadow-lg); }
+.family-modal-image { min-height:400px; display:grid; place-items:center; border-radius:var(--radius-lg); background:var(--grey-100); color:var(--ink-faint); }
+.family-modal-copy { padding-top:var(--space-4); }
+.family-modal-copy h2 { margin:var(--space-3) 0; font-size:var(--text-title); }
+.family-modal-copy dl { display:grid; grid-template-columns:80px 1fr; gap:var(--space-3); margin:var(--space-6) 0; }
+.family-modal-copy dt { color:var(--ink-faint); }.family-modal-copy dd { margin:0; }
+.family-modal-close { position:absolute; top:var(--space-4); right:var(--space-4); border:0; background:transparent; font-size:28px; cursor:pointer; }
+@media (max-width:767px){.family-modal-panel{grid-template-columns:1fr;padding:var(--space-5)}.family-modal-image{min-height:240px}}
 .fam-card {
   background: var(--surface);
   border: 1px solid var(--border);
