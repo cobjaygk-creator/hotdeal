@@ -24,7 +24,7 @@ class QuasarzoneSource:
         # Quasarzone is the most expensive source: one list request is enough
         # per cadence, and repeated challenge retries only add traffic without
         # improving the result. Operators can override the cadence via env.
-        return await fetch_parsed(client, LIST_URL, parse_list, max_retries=1)
+        return await fetch_parsed(client, LIST_URL, parse_list, max_retries=1, curl_fallback=False)
 
 
 def parse_list(html: str) -> list[RawPost]:

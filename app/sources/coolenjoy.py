@@ -22,9 +22,7 @@ class CoolenjoySource:
     async def fetch_latest(self, client: PoliteClient) -> list[RawPost]:
         # RSS is lightweight, but repeated timeout retries still multiply
         # traffic from the collector. A single retry is enough for this feed.
-        return await fetch_parsed(
-            client, RSS_URL, parse_rss, timeout=20.0, max_retries=1
-        )
+        return await fetch_parsed(client, RSS_URL, parse_rss, timeout=20.0, max_retries=1, curl_fallback=False)
 
 
 def parse_rss(xml_text: str) -> list[RawPost]:
