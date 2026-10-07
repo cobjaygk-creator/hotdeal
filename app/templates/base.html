@@ -33,6 +33,7 @@
   <link rel="stylesheet" href="/static/pages.css?v={{ v }}">
   <link rel="stylesheet" href="/static/detail.css?v={{ v }}">
   <link rel="stylesheet" href="/static/deal-modal.css?v={{ v }}">
+  <link rel="stylesheet" href="/static/site-system.css?v={{ v }}">
   <!-- Chart.js: 3개 템플릿에서 중복 로드하던 것을 여기 1회로 -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
   <script src="/static/deal-chart.js?v={{ v }}" defer></script>
@@ -121,12 +122,12 @@
     </div>
     </div>
   </header>
-  {% if current_nav == 'hotdeal' %}
+  {% if current_nav in ['hotdeal', 'ranking', 'family'] %}
   <nav class="homepage-nav" aria-label="홈페이지 주요 메뉴">
     <div class="homepage-nav-inner">
-      <a class="on" href="/">핫딜 모아보기</a>
-      <a href="/ranking">랭킹 ↗</a>
-      <a href="/family">패밀리세일 ↗</a>
+      <a class="{% if current_nav == 'hotdeal' %}on{% endif %}" href="/">핫딜</a>
+      <a class="{% if current_nav == 'ranking' %}on{% endif %}" href="/ranking">랭킹</a>
+      <a class="{% if current_nav == 'family' %}on{% endif %}" href="/family">패밀리세일</a>
       {% if mvno_enabled %}<a href="/mvno">알뜰요금제 ↗</a>{% endif %}
       <span class="homepage-nav-note"><i></i> 여러 커뮤니티의 핫딜을 한곳에</span>
     </div>
