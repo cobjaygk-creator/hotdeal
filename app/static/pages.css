@@ -456,3 +456,41 @@
 
 .family-sort-row { display:flex !important; margin-bottom:var(--space-3); }
 #family-cats { margin-bottom:var(--space-3); }
+
+/* Homepage discovery band: keeps the live deal list dense while giving the brand a memorable first beat. */
+.deal-discovery {
+  margin: 0 0 var(--space-7);
+  padding: var(--space-6) var(--space-6) var(--space-5);
+  border-radius: var(--radius-lg);
+  background: var(--accent-soft);
+}
+.deal-discovery-head { display:flex; align-items:flex-end; justify-content:space-between; gap:var(--space-4); margin-bottom:var(--space-5); }
+.deal-discovery-kicker { color:var(--accent); font-size:var(--text-label); font-weight:800; letter-spacing:.08em; }
+.deal-discovery-head h2 { margin:var(--space-1) 0 0; color:var(--ink); font-size:var(--text-section); line-height:1.2; font-weight:800; letter-spacing:-.03em; }
+.deal-discovery-note { color:var(--ink-muted); font-size:var(--text-body-sm); }
+.deal-discovery-list { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:var(--space-6); }
+.deal-discovery-item { display:grid; grid-template-columns:112px minmax(0,1fr); gap:var(--space-4); align-items:center; min-width:0; color:var(--ink); text-decoration:none; }
+.deal-discovery-thumb { display:grid; place-items:center; width:112px; height:112px; overflow:hidden; border-radius:var(--radius-md); background:var(--surface); color:var(--ink-faint); font-size:var(--text-label); }
+.deal-discovery-thumb img { width:100%; height:100%; object-fit:contain; transition:transform .22s ease; }
+.deal-discovery-item:hover .deal-discovery-thumb img { transform:scale(1.06); }
+.deal-discovery-copy { display:flex; min-width:0; flex-direction:column; align-items:flex-start; gap:var(--space-1); }
+.deal-discovery-cat { color:var(--accent); font-size:var(--text-label); font-weight:700; }
+.deal-discovery-copy strong { display:-webkit-box; overflow:hidden; color:var(--ink); font-size:var(--text-body); font-weight:650; line-height:1.45; -webkit-box-orient:vertical; -webkit-line-clamp:2; }
+.deal-discovery-price { color:var(--price); font-size:var(--text-price); font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:-.02em; }
+.deal-discovery-price small { margin-left:2px; font-size:var(--text-body-sm); font-weight:650; }
+.deal-discovery-meta { overflow:hidden; max-width:100%; color:var(--ink-muted); font-size:var(--text-label); text-overflow:ellipsis; white-space:nowrap; }
+@media (max-width: 959px) {
+  .deal-discovery-list { gap:var(--space-4); }
+  .deal-discovery-item { grid-template-columns:88px minmax(0,1fr); gap:var(--space-3); }
+  .deal-discovery-thumb { width:88px; height:88px; }
+}
+@media (max-width: 639px) {
+  .deal-discovery { margin-inline:calc(var(--page-pad-x) * -1); border-radius:0; padding:var(--space-5) var(--space-4) var(--space-4); }
+  .deal-discovery-head h2 { font-size:var(--text-section); }
+  .deal-discovery-note { font-size:var(--text-label); }
+  .deal-discovery-list { display:flex; gap:var(--space-3); overflow-x:auto; padding-bottom:var(--space-1); scrollbar-width:thin; }
+  .deal-discovery-item { flex:0 0 164px; display:flex; flex-direction:column; align-items:stretch; gap:var(--space-2); }
+  .deal-discovery-thumb { width:100%; height:auto; aspect-ratio:1; }
+  .deal-discovery-copy strong { font-size:var(--text-body-sm); }
+  .deal-discovery-price { font-size:var(--text-price); }
+}

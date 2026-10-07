@@ -34,6 +34,31 @@
 <span id="stat-last" hidden>{{ stats.last_collect_at | kst }}</span>
 {% endif %}
 
+<section class="deal-discovery" aria-labelledby="deal-discovery-title">
+  <div class="deal-discovery-head">
+    <div>
+      <span class="deal-discovery-kicker">DEAL DISCOVERY</span>
+      <h2 id="deal-discovery-title">이런 딜도 있쥬.</h2>
+    </div>
+    <span class="deal-discovery-note">눈여겨볼 상품 둘러보기</span>
+  </div>
+  <div class="deal-discovery-list">
+    {% for d in deals[:3] %}
+    <a class="deal-discovery-item" href="/deal/{{ d.id }}" data-deal-id="{{ d.id }}">
+      <span class="deal-discovery-thumb">
+        {% if d.thumbnail_url %}<img src="{{ d.thumbnail_url }}" alt="" loading="lazy" referrerpolicy="no-referrer">{% else %}<span class="muted">이미지 없음</span>{% endif %}
+      </span>
+      <span class="deal-discovery-copy">
+        <span class="deal-discovery-cat">{{ d.category or '기타' }} 발견</span>
+        <strong>{{ d.product_name | clean_title }}</strong>
+        <span class="deal-discovery-price">{% if d.price %}{{ "{:,}".format(d.price) }}<small>원</small>{% else %}가격 확인{% endif %}</span>
+        <span class="deal-discovery-meta">{{ d.mall_url | mall_label or '판매처 확인' }} · {% if d.shipping_fee == 0 %}무료배송{% else %}조건 확인{% endif %}</span>
+      </span>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+
 <div class="chip-row" id="cat-chips" role="tablist" aria-label="카테고리">
   <a class="filter-chip {% if not category %}on{% endif %}" href="/" role="tab" aria-selected="{{ 'true' if not category else 'false' }}">
     {% with name='전체' %}{% include "_cat_icon.html" %}{% endwith %}
