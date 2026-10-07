@@ -122,13 +122,15 @@
     </div>
     </div>
   </header>
-  {% if current_nav in ['hotdeal', 'ranking', 'family'] %}
+  {% if current_nav in ['hotdeal', 'ranking', 'family', 'coupang', 'amazon_jp', 'mvno', 'flights'] %}
   <nav class="homepage-nav" aria-label="홈페이지 주요 메뉴">
     <div class="homepage-nav-inner">
       <a class="{% if current_nav == 'hotdeal' %}on{% endif %}" href="/">핫딜</a>
       <a class="{% if current_nav == 'ranking' %}on{% endif %}" href="/ranking">랭킹</a>
       <a class="{% if current_nav == 'family' %}on{% endif %}" href="/family">패밀리세일</a>
-      {% if mvno_enabled %}<a href="/mvno">알뜰요금제 ↗</a>{% endif %}
+      {% if coupang_enabled %}<a class="{% if current_nav == 'coupang' %}on{% endif %}" href="/coupang">쿠팡특가</a>{% endif %}
+      {% if amazon_jp_enabled %}<a class="{% if current_nav == 'amazon_jp' %}on{% endif %}" href="/amazon-jp">일마존</a>{% endif %}
+      {% if mvno_enabled %}<a class="{% if current_nav == 'mvno' %}on{% endif %}" href="/mvno">알뜰요금제</a>{% endif %}
       <span class="homepage-nav-note"><i></i> 여러 커뮤니티의 핫딜을 한곳에</span>
     </div>
   </nav>
