@@ -1,12 +1,20 @@
 {% extends "base.html" %}
 {% block title %}{{ sale.title }} · 패밀리세일{% endblock %}
 {% block body %}
-<a class="back-link" href="/family">← 패밀리세일</a>
-<div class="deal-detail-card">
-  <div class="page-head" style="margin-bottom:10px">
-    <h1 style="font-size:20px">{{ sale.title }}</h1>
-  </div>
-  <p class="muted">{{ sale.brands_label }} · {{ sale.status }} · {{ sale.sale_type }}{% if sale.sale_kind %} · {{ sale.sale_kind }}{% endif %}</p>
+<a class="back-link family-detail-back" href="/family">← 패밀리세일로 돌아가기</a>
+<div class="family-detail-shell">
+  <section class="family-detail-hero">
+    <div class="family-detail-image"{% if sale.thumbnail_url %} style="background-image:url('{{ sale.thumbnail_url }}')"{% endif %}>{% if not sale.thumbnail_url %}FAMILY SALE{% endif %}</div>
+    <div class="family-detail-copy">
+      <p class="page-kicker">FAMILY SALE</p>
+      <h1>{{ sale.title }}</h1>
+      <p class="muted">{{ sale.brands_label }} · {{ sale.status }} · {{ sale.sale_type }}{% if sale.sale_kind %} · {{ sale.sale_kind }}{% endif %}</p>
+      <div class="family-detail-actions">
+        <a class="btn" href="{{ sale.source_url }}" target="_blank" rel="noopener">원본 보기 ↗</a>
+        {% if sale.deal_url %}<a class="btn ghost" href="{{ sale.deal_url }}" target="_blank" rel="noopener">브랜드몰 링크 ↗</a>{% endif %}
+      </div>
+    </div>
+  </section>
 
   <section class="stats">
     <div class="stat"><div class="label">기간</div><div class="value small">{{ sale.start_date or "-" }} ~ {{ sale.end_date or "-" }}</div></div>
@@ -16,10 +24,7 @@
   </section>
 
   <p class="muted">카테고리 {{ sale.categories | join(", ") }} · 출처 {{ sale.source_name }} · 수집 {{ sale.collected_at | kst }}</p>
-  <p class="modal-actions">
-    <a class="btn" href="{{ sale.source_url }}" target="_blank" rel="noopener">원본 보기</a>
-    {% if sale.deal_url %}<a class="btn ghost" href="{{ sale.deal_url }}" target="_blank" rel="noopener">브랜드몰 링크</a>{% endif %}
-  </p>
+  <p class="family-detail-source muted">카테고리 {{ sale.categories | join(", ") }} · 출처 {{ sale.source_name }} · 수집 {{ sale.collected_at | kst }}</p>
 </div>
 {% if sale.siblings and sale.siblings|length > 1 %}
 <h2>같은 세일로 묶인 출처</h2>

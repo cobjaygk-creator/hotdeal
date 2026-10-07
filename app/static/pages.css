@@ -534,6 +534,50 @@
   .deal-discovery-price { font-size:var(--text-price); }
 }
 
+/* Ranking and family sale use the same editorial feed language as hotdeal. */
+body[data-page="ranking"] .page-head,
+body[data-page="family"] .page-head { margin-bottom: var(--space-6); }
+body[data-page="ranking"] .page-head h1,
+body[data-page="family"] .page-head h1 { font-size: var(--text-display); }
+body[data-page="ranking"] .ranking-tabs,
+body[data-page="family"] #family-cats { gap: var(--space-2); margin: 0 0 var(--space-3); padding-bottom: var(--space-3); border-bottom: 1px solid var(--border); }
+body[data-page="ranking"] .ranking-tabs .filter-chip,
+body[data-page="family"] #family-cats .filter-chip { min-height: 38px; padding: 0 var(--space-4); border-radius: var(--radius-sm); }
+body[data-page="ranking"] .ranking-tabs .filter-chip.on,
+body[data-page="family"] #family-cats .filter-chip.on { background: var(--accent); color: var(--accent-ink); }
+body[data-page="ranking"] .list-view-toolbar,
+body[data-page="family"] .list-view-toolbar { min-height: var(--space-9); margin: var(--space-3) 0 var(--space-2); }
+body[data-page="ranking"] .deal-layout,
+body[data-page="family"] .deal-layout { gap: var(--space-8); }
+body[data-page="ranking"] .deal-layout .deal-card { min-height: calc(var(--thumb-row) + var(--space-8)); }
+body[data-page="ranking"] .deal-layout .deal-title { font-size: 18px; }
+body[data-page="ranking"] .deal-layout .deal-price { font-size: 25px; }
+body[data-page="family"] .family-sort-row { display: flex !important; align-items: center; gap: var(--space-3); margin: 0 0 var(--space-3); padding: var(--space-3) 0; border-bottom: 1px solid var(--border); }
+body[data-page="family"] .family-sort-row .sort-pills { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+body[data-page="family"] .family-sort-row .sort-pill { min-height: 32px; padding: 0 var(--space-3); border: 1px solid var(--border-strong); border-radius: var(--radius-pill); background: var(--surface); color: var(--ink-muted); }
+body[data-page="family"] .deal-layout .fam-grid[data-view="horizontal"] { gap: 0; }
+body[data-page="family"] .deal-layout .fam-grid[data-view="horizontal"] .fam-card { min-height: calc(var(--thumb-row) + var(--space-8)); border: 0; border-bottom: 1px solid var(--border); border-radius: 0; box-shadow: none; }
+body[data-page="family"] .deal-layout .fam-grid[data-view="horizontal"] .fam-card-link { flex-direction: row; align-items: stretch; }
+body[data-page="family"] .deal-layout .fam-grid[data-view="horizontal"] .fam-cover { width: var(--thumb-row); flex: 0 0 var(--thumb-row); height: var(--thumb-row); min-height: var(--thumb-row); margin: var(--space-4); padding: 0; border-radius: var(--radius-md); }
+body[data-page="family"] .deal-layout .fam-grid[data-view="horizontal"] .fam-body { justify-content: center; padding: var(--space-4) var(--space-3) var(--space-4) 0; }
+body[data-page="family"] .deal-layout .fam-grid[data-view="horizontal"] .fam-title { font-size: var(--text-card-title); }
+body[data-page="family"] .deal-layout .fam-grid[data-view="horizontal"] .fam-cover-badge { left: var(--space-2); bottom: var(--space-2); }
+body[data-page="family"] .deal-layout .fam-grid[data-view="horizontal"] .fam-badges { top: var(--space-2); left: var(--space-2); right: var(--space-2); }
+body[data-page="family"] .deal-layout .fam-grid[data-view="vertical"] .fam-card { border-radius: var(--radius-md); box-shadow: var(--shadow); }
+body[data-page="family"] .family-detail-back { display: inline-flex; margin-bottom: var(--space-4); color: var(--ink-muted); font-size: var(--text-body-sm); }
+body[data-page="family"] .family-detail-shell { padding: 0; border: 0; border-radius: 0; background: var(--surface); box-shadow: none; }
+body[data-page="family"] .family-detail-hero { display: grid; grid-template-columns: 320px minmax(0,1fr); gap: var(--space-8); padding: 0 0 var(--space-7); border-bottom: 1px solid var(--border); }
+body[data-page="family"] .family-detail-image { min-height: 320px; border-radius: var(--radius-lg); background: var(--accent-soft); background-position: center; background-repeat: no-repeat; background-size: contain; display: grid; place-items: center; color: var(--accent); font-size: var(--text-label); font-weight: 800; letter-spacing: .08em; }
+body[data-page="family"] .family-detail-copy { padding-top: var(--space-4); }
+body[data-page="family"] .family-detail-copy h1 { margin: var(--space-2) 0 var(--space-3); font-size: var(--text-title); line-height: var(--lh-title); }
+body[data-page="family"] .family-detail-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; margin-top: var(--space-6); }
+body[data-page="family"] .family-detail-source { margin-top: var(--space-6); font-size: var(--text-body-sm); }
+@media (max-width: 700px) {
+  body[data-page="family"] .family-detail-hero { grid-template-columns: 1fr; gap: var(--space-4); }
+  body[data-page="family"] .family-detail-image { min-height: 240px; }
+  body[data-page="family"] .family-detail-copy { padding-top: 0; }
+}
+
 /* Homepage preview skin: mirror the approved standalone direction while keeping live templates. */
 body[data-page="hotdeal"] .app-topbar { border-bottom: 0; background: var(--surface); }
 body[data-page="hotdeal"] .topbar-inner { width: min(var(--maxw), calc(100% - 64px)); min-height: 112px; gap: var(--space-8); }
