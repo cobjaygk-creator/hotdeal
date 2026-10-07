@@ -2,6 +2,28 @@
    hotdeal pages — v2 (하드코딩 hex → 토큰 / 달력 셀 전체 클릭)
    ============================================================ */
 
+/* Homepage direction: editorial intro, search, and clearer list rhythm. */
+.page-subtitle { margin: var(--space-2) 0 0; color: var(--ink-muted); font-size: var(--text-body); }
+.page-meta { margin-top: var(--space-2); }
+.homepage-search { display: flex; gap: var(--space-2); max-width: 720px; margin: var(--space-6) 0 var(--space-5); }
+.homepage-search input { flex: 1; min-width: 0; height: var(--space-9); padding: 0 var(--space-4); border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface-sunken); color: var(--ink); font: inherit; }
+.homepage-search input::placeholder { color: var(--ink-faint); }
+.homepage-search .btn-primary { min-width: 72px; padding: 0 var(--space-4); border: 1px solid var(--accent); border-radius: var(--radius); background: var(--accent); color: var(--accent-ink); font-weight: 700; }
+.homepage-search .btn-primary:hover { background: var(--accent-hover); }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.list-view-toolbar { align-items: center; min-height: var(--space-9); margin: var(--space-5) 0 var(--space-2); padding-bottom: var(--space-3); border-bottom: 1px solid var(--border); }
+.list-count { margin-right: auto; color: var(--ink-muted); font-size: var(--text-body-sm); }
+.list-count strong { color: var(--ink); font-variant-numeric: tabular-nums; }
+.page-head { align-items: flex-end; }
+.deal-discovery { margin-top: var(--space-7); }
+.deal-discovery-list { gap: var(--space-8); }
+.deal-discovery-item { min-width: 0; }
+@media (max-width: 700px) {
+  .homepage-search { max-width: none; margin-top: var(--space-5); }
+  .homepage-search .btn-primary { min-width: 64px; }
+  .list-view-toolbar { margin-top: var(--space-4); }
+}
+
 /* ---------------- Family sale — 상품 타일 그리드 ---------------- */
 .fam-grid {
   list-style: none;

@@ -19,6 +19,7 @@
 <div class="page-head">
   <div>
     <h1>실시간 핫딜</h1>
+    <p class="page-subtitle">커뮤니티 핫딜을 한곳에서, 가격과 구매 조건까지.</p>
     <p class="page-meta"><span class="title-live-dot dot" id="live-dot" aria-label="실시간 연결 상태"></span> 9개 커뮤니티에서 방금 전 업데이트 · 오늘 <strong>{{ "{:,}".format(deals_total|default(0)) }}</strong>건</p>
   </div>
   <div class="page-head-actions">
@@ -59,6 +60,12 @@
   </div>
 </section>
 
+<form class="homepage-search" method="get" action="/search" role="search">
+  <label class="sr-only" for="homepage-search-input">상품·판매처 검색</label>
+  <input id="homepage-search-input" type="search" name="q" placeholder="찾는 상품이나 판매처를 검색하세요" autocomplete="off">
+  <button type="submit" class="btn-primary">검색</button>
+</form>
+
 <div class="chip-row" id="cat-chips" role="tablist" aria-label="카테고리">
   <a class="filter-chip {% if not category %}on{% endif %}" href="/" role="tab" aria-selected="{{ 'true' if not category else 'false' }}">
     {% with name='전체' %}{% include "_cat_icon.html" %}{% endwith %}
@@ -86,6 +93,7 @@
 </div>
 
 <div class="list-view-toolbar">
+  <span class="list-count">실시간 딜 <strong>{{ "{:,}".format(deals_total|default(0)) }}</strong>개</span>
   <div class="list-view-switch" role="group" aria-label="목록 보기 방식">
     <button type="button" class="list-view-btn on" data-list-view="horizontal" aria-pressed="true" aria-controls="deal-body">목록</button>
     <button type="button" class="list-view-btn" data-list-view="vertical" aria-pressed="false" aria-controls="deal-body">4열</button>
