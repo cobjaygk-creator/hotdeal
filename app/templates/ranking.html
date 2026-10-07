@@ -6,7 +6,21 @@
 <meta property="og:url" content="{{ site_url }}/ranking">
 {% endblock %}
 {% block body %}
-<div class="page-head"><div><p class="page-kicker">HOTDEAL RANKING</p><h1>인기 랭킹</h1><p class="page-meta"><span class="title-live-dot dot"></span>최근 12시간 · 조회·찜·댓글·리액션 종합</p></div></div>
+<section class="ranking-hero" aria-labelledby="ranking-title">
+  <div class="ranking-hero-copy">
+    <p class="page-kicker">HOTDEAL RANKING</p>
+    <h1 id="ranking-title">지금 반응이 큰 딜</h1>
+    <p class="ranking-hero-note"><span class="title-live-dot dot"></span>최근 12시간 · 조회·찜·댓글·리액션 종합</p>
+  </div>
+  {% if deals %}
+  {% set lead = deals[0] %}
+  <a class="ranking-lead" href="/deal/{{ lead.id }}">
+    <span class="ranking-lead-rank">01</span>
+    <span class="ranking-lead-image">{% if lead.thumbnail_url %}<img src="{{ lead.thumbnail_url }}" alt="" loading="lazy" referrerpolicy="no-referrer">{% endif %}</span>
+    <span class="ranking-lead-copy"><small>{{ lead.category or '핫딜' }} · {{ lead.comments or 0 }} comments</small><strong>{{ lead.product_name | clean_title }}</strong><b>{% if lead.price %}{{ "{:,}".format(lead.price) }}원{% endif %}</b></span>
+  </a>
+  {% endif %}
+</section>
 <div class="chip-row ranking-tabs" role="tablist" aria-label="랭킹 범위"><button class="filter-chip on" type="button">전체</button><button class="filter-chip" type="button">식품</button><button class="filter-chip" type="button">디지털</button><button class="filter-chip" type="button">가전</button><button class="filter-chip" type="button">생활</button></div>
 <div class="list-view-toolbar"><div class="list-view-switch" role="group" aria-label="목록 보기 방식"><button type="button" class="list-view-btn on" data-list-view="horizontal" aria-pressed="true" aria-controls="ranking-body">목록</button><button type="button" class="list-view-btn" data-list-view="vertical" aria-pressed="false" aria-controls="ranking-body">4열</button></div></div>
 <div class="deal-layout"><main class="deal-list-column"><ol class="deal-cards ranking-list" id="ranking-body" data-view="horizontal">

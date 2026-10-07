@@ -535,6 +535,23 @@
 }
 
 /* Ranking and family sale use the same editorial feed language as hotdeal. */
+body[data-page="ranking"] .ranking-hero,
+body[data-page="family"] .family-hero { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-7); margin-bottom: var(--space-7); padding: var(--space-7) 0 var(--space-6); border-bottom: 1px solid var(--border); }
+body[data-page="ranking"] .ranking-hero h1,
+body[data-page="family"] .family-hero h1 { margin: var(--space-2) 0 var(--space-3); font-size: 34px; line-height: var(--lh-tight); letter-spacing: var(--ls-display); }
+body[data-page="ranking"] .ranking-hero-note,
+body[data-page="family"] .family-hero-note { color: var(--ink-muted); font-size: var(--text-body-sm); }
+body[data-page="ranking"] .ranking-lead { display: grid; grid-template-columns: auto 76px minmax(190px, 280px); align-items: center; gap: var(--space-3); min-width: 390px; padding: var(--space-3) 0 var(--space-3) var(--space-4); border-left: 3px solid var(--accent); color: var(--ink); }
+body[data-page="ranking"] .ranking-lead-rank { color: var(--accent); font-size: 28px; font-weight: 850; font-variant-numeric: tabular-nums; }
+body[data-page="ranking"] .ranking-lead-image { width: 76px; height: 76px; overflow: hidden; border-radius: var(--radius-md); background: var(--surface-sunken); }
+body[data-page="ranking"] .ranking-lead-image img { width: 100%; height: 100%; object-fit: contain; mix-blend-mode: multiply; }
+body[data-page="ranking"] .ranking-lead-copy { display: grid; gap: var(--space-1); min-width: 0; }
+body[data-page="ranking"] .ranking-lead-copy small { color: var(--ink-muted); font-size: var(--text-label); }
+body[data-page="ranking"] .ranking-lead-copy strong { overflow: hidden; font-size: var(--text-body); line-height: var(--lh-title); text-overflow: ellipsis; white-space: nowrap; }
+body[data-page="ranking"] .ranking-lead-copy b { font-size: var(--text-price); }
+body[data-page="family"] .family-hero-stats { display: flex; gap: var(--space-6); padding-bottom: var(--space-2); }
+body[data-page="family"] .family-hero-stats span { display: grid; gap: var(--space-1); color: var(--ink-muted); font-size: var(--text-label); text-align: right; }
+body[data-page="family"] .family-hero-stats b { color: var(--ink); font-size: 28px; line-height: 1; font-variant-numeric: tabular-nums; }
 body[data-page="ranking"] .page-head,
 body[data-page="family"] .page-head { margin-bottom: var(--space-6); }
 body[data-page="ranking"] .page-head h1,
@@ -573,6 +590,13 @@ body[data-page="family"] .family-detail-copy h1 { margin: var(--space-2) 0 var(-
 body[data-page="family"] .family-detail-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; margin-top: var(--space-6); }
 body[data-page="family"] .family-detail-source { margin-top: var(--space-6); font-size: var(--text-body-sm); }
 @media (max-width: 700px) {
+  body[data-page="ranking"] .ranking-hero,
+  body[data-page="family"] .family-hero { display: block; padding-top: var(--space-5); }
+  body[data-page="ranking"] .ranking-hero h1,
+  body[data-page="family"] .family-hero h1 { font-size: 28px; }
+  body[data-page="ranking"] .ranking-lead { min-width: 0; margin-top: var(--space-5); grid-template-columns: auto 64px minmax(0,1fr); }
+  body[data-page="ranking"] .ranking-lead-image { width: 64px; height: 64px; }
+  body[data-page="family"] .family-hero-stats { margin-top: var(--space-5); justify-content: flex-start; gap: var(--space-5); }
   body[data-page="family"] .family-detail-hero { grid-template-columns: 1fr; gap: var(--space-4); }
   body[data-page="family"] .family-detail-image { min-height: 240px; }
   body[data-page="family"] .family-detail-copy { padding-top: 0; }

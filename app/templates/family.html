@@ -1,7 +1,14 @@
 {% extends "base.html" %}
 {% block title %}패밀리세일 · 핫딜모음{% endblock %}
 {% block body %}
-<div class="page-head"><div><p class="page-kicker">FAMILY SALE</p><h1>패밀리세일</h1><p class="page-meta"><span class="title-live-dot dot"></span>브랜드 창고·패밀리세일 일정 · 마지막 수집 {{ stats.last | kst }}</p></div></div>
+<section class="family-hero" aria-labelledby="family-title">
+  <div>
+    <p class="page-kicker">FAMILY SALE</p>
+    <h1 id="family-title">세일 일정과 입장 조건</h1>
+    <p class="family-hero-note"><span class="title-live-dot dot"></span>브랜드 창고·패밀리세일 일정 · 마지막 수집 {{ stats.last | kst }}</p>
+  </div>
+  <div class="family-hero-stats" aria-label="패밀리세일 현황"><span><b>{{ stats.live }}</b>진행중</span><span><b>{{ stats.upcoming }}</b>예정</span><span><b>{{ stats.codes }}</b>입장코드</span></div>
+</section>
 
 <div class="chip-row" id="family-cats" role="tablist" aria-label="패밀리세일 분류">
   <a class="filter-chip {% if not cats %}on{% endif %}" href="/family">전체 <span class="count">{{ stats.live + stats.upcoming }}</span></a>
