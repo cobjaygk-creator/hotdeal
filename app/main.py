@@ -26,6 +26,7 @@ from app.amazon_jp.query import list_amazon_jp_deals
 from app.coupang.pipeline import collect_coupang
 from app.coupang.query import list_coupang_deals
 from app.admin_settings import load_runtime_settings
+from app.collection_guard import fetch_sources
 from app.admin_settings import SETTING_KEYS, encrypt
 from app.config import (
     AMAZON_JP_ENABLED,
@@ -383,28 +384,22 @@ async def _scheduled_email_digest() -> None:
 
 
 async def _scheduled_watchdog() -> None:
-    """Every collect tier updates state["last_collect_ts"] on success; the
-    fastest tier runs every 30s, so if nothing has succeeded for several
-    minutes the scheduler (or the event loop under it) is stuck even though
-    HTTP may still be answering. Exit non-zero so the platform's restart
-    policy — which a plain hang never triggers on its own — takes over."""
+    """Report stale collection without taking a healthy web server offline.
+
+    Source/collector deadlines release stalled tasks. A stale completion time
+    alone does not distinguish an upstream outage from a broken web server.
+    """
     last = state.get("last_collect_ts")
     if last is None:
         return
     stale_for = time.monotonic() - last
     limit = WATCHDOG_STALE_MINUTES * 60
     if stale_for > limit:
-        log.critical(
-            "watchdog: no collect tick in %.0fs (limit %ds) — exiting for restart",
+        log.warning(
+            "watchdog: no collect tick in %.0fs (limit %ds) — collection degraded; web server remains running",
             stale_for,
             limit,
         )
-        for handler in logging.getLogger().handlers:
-            try:
-                handler.flush()
-            except Exception:  # noqa: BLE001
-                pass
-        os._exit(1)
 
 
 async def _scheduled_collect() -> None:
@@ -440,7 +435,7 @@ async def _scheduled_flights() -> None:
 
 
 async def _scheduled_family() -> None:
-    async with state["collect_lock"]:
+    async with _collection_slot():
         try:
             async with _own_db() as conn:
                 await collect_family_sales(conn, state["http"])
@@ -449,7 +444,7 @@ async def _scheduled_family() -> None:
 
 
 async def _scheduled_amazon_jp() -> None:
-    async with state["collect_lock"]:
+    async with _collection_slot():
         try:
             async with _own_db() as conn:
                 await collect_amazon_jp(conn, state["http"])
@@ -460,7 +455,7 @@ async def _scheduled_amazon_jp() -> None:
 async def _scheduled_mvno() -> None:
     from app.mvno.pipeline import collect_mvno_plans
 
-    async with state["collect_lock"]:
+    async with _collection_slot():
         try:
             async with _own_db() as conn:
                 await collect_mvno_plans(conn, state["http"])
@@ -472,7 +467,7 @@ async def _scheduled_ppomppu_mall_enrich() -> None:
     # Detail-link writes share SQLite with every collection tier.  WAL still
     # permits only one writer; serialise this sweep with collectors so a link
     # fill cannot abort either transaction with "database is locked".
-    async with state["collect_lock"]:
+    async with _collection_slot():
         await _run_mall_enrich()
 
 
@@ -542,7 +537,7 @@ async def _run_mall_enrich(
         return out
 
 
-async def _run_collect(names: list[str] | None) -> dict:
+async def _run_collect(names: list[str] | None, *, sources=None) -> dict:
     # Own SQLite connection so fast/proxy/slow ticks can overlap under WAL
     # without sharing state["db"] with request handlers.
     from app.pipeline import fetch_deal_card
@@ -550,7 +545,9 @@ async def _run_collect(names: list[str] | None) -> dict:
     conn = await connect()
     try:
         try:
-            summary = await collect_and_process(conn, get_sources(names), state["http"])
+            summary = await collect_and_process(
+                conn, get_sources(names) if sources is None else sources, state["http"]
+            )
         except Exception:
             log.exception("scheduled collect failed")
             return {"errors": ["collect failed"], "new_deals": [], "sources": {}}
@@ -608,9 +605,31 @@ async def _run_collect(names: list[str] | None) -> dict:
 
 
 async def _run_collect_serialized(names: list[str] | None) -> dict:
-    """Run a collection transaction while excluding every other DB writer."""
-    async with state["collect_lock"]:
-        return await _run_collect(names)
+    """Fetch remotely without blocking other tiers; serialize DB processing."""
+    sources = await fetch_sources(
+        get_sources(names), state["http"], state.setdefault("source_failures", {})
+    )
+    try:
+        async with _collection_slot():
+            return await _run_collect(names, sources=sources)
+    except TimeoutError:
+        log.error("collection deadline exceeded sources=%s", names)
+        return {"errors": ["collection deadline exceeded"], "new_deals": [], "sources": {}}
+
+
+COLLECTION_SLOT_TIMEOUT_SECONDS = 180.0
+
+
+@asynccontextmanager
+async def _collection_slot():
+    """Bound both writer-lock waiting and work, including network enrichment.
+
+    The deadline wraps the lock so cancellation unwinds DB context managers
+    and releases the lock before another writer enters.
+    """
+    async with asyncio.timeout(COLLECTION_SLOT_TIMEOUT_SECONDS):
+        async with state["collect_lock"]:
+            yield
 
 
 def _db():
@@ -1033,7 +1052,7 @@ async def api_coupang_collect(request: Request):
     _require_admin(request)
     if not COUPANG_ENABLED:
         raise HTTPException(404, "쿠팡 파트너스 키가 설정되지 않았습니다")
-    async with state["collect_lock"]:
+    async with _collection_slot():
         async with _own_db() as conn:
             summary = await collect_coupang(conn)
     return JSONResponse(summary)
@@ -1134,7 +1153,7 @@ async def api_mvno_collect():
     _require_collect()
     from app.mvno.pipeline import collect_mvno_plans
 
-    async with state["collect_lock"]:
+    async with _collection_slot():
         async with _own_db() as conn:
             summary = await collect_mvno_plans(conn, state["http"])
     return JSONResponse(summary)
@@ -1143,7 +1162,7 @@ async def api_mvno_collect():
 @app.post("/api/family/collect")
 async def api_family_collect():
     _require_collect()
-    async with state["collect_lock"]:
+    async with _collection_slot():
         async with _own_db() as conn:
             summary = await collect_family_sales(conn, state["http"])
     return JSONResponse(summary)
@@ -1154,7 +1173,7 @@ async def api_amazon_jp_collect():
     if not AMAZON_JP_ENABLED:
         raise HTTPException(404, "일마존 메뉴가 비활성화되어 있습니다")
     _require_collect()
-    async with state["collect_lock"]:
+    async with _collection_slot():
         async with _own_db() as conn:
             summary = await collect_amazon_jp(conn, state["http"])
     return JSONResponse(summary)

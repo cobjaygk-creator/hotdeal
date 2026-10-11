@@ -22,12 +22,8 @@ USER_AGENT = (
 )
 
 MIN_REQUEST_INTERVAL_SEC = 1.0
-# Self-heal a "zombie" process: HTTP keeps answering but the scheduler has
-# stopped making progress (seen once: DB lock / hung fetch stalled every
-# collect tier while the web server stayed up, so Railway's on-failure
-# restart never triggered — nothing had actually crashed). If no collect
-# tick succeeds for this long, the app deliberately exits non-zero so the
-# platform's restart policy takes over.
+# Warn when collection stops progressing. Upstream failures must not terminate
+# the web process; bounded collector tasks handle recovery independently.
 WATCHDOG_ENABLED = (os.environ.get("WATCHDOG_ENABLED") or "1").strip().lower() not in (
     "", "0", "false", "no",
 )

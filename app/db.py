@@ -336,16 +336,22 @@ async def connect(
     conn = await aiosqlite.connect(
         db_path, timeout=30.0, isolation_level=None if autocommit else ""
     )
-    conn.row_factory = aiosqlite.Row
-    await conn.execute("PRAGMA journal_mode=WAL")
-    await conn.execute("PRAGMA busy_timeout=30000")
-    await conn.execute("PRAGMA foreign_keys=ON")
     try:
-        await conn.executescript(SCHEMA)
-    except Exception:
-        logging.getLogger("hotdeal").exception("schema apply failed; continuing with alters")
-    await _ensure_columns(conn)
-    await conn.commit()
+        conn.row_factory = aiosqlite.Row
+        await conn.execute("PRAGMA journal_mode=WAL")
+        await conn.execute("PRAGMA busy_timeout=30000")
+        await conn.execute("PRAGMA foreign_keys=ON")
+        try:
+            await conn.executescript(SCHEMA)
+        except Exception:
+            logging.getLogger("hotdeal").exception("schema apply failed; continuing with alters")
+        await _ensure_columns(conn)
+        await conn.commit()
+    except BaseException:
+        # Cancellation during initialization happens before callers receive
+        # the connection, so their finally blocks cannot close/rollback it.
+        await conn.close()
+        raise
     return conn
 
 

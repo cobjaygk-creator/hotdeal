@@ -6,26 +6,22 @@ import app.main as main_mod
 
 
 @pytest.mark.asyncio
-async def test_watchdog_exits_when_stale(monkeypatch):
+async def test_watchdog_warns_without_killing_web_server_when_stale(monkeypatch, caplog):
     monkeypatch.setattr(main_mod, "WATCHDOG_STALE_MINUTES", 5)
-    main_mod.state["last_collect_ts"] = time.monotonic() - 6 * 60
-
-    called = {}
+    monkeypatch.setitem(main_mod.state, "last_collect_ts", time.monotonic() - 6 * 60)
 
     def fake_exit(code):
-        called["code"] = code
-        raise SystemExit(code)
+        raise AssertionError("upstream outages must not kill the web server")
 
     monkeypatch.setattr(main_mod.os, "_exit", fake_exit)
-    with pytest.raises(SystemExit):
-        await main_mod._scheduled_watchdog()
-    assert called["code"] == 1
+    await main_mod._scheduled_watchdog()
+    assert "collection degraded" in caplog.text
 
 
 @pytest.mark.asyncio
 async def test_watchdog_stays_quiet_when_fresh(monkeypatch):
     monkeypatch.setattr(main_mod, "WATCHDOG_STALE_MINUTES", 5)
-    main_mod.state["last_collect_ts"] = time.monotonic()
+    monkeypatch.setitem(main_mod.state, "last_collect_ts", time.monotonic())
 
     def fake_exit(code):  # pragma: no cover - must not run
         raise AssertionError("watchdog should not exit while fresh")
@@ -36,7 +32,7 @@ async def test_watchdog_stays_quiet_when_fresh(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_watchdog_noop_before_first_tick(monkeypatch):
-    main_mod.state.pop("last_collect_ts", None)
+    monkeypatch.delitem(main_mod.state, "last_collect_ts", raising=False)
 
     def fake_exit(code):  # pragma: no cover - must not run
         raise AssertionError("watchdog should not exit with no baseline yet")
