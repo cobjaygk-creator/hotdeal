@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import asyncio
 import re
 import logging
 from urllib.parse import parse_qs, urlparse
 
 from selectolax.parser import HTMLParser
 
-from app.http_client import PoliteClient
+from app.http_client import PoliteClient, soft_block_reason
 from app.config import PPOMPPU_PROXY_URL
 from app.sources import RawPost
 from app.util.timeparse import parse_int, parse_kr_datetime
@@ -16,6 +17,25 @@ BOARDS = (
     "deal_oversea",
 )
 log = logging.getLogger(__name__)
+# Two boards use at most 2 * (6 + 16) = 44 seconds of request budget,
+# leaving headroom inside the collector's 60-second source deadline.
+DIRECT_BUDGET_SECONDS = 6.0
+PROXY_BUDGET_SECONDS = 16.0
+
+
+async def _fetch_board(client, url, *, proxy=None):
+    budget = PROXY_BUDGET_SECONDS if proxy else DIRECT_BUDGET_SECONDS
+    # Covers host-lock waiting, backoff, TLS impersonation and fallback too.
+    async with asyncio.timeout(budget):
+        result = await client.get(
+            url, proxy=proxy, timeout=budget, max_retries=1, curl_fallback=False
+        )
+    if not result.not_modified:
+        if result.status != 200:
+            raise RuntimeError(f"HTTP {result.status}")
+        if reason := soft_block_reason(result.text):
+            raise RuntimeError(f"blocked response: {reason}")
+    return result
 
 
 class DealbadaSource:
@@ -24,29 +44,27 @@ class DealbadaSource:
     async def fetch_latest(self, client: PoliteClient) -> list[RawPost]:
         posts: list[RawPost] = []
         seen: set[str] = set()
+        failures: list[str] = []
         for board in BOARDS:
             url = f"https://www.dealbada.com/bbs/board.php?bo_table={board}"
             try:
-                result = await client.get(url)
+                result = await _fetch_board(client, url)
             except Exception as direct_error:  # noqa: BLE001 - try the configured KR exit
                 if not PPOMPPU_PROXY_URL:
-                    log.warning("dealbada %s fetch failed: %s", board, direct_error)
+                    failure = f"{board}: direct={type(direct_error).__name__}; proxy=disabled"
+                    failures.append(failure)
+                    log.warning("dealbada %s", failure)
                     continue
                 try:
-                    result = await client.get(
-                        url,
-                        proxy=PPOMPPU_PROXY_URL,
-                        timeout=20.0,
-                        max_retries=2,
-                    )
+                    result = await _fetch_board(client, url, proxy=PPOMPPU_PROXY_URL)
                     log.info("dealbada %s recovered through configured proxy", board)
                 except Exception as proxy_error:  # noqa: BLE001 - preserve other board
-                    log.warning(
-                        "dealbada %s direct=%s proxy=%s",
-                        board,
-                        type(direct_error).__name__,
-                        type(proxy_error).__name__,
+                    failure = (
+                        f"{board}: direct={type(direct_error).__name__}; "
+                        f"proxy={type(proxy_error).__name__}"
                     )
+                    failures.append(failure)
+                    log.warning("dealbada %s", failure)
                     continue
             if result.not_modified:
                 continue
@@ -57,6 +75,8 @@ class DealbadaSource:
                 seen.add(key)
                 post.source_post_id = key
                 posts.append(post)
+        if len(failures) == len(BOARDS):
+            raise RuntimeError("all dealbada boards failed: " + " | ".join(failures))
         return posts
 
 

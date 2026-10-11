@@ -35,3 +35,18 @@ After deployment, check the GitHub/Railway deployment commit and status, then
 GET /api/stats repeatedly to verify last_collect_at and collect_by_source
 timestamps advance. Inspect Railway logs for repeated deadlines and DB locks.
 Railway restart settings are not changed by this patch.
+
+## Dealbada request budgets
+
+Dealbada allocates each board a 6-second direct request path followed, on
+failure, by a 16-second proxy path when configured. Both paths use one client
+attempt and disable curl fallback. The outer path deadline also includes
+host-lock waiting, backoff and TLS impersonation fallback, preventing direct
+retries from consuming the entire source budget before the proxy is tried.
+Two sequential boards therefore have a combined request budget of 44 seconds.
+
+One failed board does not discard the other's posts. If both fail, an explicit
+error containing board names and direct/proxy exception types reaches source
+cooldown/reporting instead of appearing as a successful empty collection.
+Unchanged (304) responses remain successful. Partial failures are logged;
+the existing per-source summary reports the preserved successful results.
