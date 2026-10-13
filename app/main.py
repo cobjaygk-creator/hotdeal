@@ -1147,10 +1147,11 @@ async def mvno_index(request: Request, sort: str = "fee", mno: str | None = None
 
 
 @app.post("/api/mvno/collect")
-async def api_mvno_collect():
+async def api_mvno_collect(request: Request):
     if not MVNO_ENABLED:
         raise HTTPException(404, "알뜰요금제 메뉴가 비활성화되어 있습니다")
     _require_collect()
+    _require_admin(request)
     from app.mvno.pipeline import collect_mvno_plans
 
     async with _collection_slot():
@@ -1160,8 +1161,9 @@ async def api_mvno_collect():
 
 
 @app.post("/api/family/collect")
-async def api_family_collect():
+async def api_family_collect(request: Request):
     _require_collect()
+    _require_admin(request)
     async with _collection_slot():
         async with _own_db() as conn:
             summary = await collect_family_sales(conn, state["http"])

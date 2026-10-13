@@ -7,14 +7,10 @@
 <meta property="og:type" content="website">
 {% endblock %}
 {% block body %}
-<div class="page-head">
-  <h1>알뜰요금제 이벤트</h1>
-  <div class="page-head-actions">
-    <div class="page-meta">마지막 수집 {{ last | kst }}</div>
-    <button type="button" id="mvno-collect" class="btn-secondary">지금 수집</button>
-  </div>
-</div>
-<p class="muted" style="margin:-6px 0 14px;font-size:13px">페이백·사은품 등 현금성 혜택이 붙은 요금제만 모읍니다. 혜택가는 프로모션 기간에만 적용될 수 있으니 가입 전 조건을 확인하세요.</p>
+<section class="feed-page-head mvno-page-head" aria-labelledby="mvno-title">
+  <div><p class="page-kicker">MOBILE PLAN</p><h1 id="mvno-title">알뜰요금제 이벤트</h1><p>혜택이 있는 요금제만 모아 비교합니다 · 마지막 수집 {{ last | kst }}</p></div>
+  {% if is_admin %}<button type="button" id="mvno-collect" class="btn-secondary">지금 수집</button>{% endif %}
+</section>
 
 <form class="toolbar" method="get" action="/mvno" style="margin-bottom:14px">
   <select name="sort" onchange="this.form.submit()">
@@ -30,9 +26,7 @@
   </select>
 </form>
 
-<div class="summary-chips">
-  <span class="summary-chip">이벤트 요금제 <strong>{{ plans|length }}</strong></span>
-</div>
+<div class="list-view-toolbar mvno-list-toolbar"><span class="list-count">이벤트 요금제 <strong>{{ plans|length }}</strong>개</span><span class="list-helper">혜택 조건은 가입 전 판매처에서 확인하세요.</span></div>
 
 <ul class="deal-cards" id="mvno-body" data-view="vertical" aria-label="알뜰요금제 목록">
   {% for p in plans %}

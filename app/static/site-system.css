@@ -1,5 +1,6 @@
 /* Site-wide product UI layer. The page-specific styles remain in pages.css. */
 body { background: var(--bg); color: var(--ink); }
+.homepage-nav { display: none; }
 body[data-page="ranking"] .app-topbar,
 body[data-page="family"] .app-topbar,
 body[data-page="search"] .app-topbar,
@@ -37,6 +38,23 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .rail-panel { border-radius: var(--radius-lg); background: var(--grey-50); }
 .rail-alert { border-color: var(--border-strong); background: var(--surface); }
 .rail-alert .btn { background: var(--accent); color: var(--accent-ink); }
+.feed-page-head { display:flex; align-items:flex-end; justify-content:space-between; gap:var(--space-6); margin:var(--space-8) 0 var(--space-6); padding-bottom:var(--space-6); border-bottom:1px solid var(--border); }
+.feed-page-head h1 { margin:var(--space-1) 0 var(--space-2); color:var(--ink); font-size:var(--text-display); letter-spacing:var(--ls-display); }
+.feed-page-head p { margin:0; color:var(--ink-muted); font-size:var(--text-body-sm); }
+.feed-statline { display:flex; gap:var(--space-5); color:var(--ink-muted); font-size:var(--text-body-sm); white-space:nowrap; }
+.feed-statline b { color:var(--ink); font-size:var(--text-section); font-variant-numeric:tabular-nums; }
+.feed-lead-link { display:grid; gap:var(--space-1); max-width:320px; padding-left:var(--space-5); border-left:3px solid var(--accent); color:var(--ink); text-decoration:none; }
+.feed-lead-link span { color:var(--accent); font-size:var(--text-label); font-weight:800; letter-spacing:.06em; }
+.feed-lead-link strong { overflow:hidden; font-size:var(--text-body); text-overflow:ellipsis; white-space:nowrap; }
+.mvno-list-toolbar { margin-top:var(--space-6); }
+.list-helper { color:var(--ink-muted); font-size:var(--text-body-sm); }
+body[data-page="hotdeal"] .deal-discovery { margin-top:var(--space-6); padding:var(--space-5) var(--space-6); border-radius:var(--radius-lg); }
+body[data-page="hotdeal"] .deal-discovery-list { gap:var(--space-5); }
+body[data-page="hotdeal"] .deal-discovery-thumb { width:76px; height:76px; }
+body[data-page="hotdeal"] .deal-discovery-item { grid-template-columns:76px minmax(0,1fr); gap:var(--space-3); }
+body[data-page="hotdeal"] .deal-discovery-copy strong { font-size:var(--text-body); }
+body[data-page="hotdeal"] .deal-discovery-price { font-size:var(--text-section); }
+body[data-page="hotdeal"] .deal-discovery-meta { font-size:var(--text-label); }
 .summary-chips { display: flex; flex-wrap: wrap; gap: var(--space-3); }
 .summary-chip { display: inline-flex; align-items: center; gap: var(--space-2); min-height: var(--space-8); padding: 0 var(--space-3); border-radius: var(--radius-pill); background: var(--surface-sunken); color: var(--ink-muted); font-size: var(--text-body-sm); }
 .summary-chip strong { color: var(--ink); font-variant-numeric: tabular-nums; }
@@ -66,6 +84,13 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .alert-form h2, .auth h1 { color: var(--ink); }
 .alert-form input, .auth input { min-height: var(--space-9); }
 @media (max-width: 767px) {
+  .feed-page-head { align-items:flex-start; flex-direction:column; margin:var(--space-6) 0 var(--space-5); padding-bottom:var(--space-5); }
+  .feed-page-head h1 { font-size:28px; }
+  .feed-statline { gap:var(--space-3); }
+  .feed-lead-link { max-width:100%; width:100%; }
+  .list-helper { display:none; }
+  body[data-page="hotdeal"] .deal-discovery { margin-top:var(--space-4); padding:var(--space-4); }
+  body[data-page="hotdeal"] .deal-discovery-thumb { width:100%; height:auto; }
   .stats { grid-template-columns: repeat(2, minmax(0,1fr)); }
   .panel, .deal-detail-card, .auth-card, .alert-card, .summary-panel { padding: var(--space-5); }
   .admin-table { min-width: 620px; }
