@@ -162,3 +162,13 @@ body[data-page="hotdeal"] .homepage-filters { padding-top: var(--space-4); borde
 }
 body[data-page="hotdeal"] .main-inner { padding-top: 0; }
 @media (min-width: 900px) { body[data-page="hotdeal"] .homepage-feed-head { margin-top: 32px; } }
+/* Home feed is the working surface: keep supporting tools out of the first scan. */
+body[data-page="hotdeal"] .deal-layout { grid-template-columns: minmax(0, 1fr); }
+body[data-page="hotdeal"] .deal-layout .deal-list-column { max-width: none; }
+body[data-page="hotdeal"] .deal-layout .deal-rail { display: none; }
+@media (min-width:900px) {
+  body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] { grid-template-columns: repeat(2, minmax(0, 1fr)); gap:0 34px; }
+  body[data-page="hotdeal"] .deal-layout .deal-card { min-height:148px; }
+  body[data-page="hotdeal"] .deal-layout .deal-thumb-wrap { width:108px; flex-basis:108px; }
+  body[data-page="hotdeal"] .deal-layout .deal-thumb-hit, body[data-page="hotdeal"] .deal-layout .deal-thumb { width:108px; height:108px; }
+}
