@@ -160,3 +160,5 @@ body[data-page="hotdeal"] .homepage-filters { padding-top: var(--space-4); borde
   .deal-layout .deal-price { font-size:19px; }
   .feed-page-head h1 { font-size:27px; }
 }
+body[data-page="hotdeal"] .main-inner { padding-top: 0; }
+@media (min-width: 900px) { body[data-page="hotdeal"] .homepage-feed-head { margin-top: 32px; } }
