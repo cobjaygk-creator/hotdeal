@@ -6,7 +6,7 @@
   if (!list) return;
 
   var viewSwitch = document.querySelector(".list-view-switch");
-  var view = "horizontal";
+  var view = document.body.dataset.page === "hotdeal" ? "vertical" : "horizontal";
   try { if (localStorage.getItem("deal-list-view") === "vertical") view = "vertical"; } catch (e) {}
   function applyView() {
     list.dataset.view = view;
@@ -179,3 +179,4 @@
   applyHide();
   collapseSourceDupes();
 })();
+

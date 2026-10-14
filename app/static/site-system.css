@@ -172,3 +172,35 @@ body[data-page="hotdeal"] .deal-layout .deal-rail { display: none; }
   body[data-page="hotdeal"] .deal-layout .deal-thumb-wrap { width:108px; flex-basis:108px; }
   body[data-page="hotdeal"] .deal-layout .deal-thumb-hit, body[data-page="hotdeal"] .deal-layout .deal-thumb { width:108px; height:108px; }
 }
+
+/* Home rebuild v1: product-first grid, keeping live list controls and data attributes intact. */
+body[data-page="hotdeal"] .homepage-feed-head { padding: 40px 0 22px; border-bottom: 0; }
+body[data-page="hotdeal"] .homepage-feed-head h1 { font-size: 34px; }
+body[data-page="hotdeal"] .homepage-feed-head > div > p:last-child { font-size:14px; }
+body[data-page="hotdeal"] #cat-chips { min-height:64px; margin:0; padding:12px 0; border-top:1px solid var(--border); border-bottom:1px solid var(--border); overflow:auto; flex-wrap:nowrap; }
+body[data-page="hotdeal"] #cat-chips .filter-chip { flex:0 0 auto; min-height:38px; border-radius:10px; }
+body[data-page="hotdeal"] .homepage-filters { display:flex !important; align-items:center; min-height:52px; margin:0; padding:0; border-bottom:1px solid var(--border); }
+body[data-page="hotdeal"] .sort-pills { background:transparent; border:0; box-shadow:none; }
+body[data-page="hotdeal"] .sort-pill { min-height:30px; padding:0 10px; background:transparent; color:var(--ink-muted); }
+body[data-page="hotdeal"] .sort-pill.on { color:var(--ink); background:transparent; box-shadow:none; font-weight:800; }
+body[data-page="hotdeal"] .list-view-toolbar { padding:24px 0 12px; border:0; }
+body[data-page="hotdeal"] .list-count { color:var(--ink); font-size:18px; font-weight:750; }
+body[data-page="hotdeal"] .list-count strong { font-size:12px; color:var(--ink-muted); font-weight:600; }
+@media (min-width:900px) {
+  body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="vertical"] { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:30px 18px; border:0; }
+  body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="vertical"] > .deal-card { display:flex; flex-direction:column; min-height:0; border:0; background:transparent; overflow:visible; }
+  body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="vertical"] .deal-thumb-wrap { width:100%; height:auto; flex:auto; margin:0; align-self:auto; overflow:visible; }
+  body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="vertical"] .deal-thumb-hit, body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="vertical"] .deal-thumb { width:100%; height:auto; aspect-ratio:1; border-radius:16px; }
+  body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="vertical"] .bookmark-btn { top:auto; left:auto; right:10px; bottom:10px; width:34px; height:34px; border-radius:50%; background:var(--surface); box-shadow:0 1px 4px rgba(0,0,0,.12); }
+  body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="vertical"] .deal-row-main { padding:11px 0 0; }
+  body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="vertical"] .deal-title { min-height:42px; white-space:normal; font-size:14px; line-height:1.45; }
+  body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="vertical"] .deal-body { gap:5px; }
+  body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="vertical"] .deal-price { flex-basis:auto; font-size:20px; }
+  body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="vertical"] .deal-row-side { display:none; }
+}
+@media (max-width:767px) {
+  body[data-page="hotdeal"] .homepage-feed-head { padding:28px 0 18px; }
+  body[data-page="hotdeal"] .homepage-feed-head h1 { font-size:26px; }
+  body[data-page="hotdeal"] .homepage-feed-head > div > p:last-child { max-width:270px; line-height:1.5; }
+  body[data-page="hotdeal"] #cat-chips { margin:0; }
+}
