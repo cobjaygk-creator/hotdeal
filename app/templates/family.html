@@ -1,13 +1,9 @@
 {% extends "base.html" %}
 {% block title %}패밀리세일 · 핫딜모음{% endblock %}
 {% block body %}
-<section class="family-hero" aria-labelledby="family-title">
-  <div>
-    <p class="page-kicker">FAMILY SALE</p>
-    <h1 id="family-title">세일 일정과 입장 조건</h1>
-    <p class="family-hero-note"><span class="title-live-dot dot"></span>브랜드 창고·패밀리세일 일정 · 마지막 수집 {{ stats.last | kst }}</p>
-  </div>
-  <div class="family-hero-stats" aria-label="패밀리세일 현황"><span><b>{{ stats.live }}</b>진행중</span><span><b>{{ stats.upcoming }}</b>예정</span><span><b>{{ stats.codes }}</b>입장코드</span></div>
+<section class="feed-page-head family-page-head" aria-labelledby="family-title">
+  <div><p class="page-kicker">FAMILY SALE</p><h1 id="family-title">패밀리세일</h1><p><span class="title-live-dot dot"></span>브랜드 창고·패밀리세일 일정 · 마지막 수집 {{ stats.last | kst }}</p></div>
+  <div class="feed-statline" aria-label="패밀리세일 현황"><span><b>{{ stats.live }}</b> 진행중</span><span><b>{{ stats.upcoming }}</b> 예정</span><span><b>{{ stats.codes }}</b> 입장코드</span></div>
 </section>
 
 <div class="chip-row" id="family-cats" role="tablist" aria-label="패밀리세일 분류">
@@ -15,7 +11,7 @@
   {% for c in all_cats %}<a class="filter-chip {% if c in cats %}on{% endif %}" href="/family?cat={{ c }}">{{ c }}</a>{% endfor %}
   <a class="filter-chip {% if entry_only %}on{% endif %}" href="/family?code=1">입장코드</a>
 </div>
-<div class="chip-row sort-row family-sort-row"><span class="sort-label">패밀리세일</span><div class="sort-pills"><button type="button" class="sort-pill on">진행중 {{ stats.live }}</button><button type="button" class="sort-pill">예정 {{ stats.upcoming }}</button><button type="button" class="sort-pill">입장코드 {{ stats.codes }}</button><button type="button" id="family-collect" class="sort-pill">지금 수집</button><a class="sort-pill" href="/family/admin">수동 등록</a></div></div>
+<div class="chip-row sort-row family-sort-row"><span class="sort-label">상태</span><div class="sort-pills"><button type="button" class="sort-pill on">진행중 {{ stats.live }}</button><button type="button" class="sort-pill">예정 {{ stats.upcoming }}</button><button type="button" class="sort-pill">입장코드 {{ stats.codes }}</button>{% if is_admin %}<button type="button" id="family-collect" class="sort-pill">지금 수집</button><a class="sort-pill" href="/family/admin">수동 등록</a>{% endif %}</div></div>
 <div class="list-view-toolbar"><div class="list-view-switch" role="group" aria-label="목록 보기 방식"><button type="button" class="list-view-btn on" data-family-view="horizontal" aria-pressed="true">목록</button><button type="button" class="list-view-btn" data-family-view="vertical" aria-pressed="false">4열</button></div></div>
 <div class="deal-layout"><main class="deal-list-column"><ul class="fam-grid" id="family-body" data-view="horizontal">
   {% for s in sales %}

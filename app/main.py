@@ -1052,8 +1052,9 @@ async def api_admin_digest_send(request: Request):
 
 
 @app.post("/api/family/collect")
-async def api_family_collect():
+async def api_family_collect(request: Request):
     _require_collect()
+    _require_admin(request)
     async with _collection_slot():
         async with _own_db() as conn:
             summary = await collect_family_sales(conn, state["http"])
