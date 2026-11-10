@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}포인트 · 핫딜모음{% endblock %}
+{% block extra_head %}<meta name="robots" content="noindex">{% endblock %}
+{% block body %}
+<div class="page-head">
+  <h1>포인트</h1>
+</div>
+
+<div class="mp">
+
+  <section class="mp-card">
+    <h2>내 포인트 <span class="muted">{{ "{:,}".format(balance) }}P</span></h2>
+    <button type="button" id="checkin-btn" class="btn">출석체크</button>
+    <p class="muted" id="checkin-msg"></p>
+  </section>
+
+  <section class="mp-card">
+    <h2>포인트샵</h2>
+    <p class="muted">준비 중입니다. 교환 가능한 상품이 준비되면 이곳에서 안내해드려요.</p>
+  </section>
+
+  <section class="mp-card">
+    <h2>적립/사용 내역</h2>
+    <ul class="mp-comments">
+      {% for h in history %}
+      <li>
+        <span>{{ "+" if h.delta > 0 else "" }}{{ "{:,}".format(h.delta) }}P · {{ h.reason }}</span>
+        <div class="mp-comment-meta">{{ h.created_at | reltime }}</div>
+      </li>
+      {% else %}
+      <li class="muted">아직 내역이 없습니다.</li>
+      {% endfor %}
+    </ul>
+  </section>
+
+</div>
+<script>
+(function () {
+  var btn = document.getElementById("checkin-btn");
+  var msg = document.getElementById("checkin-msg");
+  if (!btn) return;
+  btn.addEventListener("click", function () {
+    btn.disabled = true;
+    fetch("/api/points/checkin", { method: "POST", credentials: "same-origin" })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.already) {
+          msg.textContent = "오늘은 이미 출석체크를 완료했어요.";
+        } else {
+          msg.textContent = "+" + data.earned + "P 적립 완료!";
+          location.reload();
+        }
+      })
+      .catch(function () { msg.textContent = "오류가 발생했습니다. 잠시 후 다시 시도하세요."; })
+      .finally(function () { btn.disabled = false; });
+  });
+})();
+</script>
+{% endblock %}

@@ -177,6 +177,28 @@ CREATE TABLE IF NOT EXISTS user_keywords (
     UNIQUE(user_id, keyword)
 );
 
+CREATE TABLE IF NOT EXISTS user_points (
+    user_id INTEGER PRIMARY KEY,
+    balance INTEGER NOT NULL DEFAULT 0,
+    updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS point_ledger (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    delta INTEGER NOT NULL,
+    reason TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_point_ledger_user ON point_ledger(user_id, created_at);
+
+CREATE TABLE IF NOT EXISTS checkin_log (
+    user_id INTEGER NOT NULL,
+    checkin_date TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    UNIQUE(user_id, checkin_date)
+);
+
 CREATE TABLE IF NOT EXISTS deal_comments (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     deal_id INTEGER NOT NULL,
@@ -599,12 +621,18 @@ async def _ensure_auth_tables(conn: aiosqlite.Connection) -> None:
         ("password_hash", "TEXT"),
         ("is_admin", "INTEGER NOT NULL DEFAULT 0"),
         ("digest_opt_in", "INTEGER NOT NULL DEFAULT 0"),
+        ("nickname", "TEXT"),
+        ("nickname_set_at", "TEXT"),
     ):
         if name not in user_cols:
             await conn.execute(f"ALTER TABLE users ADD COLUMN {name} {decl}")
     await conn.execute(
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username "
         "ON users(username) WHERE username IS NOT NULL AND TRIM(username) != ''"
+    )
+    await conn.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_users_nickname "
+        "ON users(nickname) WHERE nickname IS NOT NULL AND TRIM(nickname) != ''"
     )
     try:
         from app.engine.auth import ensure_local_admin

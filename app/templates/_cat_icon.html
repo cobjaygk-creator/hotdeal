@@ -1,10 +1,12 @@
-{# name: 전체 | 식품 | 생활 | PC | 가전 | 의류 | 유아 | 게임 | 여행 | 기타 #}
+{# name: 전체 | 식품 | 생활 | 화장품 | PC | 가전 | 의류 | 유아 | 게임 | 여행 | 기타 #}
 {% set n = name|default('') %}
 <span class="filter-chip-ico" aria-hidden="true">
 {% if n == '식품' %}
 <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.2 7.2c0-2.2 1.6-4.4 3.8-4.7 2.2.3 3.8 2.5 3.8 4.7v.4H4.2v-.4Z"/><path d="M5 8.2v4.1c0 .8.7 1.4 1.5 1.4h3c.8 0 1.5-.6 1.5-1.4V8.2"/><path d="M8 2.6v1.4"/></svg>
 {% elif n == '생활' %}
 <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.8 7.4 8 3.2l5.2 4.2"/><path d="M4.2 6.8V13h7.6V6.8"/><path d="M6.6 13V9.4h2.8V13"/></svg>
+{% elif n == '화장품' %}
+<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5.4" y="5.6" width="5.2" height="7.8" rx="1.8"/><path d="M6.6 5.6V3.8c0-.5.4-.9.9-.9h1c.5 0 .9.4.9.9v1.8"/><path d="M6.4 8.4h3.2"/></svg>
 {% elif n == 'PC' %}
 <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.4" y="3" width="11.2" height="7.6" rx="1.4"/><path d="M5.2 13h5.6M8 10.6V13"/></svg>
 {% elif n == '가전' %}

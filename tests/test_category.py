@@ -196,8 +196,15 @@ def test_classify_expanded_source_badges():
     assert classify("무명 XZ", None, "육아") == "유아"
     assert classify("무명 XZ", None, "여행/항공") == "여행"
     assert classify("무명 XZ", None, "컴퓨터") == "PC"
-    assert classify("무명 XZ", None, "화장품") == "생활"
+    assert classify("무명 XZ", None, "화장품") == "화장품"
     assert classify("무명 XZ", None, "상품권") == "기타"
+
+
+def test_classify_cosmetics_split_from_life():
+    assert classify("설화수 자음생 에센스 60ml", "올리브영") == "화장품"
+    assert classify("이니스프리 그린티 쿠션팩트 2호", None) == "화장품"
+    assert classify("라네즈 립밤 2종 세트", None) == "화장품"
+    assert classify("다우니 섬유유연제 로맨스 4L", None) == "생활"
 
 
 def test_weighted_rules_correct_bad_source_category_and_preserve_evidence():

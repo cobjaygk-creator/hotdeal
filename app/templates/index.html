@@ -36,6 +36,12 @@
   </a>
   {% endfor %}
 </div>
+<div class="chip-row" id="source-chips" role="tablist" aria-label="커뮤니티 선택">
+  <button type="button" class="filter-chip on" data-source="*" role="tab" aria-pressed="true">전체</button>
+  {% for s in sources %}
+  <button type="button" class="filter-chip" data-source="{{ s }}" role="tab" aria-pressed="false">{{ source_labels.get(s, s) }}</button>
+  {% endfor %}
+</div>
 
 <div class="mobile-ad" aria-label="광고">{% if adsense_active_now() and adsense_enabled and adsense_mobile_enabled and adsense_publisher_id and adsense_mobile_slot_id %}<ins class="adsbygoogle" style="display:block" data-ad-client="{{ adsense_publisher_id }}" data-ad-slot="{{ adsense_mobile_slot_id }}" data-ad-format="auto" data-full-width-responsive="true"></ins><script>(adsbygoogle = window.adsbygoogle || []).push({});</script>{% endif %}</div>
 <div class="chip-row sort-row homepage-filters">
@@ -71,7 +77,7 @@
   <button type="button" id="more-btn" class="btn-secondary" {% if not has_more %}hidden{% endif %}>더보기</button>
 </div>
 </main><aside class="deal-rail" aria-label="핫딜 보조 정보">
-  <section class="rail-panel"><h2>지금 많이 보는 딜</h2>{% for d in deals[:3] %}<a class="rail-deal" href="/deal/{{ d.id }}"><strong>{{ loop.index }}</strong><span>{{ d.product_name | clean_title }}</span></a>{% else %}<p class="muted">아직 인기 딜이 없습니다.</p>{% endfor %}</section>
+  <section class="rail-panel"><h2>지금 많이 보는 딜</h2>{% for d in popular_deals %}<a class="rail-deal" href="/deal/{{ d.id }}"><strong>{{ loop.index }}</strong><span>{{ d.product_name | clean_title }}</span></a>{% else %}<p class="muted">아직 인기 딜이 없습니다.</p>{% endfor %}</section>
   <section class="rail-panel rail-alert"><h2>키워드 알림</h2><p class="muted">원하는 상품이 올라오면 바로 알려드려요.</p><form action="/alerts" method="get"><input name="q" type="search" placeholder="예: 에어팟, 생수" aria-label="알림 키워드"><button class="btn" type="submit">등록</button></form></section>
   {% if adsense_active_now() and adsense_enabled and adsense_sidebar_enabled and adsense_publisher_id and adsense_sidebar_slot_id %}<div class="rail-ad" aria-label="광고"><span>광고</span><ins class="adsbygoogle" data-ad-client="{{ adsense_publisher_id }}" data-ad-slot="{{ adsense_sidebar_slot_id }}"></ins></div>{% endif %}
 </aside></div>

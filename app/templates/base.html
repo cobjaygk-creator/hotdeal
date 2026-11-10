@@ -50,7 +50,7 @@
   </script>
 </head>
 {% set current_nav = nav|default("hotdeal") %}
-{% set account_label = (user.display_name if user else "로그인") %}
+{% set account_label = ((user.nickname or user.display_name) if user else "로그인") %}
 {% set account_initial = (account_label[:1] if account_label else "U") %}
 <body data-page="{{ current_nav }}">
   <div class="sidebar-backdrop" id="sidebar-backdrop" hidden></div>
@@ -75,7 +75,7 @@
       <a class="topbar-wishlist" href="/mypage">찜</a>
       <form class="topbar-search" method="get" action="/search" role="search">
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true" style="color:var(--ink-faint);flex:none"><circle cx="7" cy="7" r="4.5"></circle><path d="M10.5 10.5 14 14"></path></svg>
-        <input type="search" name="q" placeholder="상품·판매처 검색" aria-label="검색어" value="{{ q|default('') }}">
+        <input type="search" name="q" placeholder="상품·판매처 검색 (#태그명 가능)" aria-label="검색어" value="{{ q|default('') }}">
       </form>
       {% if user %}
       <details class="account-menu inbox-menu" id="inbox-menu">
@@ -105,6 +105,7 @@
         <div class="account-dropdown" role="menu">
           {% if user %}
           <a href="/mypage" role="menuitem">마이페이지</a>
+          <a href="/points" role="menuitem">포인트</a>
           <a href="/alerts" role="menuitem">알림 설정</a>
           {% if is_admin %}<a href="/admin" role="menuitem">관리자</a>{% endif %}
           <a href="/logout" role="menuitem">로그아웃</a>

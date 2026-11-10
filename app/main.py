@@ -67,6 +67,7 @@ from app.engine import comments as deal_comments
 from app.engine.alerts import add_sub, channels_ready, default_target, delete_sub, list_subs
 from app.engine.category import CATEGORIES as DEAL_CATEGORIES
 from app.engine.dedupe import collapse_duplicate_deals
+from app.engine import points
 from app.engine.ppomppu_enrich import enrich_missing_ppomppu_malls
 from app.family.parse import parse_discount
 from app.family.pipeline import collect_family_sales
@@ -608,10 +609,18 @@ async def _home_ctx(
     for name in sources:
         if name not in ordered_sources:
             ordered_sources.append(name)
+    try:
+        from app.engine.ranking import rank_deals
+
+        popular_deals = await rank_deals(_db(), limit=3)
+    except Exception:
+        log.exception("index popular rail failed")
+        popular_deals = []
     return {
         "request": request,
         "stats": stats,
         "deals": deals,
+        "popular_deals": popular_deals,
         "grade": grade or "",
         "seller": seller or "",
         "source": source or "",
@@ -1184,7 +1193,30 @@ async def auth_callback(
     except Exception:
         log.exception("oauth callback failed provider=%s", provider)
         return RedirectResponse("/login?error=oauth", status_code=303)
-    return _login_redirect(int(user["id"]), "/alerts")
+    dest = "/onboarding/nickname" if not user.get("nickname") else "/alerts"
+    return _login_redirect(int(user["id"]), dest)
+
+
+@app.get("/onboarding/nickname", response_class=HTMLResponse)
+async def onboarding_nickname(request: Request, error: str | None = None):
+    user = getattr(request.state, "user", None)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    if user.get("nickname"):
+        return RedirectResponse("/alerts", status_code=303)
+    return TEMPLATES.TemplateResponse(
+        "onboarding_nickname.html",
+        {"request": request, "nav": "hotdeal", "error": user_auth.NICKNAME_ERRORS.get(error or "", "")},
+    )
+
+
+@app.post("/onboarding/nickname")
+async def onboarding_nickname_post(request: Request, nickname: str = Form("")):
+    user = _require_user(request)
+    err = await user_auth.set_nickname(_db(), int(user["id"]), nickname, enforce_cooldown=False)
+    if err:
+        return RedirectResponse(f"/onboarding/nickname?error={err}", status_code=303)
+    return RedirectResponse("/alerts", status_code=303)
 
 
 class BookmarkIn(BaseModel):
@@ -1259,7 +1291,7 @@ async def api_me_bookmarks_put(request: Request, payload: BookmarkIn):
 
 
 @app.get("/mypage", response_class=HTMLResponse)
-async def mypage(request: Request):
+async def mypage(request: Request, nickname_error: str | None = None):
     user = _require_user(request)
     db = _db()
     bookmark_ids = await user_auth.list_bookmark_ids(db, user["id"])
@@ -1278,19 +1310,48 @@ async def mypage(request: Request):
             "comments": await deal_comments.list_user_comments(db, user["id"]),
             "providers": providers,
             "source_labels": SOURCE_LABELS,
+            "nickname_error": user_auth.NICKNAME_ERRORS.get(nickname_error or "", ""),
+            "point_balance": await points.balance(db, int(user["id"])),
         },
     )
 
 
 @app.post("/mypage")
-async def mypage_post(request: Request, action: str = Form(...)):
+async def mypage_post(request: Request, action: str = Form(...), nickname: str = Form("")):
     user = _require_user(request)
     if action == "delete_account":
         await user_auth.delete_account(_db(), int(user["id"]))
         resp = RedirectResponse("/", status_code=303)
         resp.delete_cookie(user_auth.SESSION_COOKIE, path="/")
         return resp
+    if action == "set_nickname":
+        err = await user_auth.set_nickname(_db(), int(user["id"]), nickname)
+        if err:
+            return RedirectResponse(f"/mypage?nickname_error={err}", status_code=303)
+        return RedirectResponse("/mypage", status_code=303)
     return RedirectResponse("/mypage", status_code=303)
+
+
+@app.get("/points", response_class=HTMLResponse)
+async def points_page(request: Request):
+    user = _require_user(request)
+    db = _db()
+    return TEMPLATES.TemplateResponse(
+        "points.html",
+        {
+            "request": request,
+            "nav": "points",
+            "balance": await points.balance(db, int(user["id"])),
+            "history": await points.history(db, int(user["id"])),
+        },
+    )
+
+
+@app.post("/api/points/checkin")
+async def api_points_checkin(request: Request):
+    user = _require_user(request)
+    result = await points.checkin(_db(), int(user["id"]))
+    return JSONResponse(result)
 
 
 @app.get("/sw.js")

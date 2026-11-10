@@ -3,7 +3,9 @@ from __future__ import annotations
 import hashlib
 import hmac
 import logging
+import re
 import secrets
+from datetime import datetime, timedelta
 from hashlib import sha256
 from urllib.parse import urlencode
 
@@ -340,6 +342,13 @@ async def upsert_oauth_user(conn, *, provider: str, profile: dict) -> dict:
             """,
             (provider, subject, user_id, email),
         )
+        await conn.commit()
+        try:
+            from app.engine.points import award
+
+            await award(conn, user_id, 500, "signup_bonus")
+        except Exception:
+            logging.getLogger("hotdeal").exception("signup bonus award failed")
     await conn.commit()
     user = await get_user(conn, user_id)
     if not user:
@@ -365,7 +374,8 @@ def public_user(user: dict | None) -> dict | None:
         return None
     return {
         "id": user["id"],
-        "display_name": user.get("display_name") or "사용자",
+        "display_name": user.get("nickname") or user.get("display_name") or "사용자",
+        "nickname": user.get("nickname") or "",
         "username": user.get("username") or "",
         "is_admin": is_admin_user(user),
         "notify_channel": user.get("notify_channel") or "",
@@ -481,6 +491,56 @@ async def delete_account(conn, user_id: int) -> None:
     await conn.execute("DELETE FROM oauth_identities WHERE user_id=?", (user_id,))
     await conn.execute("DELETE FROM users WHERE id=?", (user_id,))
     await conn.commit()
+
+
+NICKNAME_RE = re.compile(r"^[0-9A-Za-z가-힣_]{2,20}$")
+NICKNAME_COOLDOWN_DAYS = 30
+
+
+# Error codes returned by set_nickname(); map to Korean text at the call site
+# (same pattern as /login?error=<code> in app/main.py).
+NICKNAME_ERRORS = {
+    "invalid": "닉네임은 한글/영문/숫자/밑줄 2~20자여야 합니다.",
+    "taken": "이미 사용 중인 닉네임입니다.",
+    "cooldown": f"닉네임은 {NICKNAME_COOLDOWN_DAYS}일에 한 번만 변경할 수 있습니다.",
+}
+
+
+async def set_nickname(conn, user_id: int, nickname: str, *, enforce_cooldown: bool = True) -> str | None:
+    """Validate + set a user's nickname. Returns an error code (see NICKNAME_ERRORS),
+    or None on success.
+
+    `enforce_cooldown=False` is for the first-time onboarding set (always allowed);
+    `/mypage` nickname changes pass the default True to block re-changes within
+    NICKNAME_COOLDOWN_DAYS of the last change.
+    """
+    name = (nickname or "").strip()
+    if not NICKNAME_RE.match(name):
+        return "invalid"
+    cur = await conn.execute("SELECT id FROM users WHERE nickname=? AND id!=?", (name, user_id))
+    if await cur.fetchone():
+        return "taken"
+    if enforce_cooldown:
+        cur = await conn.execute("SELECT nickname_set_at FROM users WHERE id=?", (user_id,))
+        row = await cur.fetchone()
+        last_set = row["nickname_set_at"] if row else None
+        if last_set:
+            try:
+                last_dt = datetime.fromisoformat(last_set)
+                if datetime.utcnow() < last_dt + timedelta(days=NICKNAME_COOLDOWN_DAYS):
+                    return "cooldown"
+            except ValueError:
+                pass
+    now = utcnow_iso()
+    try:
+        await conn.execute(
+            "UPDATE users SET nickname=?, nickname_set_at=? WHERE id=?", (name, now, user_id)
+        )
+        await conn.commit()
+    except Exception:
+        # Unique-index race: two requests claimed the same nickname at once.
+        return "taken"
+    return None
 
 
 async def list_user_providers(conn, user_id: int) -> str:

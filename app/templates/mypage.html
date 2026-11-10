@@ -10,13 +10,14 @@
 
   <section class="mp-card">
     <div class="mp-profile">
-      <span class="mp-avatar" aria-hidden="true">{{ user.display_name[:1] if user.display_name else "U" }}</span>
+      <span class="mp-avatar" aria-hidden="true">{{ (user.nickname or user.display_name)[:1] if user.display_name else "U" }}</span>
       <div class="mp-profile-body">
-        <span class="mp-profile-name">{{ user.display_name }}</span>
+        <span class="mp-profile-name">{{ user.nickname or user.display_name }}</span>
         <span class="mp-profile-meta">
           {%- if providers %}{{ providers }} 로그인{% endif -%}
           {%- if providers and user.email %} · {% endif -%}
           {%- if user.email %}{{ user.email }}{% endif -%}
+          · <a href="/points">포인트 {{ "{:,}".format(point_balance) }}P</a>
         </span>
       </div>
       <form method="post" action="/mypage" onsubmit="return confirm('정말 탈퇴하시겠습니까? 찜목록과 키워드 알림이 삭제됩니다. (댓글은 익명으로 남습니다)')">
@@ -24,6 +25,14 @@
         <button type="submit" class="mp-leave">회원탈퇴</button>
       </form>
     </div>
+    <form method="post" action="/mypage" class="admin-form" style="margin-top:12px">
+      <input type="hidden" name="action" value="set_nickname">
+      <label>닉네임 변경 (30일에 한 번)
+        <input type="text" name="nickname" minlength="2" maxlength="20" placeholder="{{ user.nickname or '닉네임 미설정' }}">
+      </label>
+      {% if nickname_error %}<p class="auth-error">{{ nickname_error }}</p>{% endif %}
+      <button type="submit">변경</button>
+    </form>
   </section>
 
   <section class="mp-card">

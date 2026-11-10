@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}닉네임 설정 · 핫딜모음{% endblock %}
+{% block extra_head %}<meta name="robots" content="noindex">{% endblock %}
+{% block body %}
+<div class="auth">
+
+  <div class="auth-brand">
+    <span class="auth-mark" aria-hidden="true">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4.5 12.5H11l-1 9.5L20 10.5h-6.5z"/></svg>
+    </span>
+    <span class="auth-title">닉네임을 정해주세요</span>
+    <span class="auth-sub">회원 댓글과 계정 화면에 표시됩니다.<br>설정 후 30일 동안은 변경할 수 없어요.</span>
+  </div>
+
+  {% if error %}<p class="auth-error">{{ error }}</p>{% endif %}
+
+  <form class="admin-form" method="post" action="/onboarding/nickname">
+    <label>닉네임
+      <input type="text" name="nickname" minlength="2" maxlength="20" autocomplete="off" required>
+    </label>
+    <p class="auth-consent">한글, 영문, 숫자, 밑줄만 사용할 수 있습니다. (2~20자)</p>
+    <button type="submit">시작하기</button>
+  </form>
+
+</div>
+{% endblock %}
