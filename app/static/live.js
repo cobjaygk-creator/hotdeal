@@ -553,7 +553,7 @@ function renderRow(deal, { fresh = false, freshIndex = 0 } = {}) {
     `</div></a>` +
     `<div class="deal-row-side">` +
     (isPostUrl(deal.mall_url)
-      ? `<a class="deal-buy-btn" href="${esc(deal.mall_url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">구매하기</a>`
+      ? `<a class="deal-buy-btn" href="/out/${deal.id}" target="_blank" rel="noopener" onclick="event.stopPropagation()">구매하기</a>`
       : "") +
     `<time class="time-abs" datetime="${esc(ts)}" data-ts="${esc(ts)}">${esc(clockTime(ts))}</time>` +
     `</div>`;
@@ -764,14 +764,14 @@ function patchRowMall(deal) {
   li.dataset.mallUrl = deal.mall_url;
   const existing = li.querySelector(".deal-buy-btn");
   if (existing) {
-    existing.href = deal.mall_url;
+    existing.href = `/out/${deal.id}`;
     return;
   }
   const side = li.querySelector(".deal-row-side");
   if (!side) return;
   const a = document.createElement("a");
   a.className = "deal-buy-btn";
-  a.href = deal.mall_url;
+  a.href = `/out/${deal.id}`;
   a.target = "_blank";
   a.rel = "noopener";
   a.textContent = "구매하기";
@@ -1034,7 +1034,7 @@ async function openModal(id, opts) {
   const sourceLabel = sourceLabels[sourceKey] || sourceKey || "커뮤니티";
   const mallLabel = deal.seller || (deal.mall_url ? new URL(deal.mall_url, location.href).hostname.replace(/^www\./, "") : "상품");
   const starred = isBookmarked(id);
-  const ctaHtml = (isPostUrl(deal.mall_url) ? `<a class="dm-buy" href="${esc(deal.mall_url)}" target="_blank" rel="noopener">${deal.seller ? esc(deal.seller) + "에서 " : ""}${won(deal.price)} 구매하기</a>` : "") + `<button type="button" class="dm-sq bookmark-btn${starred ? " on" : ""}" data-deal-id="${id}" aria-label="저장">☆</button>` + (isPostUrl(deal.deal_url) ? `<a class="dm-src" href="${esc(deal.deal_url)}" target="_blank" rel="noopener">원문</a>` : "");
+  const ctaHtml = (isPostUrl(deal.mall_url) ? `<a class="dm-buy" href="/out/${id}" target="_blank" rel="noopener">${deal.seller ? esc(deal.seller) + "에서 " : ""}${won(deal.price)} 구매하기</a>` : "") + `<button type="button" class="dm-sq bookmark-btn${starred ? " on" : ""}" data-deal-id="${id}" aria-label="저장">☆</button>` + (isPostUrl(deal.deal_url) ? `<a class="dm-src" href="${esc(deal.deal_url)}" target="_blank" rel="noopener">원문</a>` : "");
   const cheaper = hasBaseline && deal.price && Number(deal.baseline_price) > Number(deal.price);
   const saveAmt = cheaper ? Number(deal.baseline_price) - Number(deal.price) : 0;
   const isLowest = hasBaseline && deal.min_price && deal.price && Number(deal.price) <= Number(deal.min_price);
@@ -1046,7 +1046,7 @@ async function openModal(id, opts) {
   const adHtml = config.showAds ? `<div class="dm-ad is-mid" aria-label="광고"><span>광고</span></div>` : "";
   const originalHtml = deal.body_html ? `<section><div class="dm-sec-head"><h2 class="dm-h2">원문 내용</h2><span class="dm-sub">${esc(sourceLabels[deal.body_source] || deal.body_source || "")}</span></div><div class="dm-body-html">${deal.body_html}</div></section>` : "";
   const chatHtml = document.querySelector("#dm-chat-source #dd-chat")?.outerHTML || `<aside class="dm-chat" id="dd-chat"></aside>`;
-  modalBody.innerHTML = `<section class="dm-hero"><div class="dm-img">${deal.thumbnail_url ? `<img src="${esc(deal.thumbnail_url)}" alt="" referrerpolicy="no-referrer">` : "상품 이미지"}${deal.status === "expired" ? `<span class="dm-ended">종료</span>` : ""}</div><div class="dm-info"><p class="dm-meta"><span class="dm-mall">${esc(mallLabel)}</span><span>${esc(sourceLabel)}에서 ${esc(relativeTime(deal.last_seen_at))} 등록</span></p><h1 class="dm-title" id="modal-title">${esc(deal.product_name)}</h1><div class="dm-price">${detailOffHtml(deal)}<span class="won">${won(deal.price)}</span></div>${strikeHtml(deal, hasBaseline, cheaper)}${verdictHtml}<dl class="dm-dl"><dt>배송</dt><dd>${deal.shipping_fee === 0 ? "무료배송" : (deal.shipping_fee ? won(deal.shipping_fee) : "정보 없음")}</dd><dt>카테고리</dt><dd>${esc(deal.category || "기타")}</dd><dt>반응</dt><dd>추천 ${deal.votes || 0} · 댓글 ${deal.comments || 0}</dd></dl><div class="dm-spacer"></div><div class="dm-cta" id="modal-cta">${ctaHtml}</div></div></section><div class="dm-band"></div><div class="dm-body"><div class="dm-main"><section><div class="dm-sec-head"><h2 class="dm-h2">쇼핑몰 가격 비교</h2><span class="dm-sub">현재 기준</span></div><div class="dm-mrow is-deal"><span class="name">${esc(mallLabel)} <span class="tag">이 딜</span></span><span class="track"><span class="bar" style="width:66%"></span></span><span class="won">${won(deal.price)}</span></div></section>${adHtml}${chartHtml}${originalHtml}<section><div class="dm-sec-head"><h2 class="dm-h2">원문 게시글</h2></div><ul class="dm-posts">${postHtml}</ul></section></div><aside class="dm-aside">${chatHtml}${config.showAds ? `<div class="dm-ad is-side" aria-label="광고"><span>광고</span></div>` : ""}</aside></div>`;
+  modalBody.innerHTML = `<section class="dm-hero"><div class="dm-img">${deal.thumbnail_url ? `<img src="${esc(deal.thumbnail_url)}" alt="" referrerpolicy="no-referrer">` : "상품 이미지"}${deal.status === "expired" ? `<span class="dm-ended">종료</span>` : ""}</div><div class="dm-info"><p class="dm-meta"><span class="dm-mall">${esc(mallLabel)}</span><span>${esc(sourceLabel)}에서 ${esc(relativeTime(deal.last_seen_at))} 등록</span></p><h1 class="dm-title" id="modal-title">${esc(deal.product_name)}</h1><div class="dm-price">${detailOffHtml(deal)}<span class="won">${won(deal.price)}</span></div>${strikeHtml(deal, hasBaseline, cheaper)}${verdictHtml}<dl class="dm-dl"><dt>배송</dt><dd>${deal.shipping_fee === 0 ? "무료배송" : (deal.shipping_fee ? won(deal.shipping_fee) : "정보 없음")}</dd><dt>카테고리</dt><dd>${esc(deal.category || "기타")}</dd><dt>반응</dt><dd>추천 ${deal.votes || 0} · 댓글 ${deal.comments || 0}</dd></dl><div class="dm-spacer"></div><div class="dm-cta" id="modal-cta">${ctaHtml}</div><div id="dm-disclosure">${coupangDisclosureHtml(deal)}</div></div></section><div class="dm-band"></div><div class="dm-body"><div class="dm-main"><section><div class="dm-sec-head"><h2 class="dm-h2">쇼핑몰 가격 비교</h2><span class="dm-sub">현재 기준</span></div><div class="dm-mrow is-deal"><span class="name">${esc(mallLabel)} <span class="tag">이 딜</span></span><span class="track"><span class="bar" style="width:66%"></span></span><span class="won">${won(deal.price)}</span></div></section>${adHtml}${chartHtml}${originalHtml}<section><div class="dm-sec-head"><h2 class="dm-h2">원문 게시글</h2></div><ul class="dm-posts">${postHtml}</ul></section></div><aside class="dm-aside">${chatHtml}${config.showAds ? `<div class="dm-ad is-side" aria-label="광고"><span>광고</span></div>` : ""}</aside></div>`;
   modalCta = document.getElementById("modal-cta");
   const cat = document.querySelector("[data-dm-cat]");
   if (cat) cat.textContent = deal.category || "상세";
@@ -1138,17 +1138,15 @@ async function pollModalMall(id, deal) {
       const fresh = await res.json();
       if (!isPostUrl(fresh.mall_url)) continue;
       patchRowMall(fresh);
-      if (modalBody) {
-        modalBody.querySelector(".affiliate-notice")?.remove();
-        modalBody.querySelector("[data-original-sources]")?.insertAdjacentHTML("beforebegin", coupangDisclosureHtml(fresh));
-      }
+      const disclosureEl = modalBody?.querySelector("#dm-disclosure");
+      if (disclosureEl) disclosureEl.innerHTML = coupangDisclosureHtml(fresh);
       if (!modalCta || modalCta.querySelector(".dd-cta-buy")) return;
       const label = fresh.seller
         ? `${esc(fresh.seller)}에서 ${won(fresh.price)} 구매`
         : buyLabelBase;
       const a = document.createElement("a");
       a.className = "btn dd-cta-buy";
-      a.href = fresh.mall_url;
+      a.href = `/out/${fresh.id}`;
       a.target = "_blank";
       a.rel = "noopener";
       a.innerHTML = label;

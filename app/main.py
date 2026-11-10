@@ -21,16 +21,12 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 
-from app.amazon_jp.pipeline import collect_amazon_jp
-from app.amazon_jp.query import list_amazon_jp_deals
 from app.coupang.pipeline import collect_coupang
 from app.coupang.query import list_coupang_deals
 from app.admin_settings import load_runtime_settings
 from app.collection_guard import fetch_sources
 from app.admin_settings import SETTING_KEYS, encrypt
 from app.config import (
-    AMAZON_JP_ENABLED,
-    AMAZON_JP_INTERVAL_MINUTES,
     COLLECT_FAST_SECONDS,
     COLLECT_PROXY_SECONDS,
     COLLECT_SLOW_MINUTES,
@@ -52,15 +48,11 @@ from app.config import (
     EMAIL_DIGEST_ENABLED,
     EMAIL_DIGEST_HOUR,
     FAMILY_SALE_INTERVAL_MINUTES,
-    FLIGHT_FEED_URL,
-    FLIGHT_INTERVAL_MINUTES,
     GA_MEASUREMENT_ID,
     LLM_CLASSIFY_ENABLED,
     LLM_CLASSIFY_INTERVAL_SECONDS,
-    MVNO_ENABLED,
     VAPID_PUBLIC_KEY,
     WEBPUSH_ENABLED,
-    MVNO_INTERVAL_MINUTES,
     PPOMPPU_INTERVAL_SECONDS,
     QUASARZONE_INTERVAL_MINUTES,
     PPOMPPU_PROXY_URL,
@@ -106,8 +98,6 @@ TEMPLATES.env.filters["mall_label"] = mall_label_from_url
 TEMPLATES.env.filters["mall_key"] = mall_key_from_url
 TEMPLATES.env.filters["clean_title"] = clean_deal_title
 TEMPLATES.env.globals["site_url"] = SITE_URL
-TEMPLATES.env.globals["amazon_jp_enabled"] = AMAZON_JP_ENABLED
-TEMPLATES.env.globals["mvno_enabled"] = MVNO_ENABLED
 TEMPLATES.env.globals["ga_measurement_id"] = GA_MEASUREMENT_ID
 TEMPLATES.env.globals["adsense_publisher_id"] = ADSENSE_PUBLISHER_ID
 TEMPLATES.env.globals["adsense_sidebar_slot_id"] = ADSENSE_SIDEBAR_SLOT_ID
@@ -260,15 +250,6 @@ async def lifespan(app: FastAPI):
             next_run_time=datetime.now() + timedelta(seconds=55),
         )
         scheduler.add_job(
-            _scheduled_flights,
-            "interval",
-            minutes=FLIGHT_INTERVAL_MINUTES,
-            id="collect_flights",
-            max_instances=1,
-            coalesce=True,
-            next_run_time=datetime.now() + timedelta(seconds=70),
-        )
-        scheduler.add_job(
             _scheduled_family,
             "interval",
             minutes=FAMILY_SALE_INTERVAL_MINUTES,
@@ -277,26 +258,6 @@ async def lifespan(app: FastAPI):
             coalesce=True,
             next_run_time=datetime.now() + timedelta(seconds=25),
         )
-        if AMAZON_JP_ENABLED:
-            scheduler.add_job(
-                _scheduled_amazon_jp,
-                "interval",
-                minutes=AMAZON_JP_INTERVAL_MINUTES,
-                id="collect_amazon_jp",
-                max_instances=1,
-                coalesce=True,
-                next_run_time=datetime.now() + timedelta(seconds=40),
-            )
-        if MVNO_ENABLED:
-            scheduler.add_job(
-                _scheduled_mvno,
-                "interval",
-                minutes=max(5, MVNO_INTERVAL_MINUTES),
-                id="collect_mvno",
-                max_instances=1,
-                coalesce=True,
-                next_run_time=datetime.now() + timedelta(seconds=60),
-            )
         scheduler.add_job(
             _scheduled_ppomppu_mall_enrich,
             "interval",
@@ -422,18 +383,6 @@ async def _scheduled_collect_slow() -> None:
     await _run_collect_serialized(COLLECT_SLOW_SOURCES)
 
 
-async def _scheduled_flights() -> None:
-    if not FLIGHT_FEED_URL:
-        return
-    from app.flights.pipeline import collect_flight_offers
-    try:
-        async with _own_db() as conn:
-            result = await collect_flight_offers(conn, state["http"])
-            log.info("flight feed collect: %s", result)
-    except Exception:
-        log.exception("flight feed collect failed")
-
-
 async def _scheduled_family() -> None:
     async with _collection_slot():
         try:
@@ -441,26 +390,6 @@ async def _scheduled_family() -> None:
                 await collect_family_sales(conn, state["http"])
         except Exception:
             log.exception("family collect failed")
-
-
-async def _scheduled_amazon_jp() -> None:
-    async with _collection_slot():
-        try:
-            async with _own_db() as conn:
-                await collect_amazon_jp(conn, state["http"])
-        except Exception:
-            log.exception("amazon jp collect failed")
-
-
-async def _scheduled_mvno() -> None:
-    from app.mvno.pipeline import collect_mvno_plans
-
-    async with _collection_slot():
-        try:
-            async with _own_db() as conn:
-                await collect_mvno_plans(conn, state["http"])
-        except Exception:
-            log.exception("mvno collect failed")
 
 
 async def _scheduled_ppomppu_mall_enrich() -> None:
@@ -716,11 +645,7 @@ async def index(
         for d in ctx["deals"]:
             name = html.escape(str(d.get("product_name") or "(제목 없음)"))
             items.append(f"<li>{name}</li>")
-        nav_links = (
-            "<a href='/amazon-jp'>일마존</a> · <a href='/family'>패밀리세일</a>"
-            if AMAZON_JP_ENABLED
-            else "<a href='/family'>패밀리세일</a>"
-        )
+        nav_links = "<a href='/family'>패밀리세일</a>"
         return HTMLResponse(
             "<!doctype html><html lang='ko'><meta charset='utf-8'><title>핫딜모음</title>"
             f"<body><p>{nav_links}</p><h1>핫딜</h1><ul>"
@@ -992,23 +917,6 @@ async def ranking_index(request: Request):
     )
 
 
-@app.get("/amazon-jp", response_class=HTMLResponse)
-async def amazon_jp_index(request: Request):
-    if not AMAZON_JP_ENABLED:
-        raise HTTPException(404, "일마존 메뉴가 비활성화되어 있습니다")
-    deals = await list_amazon_jp_deals(_db())
-    last = await get_meta(_db(), "last_amazon_jp_collect_at")
-    return TEMPLATES.TemplateResponse(
-        "amazon_jp.html",
-        {
-            "request": request,
-            "nav": "amazon_jp",
-            "deals": deals,
-            "last": last,
-        },
-    )
-
-
 @app.get("/coupang", response_class=HTMLResponse)
 async def coupang_index(request: Request, category: str | None = None):
     if not COUPANG_ENABLED:
@@ -1035,6 +943,46 @@ async def coupang_out(product_id: str):
     await _db().execute("INSERT INTO affiliate_clicks(platform, product_id, created_at) VALUES (?, ?, ?)", ("coupang", product_id, utcnow_iso()))
     await _db().commit()
     return RedirectResponse(row["buy_url"], status_code=302)
+
+
+@app.get("/out/{deal_id}")
+async def deal_out(deal_id: int):
+    """Single outbound layer for every community-sourced deal's '구매하기'
+    button. Converts a raw coupang.com product link to a Coupang Partners
+    deep link on first click (cached on deals.affiliate_url so the Open API
+    isn't called again), then logs the click the same way /out/coupang does."""
+    db = _db()
+    cur = await db.execute(
+        "SELECT mall_url, affiliate_url, affiliate_checked_at FROM deals WHERE id=?", (deal_id,)
+    )
+    row = await cur.fetchone()
+    if not row or not row["mall_url"]:
+        raise HTTPException(404, "구매 링크를 찾을 수 없습니다")
+    mall_url = row["mall_url"]
+    target = row["affiliate_url"] or mall_url
+    if not row["affiliate_checked_at"]:
+        from app.parse.links import is_coupang_partner_gate
+        from app.coupang.api import create_deeplinks, is_coupang_product_url
+
+        if COUPANG_ENABLED and is_coupang_product_url(mall_url) and not is_coupang_partner_gate(mall_url):
+            try:
+                converted = await create_deeplinks([mall_url])
+                target = converted.get(mall_url) or mall_url
+            except Exception:
+                log.exception("coupang deeplink conversion failed for deal %s", deal_id)
+                target = mall_url
+        await db.execute(
+            "UPDATE deals SET affiliate_url=?, affiliate_checked_at=? WHERE id=?",
+            (target if target != mall_url else None, utcnow_iso(), deal_id),
+        )
+    platform = mall_key_from_url(mall_url) or "unknown"
+    await db.execute(
+        "INSERT INTO affiliate_clicks(platform, product_id, created_at) VALUES (?, ?, ?)",
+        (platform, str(deal_id), utcnow_iso()),
+    )
+    await db.commit()
+    return RedirectResponse(target, status_code=302)
+
 
 @app.get("/coupang/{product_id}", response_class=HTMLResponse)
 async def coupang_detail(request: Request, product_id: str):
@@ -1103,79 +1051,12 @@ async def api_admin_digest_send(request: Request):
         return JSONResponse(result)
 
 
-@app.get("/flights", response_class=HTMLResponse)
-async def flights_index(request: Request, origin: str = "", destination: str = "", max_price: str = ""):
-    db = _db()
-    where = ["active=1"]
-    params: list = []
-    if origin.strip():
-        where.append("origin LIKE ?"); params.append(f"%{origin.strip()}%")
-    if destination.strip():
-        where.append("destination LIKE ?"); params.append(f"%{destination.strip()}%")
-    try:
-        if max_price.strip():
-            where.append("price <= ?"); params.append(int(max_price.replace(",", "")))
-    except ValueError:
-        max_price = ""
-    cur = await db.execute(
-        "SELECT * FROM flight_offers WHERE " + " AND ".join(where) + " ORDER BY price ASC, depart_at ASC LIMIT 200", params
-    )
-    offers = [dict(row) for row in await cur.fetchall()]
-    return TEMPLATES.TemplateResponse("flights.html", {"request": request, "nav": "flights", "offers": offers, "origin": origin, "destination": destination, "max_price": max_price})
-
-@app.get("/mvno", response_class=HTMLResponse)
-async def mvno_index(request: Request, sort: str = "fee", mno: str | None = None):
-    if not MVNO_ENABLED:
-        raise HTTPException(404, "알뜰요금제 메뉴가 비활성화되어 있습니다")
-    from app.mvno.query import list_event_plans, mno_options
-
-    db = _db()
-    plans = await list_event_plans(db, sort=sort, mno=mno or None)
-    last = await get_meta(db, "last_mvno_collect_at")
-    return TEMPLATES.TemplateResponse(
-        "mvno.html",
-        {
-            "request": request,
-            "nav": "mvno",
-            "plans": plans,
-            "mnos": await mno_options(db),
-            "sort": sort,
-            "mno": mno or "",
-            "last": last,
-        },
-    )
-
-
-@app.post("/api/mvno/collect")
-async def api_mvno_collect():
-    if not MVNO_ENABLED:
-        raise HTTPException(404, "알뜰요금제 메뉴가 비활성화되어 있습니다")
-    _require_collect()
-    from app.mvno.pipeline import collect_mvno_plans
-
-    async with _collection_slot():
-        async with _own_db() as conn:
-            summary = await collect_mvno_plans(conn, state["http"])
-    return JSONResponse(summary)
-
-
 @app.post("/api/family/collect")
 async def api_family_collect():
     _require_collect()
     async with _collection_slot():
         async with _own_db() as conn:
             summary = await collect_family_sales(conn, state["http"])
-    return JSONResponse(summary)
-
-
-@app.post("/api/amazon-jp/collect")
-async def api_amazon_jp_collect():
-    if not AMAZON_JP_ENABLED:
-        raise HTTPException(404, "일마존 메뉴가 비활성화되어 있습니다")
-    _require_collect()
-    async with _collection_slot():
-        async with _own_db() as conn:
-            summary = await collect_amazon_jp(conn, state["http"])
     return JSONResponse(summary)
 
 
@@ -1615,11 +1496,6 @@ async def sitemap():
         f"<url><loc>{SITE_URL}/family</loc><changefreq>daily</changefreq></url>",
         f"<url><loc>{SITE_URL}/search</loc><changefreq>weekly</changefreq></url>",
     ]
-    if AMAZON_JP_ENABLED:
-        chunks.insert(
-            4,
-            f"<url><loc>{SITE_URL}/amazon-jp</loc><changefreq>hourly</changefreq></url>",
-        )
     for row in rows:
         chunks.append(f"<url><loc>{SITE_URL}/deal/{row['id']}</loc></url>")
     chunks.append("</urlset>")
@@ -2484,7 +2360,6 @@ async def _stats() -> dict:
         "last_ppomppu_mall_enrich": pp_enrich,
         "llm_classify_configured": LLM_CLASSIFY_ENABLED,
         "last_llm_classify": llm_classify,
-        "last_amazon_jp_collect_at": await get_meta(db, "last_amazon_jp_collect_at"),
     }
 
 

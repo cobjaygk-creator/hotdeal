@@ -35,8 +35,6 @@ WATCHDOG_CHECK_SECONDS = int(
 )
 # Legacy name: unused by the scheduler after source-tier jobs landed.
 COLLECT_INTERVAL_MINUTES = 3
-FLIGHT_FEED_URL = (os.environ.get("FLIGHT_FEED_URL") or "").strip()
-FLIGHT_INTERVAL_MINUTES = max(5, int((os.environ.get("FLIGHT_INTERVAL_MINUTES") or "15").strip() or "15"))
 PPOMPPU_INTERVAL_SECONDS = int((os.environ.get("PPOMPPU_INTERVAL_SECONDS") or "30").strip() or "30")
 COLLECT_FAST_SECONDS = int((os.environ.get("COLLECT_FAST_SECONDS") or "30").strip() or "30")
 COLLECT_PROXY_SECONDS = int((os.environ.get("COLLECT_PROXY_SECONDS") or "480").strip() or "240")
@@ -47,26 +45,6 @@ QUASARZONE_INTERVAL_MINUTES = int(
     (os.environ.get("QUASARZONE_INTERVAL_MINUTES") or "30").strip() or "30"
 )
 FAMILY_SALE_INTERVAL_MINUTES = 30
-AMAZON_JP_INTERVAL_MINUTES = 30
-# 알뜰요금제 (이벤트성 MVNO plans, scraped from Moyo theme pages).
-MVNO_ENABLED = (os.environ.get("MVNO_ENABLED") or "1").strip().lower() not in (
-    "",
-    "0",
-    "false",
-    "no",
-)
-MVNO_INTERVAL_MINUTES = int(
-    (os.environ.get("MVNO_INTERVAL_MINUTES") or "60").strip() or "60"
-)
-MOYO_THEME_URLS = [
-    u.strip()
-    for u in (
-        os.environ.get("MOYO_THEME_URLS")
-        or "https://www.moyoplan.com/plans/themes/one-month-free"
-    ).split(",")
-    if u.strip()
-]
-AMAZON_JP_ASSOCIATE_TAG = os.environ.get("AMAZON_JP_ASSOCIATE_TAG", "").strip()
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "").strip()
 ADMIN_USERNAME = (os.environ.get("ADMIN_USERNAME") or "admin").strip() or "admin"
 GA_MEASUREMENT_ID = os.environ.get("GA_MEASUREMENT_ID", "").strip()
@@ -89,10 +67,6 @@ def _env_flag(name: str, default: bool = False) -> bool:
     if raw is None:
         return default
     return raw.strip().lower() in {"1", "true", "yes", "on"}
-
-
-# Hidden for now; set AMAZON_JP_ENABLED=1 to show nav + schedule again.
-AMAZON_JP_ENABLED = _env_flag("AMAZON_JP_ENABLED", default=False)
 
 
 # Local/company machines stay quiet unless ENABLE_COLLECT=1.

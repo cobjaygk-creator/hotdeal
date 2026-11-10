@@ -101,26 +101,6 @@ CREATE TABLE IF NOT EXISTS family_sales (
     UNIQUE(source_name, source_post_id)
 );
 
-CREATE TABLE IF NOT EXISTS flight_offers (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    provider TEXT NOT NULL,
-    airline TEXT,
-    origin TEXT NOT NULL,
-    destination TEXT NOT NULL,
-    depart_at TEXT,
-    return_at TEXT,
-    duration_days INTEGER,
-    seats INTEGER,
-    price INTEGER NOT NULL,
-    baggage TEXT,
-    booking_url TEXT NOT NULL,
-    thumbnail_url TEXT,
-    collected_at TEXT NOT NULL,
-    expires_at TEXT,
-    active INTEGER NOT NULL DEFAULT 1,
-    UNIQUE(provider, booking_url)
-);
-CREATE INDEX IF NOT EXISTS idx_flight_offers_active ON flight_offers(active, price, depart_at);
 CREATE TABLE IF NOT EXISTS meta (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
@@ -251,53 +231,8 @@ CREATE INDEX IF NOT EXISTS idx_deals_seen ON deals(last_seen_at);
 CREATE INDEX IF NOT EXISTS idx_deals_grade ON deals(grade);
 CREATE INDEX IF NOT EXISTS idx_deals_key ON deals(product_key);
 CREATE INDEX IF NOT EXISTS idx_price_key_time ON price_points(product_key, observed_at);
-CREATE TABLE IF NOT EXISTS amazon_jp_deals (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    asin TEXT NOT NULL UNIQUE,
-    title TEXT NOT NULL,
-    yen_price INTEGER NOT NULL,
-    original_yen INTEGER,
-    discount_rate REAL NOT NULL,
-    image_url TEXT,
-    amazon_url TEXT NOT NULL,
-    source TEXT NOT NULL,
-    source_url TEXT,
-    source_updated_at TEXT,
-    first_seen_at TEXT NOT NULL,
-    last_seen_at TEXT NOT NULL,
-    active INTEGER NOT NULL DEFAULT 1
-);
-
-CREATE TABLE IF NOT EXISTS mvno_plans (
-    plan_id INTEGER PRIMARY KEY,
-    name TEXT NOT NULL,
-    mvno TEXT,
-    mno TEXT,
-    network TEXT,
-    data_gb REAL,
-    data_unlimited INTEGER NOT NULL DEFAULT 0,
-    data_daily_gb REAL,
-    qos_kbps INTEGER,
-    voice_min INTEGER,
-    voice_unlimited INTEGER NOT NULL DEFAULT 0,
-    sms_unlimited INTEGER NOT NULL DEFAULT 0,
-    original_fee INTEGER,
-    discount_fee INTEGER,
-    discount_months INTEGER,
-    promo TEXT,
-    promo_all TEXT,
-    rating REAL,
-    signup_count INTEGER,
-    plan_url TEXT NOT NULL,
-    brand_image TEXT,
-    first_seen_at TEXT NOT NULL,
-    last_seen_at TEXT NOT NULL,
-    active INTEGER NOT NULL DEFAULT 1
-);
-
 CREATE INDEX IF NOT EXISTS idx_family_dates ON family_sales(start_date, end_date);
 CREATE INDEX IF NOT EXISTS idx_family_group ON family_sales(group_id);
-CREATE INDEX IF NOT EXISTS idx_amazon_jp_active ON amazon_jp_deals(active, discount_rate);
 CREATE TABLE IF NOT EXISTS coupang_deals (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     product_id TEXT NOT NULL UNIQUE,
@@ -313,7 +248,6 @@ CREATE TABLE IF NOT EXISTS coupang_deals (
     active INTEGER NOT NULL DEFAULT 1
 );
 CREATE INDEX IF NOT EXISTS idx_coupang_active ON coupang_deals(active, discount_rate);
-CREATE INDEX IF NOT EXISTS idx_mvno_active ON mvno_plans(active, discount_fee);
 """
 
 
@@ -380,6 +314,10 @@ async def _ensure_columns(conn: aiosqlite.Connection) -> None:
         ("category_reason", "TEXT"),
         ("source_category_raw", "TEXT"),
         ("category_conflict", "INTEGER NOT NULL DEFAULT 0"),
+        # Coupang Partners deep link converted from mall_url, cached so the
+        # Open API isn't called on every outbound click (app.main /out/{id}).
+        ("affiliate_url", "TEXT"),
+        ("affiliate_checked_at", "TEXT"),
     ):
         if name not in deal_cols:
             await conn.execute(f"ALTER TABLE deals ADD COLUMN {name} {decl}")
@@ -538,10 +476,6 @@ async def _ensure_columns(conn: aiosqlite.Connection) -> None:
         await _ensure_auth_tables(conn)
     except Exception:
         logging.getLogger("hotdeal").exception("auth tables failed")
-    try:
-        await _ensure_amazon_jp_table(conn)
-    except Exception:
-        logging.getLogger("hotdeal").exception("amazon jp table failed")
     try:
         await _ensure_coupang_table(conn)
         await _ensure_settings_table(conn)
@@ -736,32 +670,6 @@ async def _ensure_market_tables(conn: aiosqlite.Connection) -> None:
         CREATE INDEX IF NOT EXISTS idx_market_listings_key
             ON market_listings(product_key, fetched_at);
         """
-    )
-
-
-async def _ensure_amazon_jp_table(conn: aiosqlite.Connection) -> None:
-    await conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS amazon_jp_deals (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            asin TEXT NOT NULL UNIQUE,
-            title TEXT NOT NULL,
-            yen_price INTEGER NOT NULL,
-            original_yen INTEGER,
-            discount_rate REAL NOT NULL,
-            image_url TEXT,
-            amazon_url TEXT NOT NULL,
-            source TEXT NOT NULL,
-            source_url TEXT,
-            source_updated_at TEXT,
-            first_seen_at TEXT NOT NULL,
-            last_seen_at TEXT NOT NULL,
-            active INTEGER NOT NULL DEFAULT 1
-        )
-        """
-    )
-    await conn.execute(
-        "CREATE INDEX IF NOT EXISTS idx_amazon_jp_active ON amazon_jp_deals(active, discount_rate)"
     )
 
 
@@ -1076,59 +984,6 @@ async def upsert_family_sale(conn: aiosqlite.Connection, sale: dict) -> tuple[in
         "SELECT id FROM family_sales WHERE source_name=? AND source_post_id=?",
         (sale["source_name"], str(sale["source_post_id"])),
     )
-    row = await cur.fetchone()
-    return int(row["id"]), inserted
-
-
-async def upsert_amazon_jp_deal(conn: aiosqlite.Connection, deal: dict) -> tuple[int, bool]:
-    now = utcnow_iso()
-    cur = await conn.execute(
-        "SELECT id FROM amazon_jp_deals WHERE asin=?",
-        (deal["asin"],),
-    )
-    existing = await cur.fetchone()
-    inserted = existing is None
-    await conn.execute(
-        """
-        INSERT INTO amazon_jp_deals(
-            asin, title, yen_price, original_yen, discount_rate, image_url,
-            amazon_url, source, source_url, source_updated_at,
-            first_seen_at, last_seen_at, active
-        ) VALUES(
-            :asin, :title, :yen_price, :original_yen, :discount_rate, :image_url,
-            :amazon_url, :source, :source_url, :source_updated_at,
-            :first_seen_at, :last_seen_at, :active
-        )
-        ON CONFLICT(asin) DO UPDATE SET
-            title=excluded.title,
-            yen_price=excluded.yen_price,
-            original_yen=COALESCE(excluded.original_yen, amazon_jp_deals.original_yen),
-            discount_rate=excluded.discount_rate,
-            image_url=COALESCE(excluded.image_url, amazon_jp_deals.image_url),
-            amazon_url=excluded.amazon_url,
-            source=excluded.source,
-            source_url=excluded.source_url,
-            source_updated_at=COALESCE(excluded.source_updated_at, amazon_jp_deals.source_updated_at),
-            last_seen_at=excluded.last_seen_at,
-            active=1
-        """,
-        {
-            "asin": deal["asin"],
-            "title": deal["title"],
-            "yen_price": int(deal["yen_price"]),
-            "original_yen": deal.get("original_yen"),
-            "discount_rate": float(deal["discount_rate"]),
-            "image_url": deal.get("image_url"),
-            "amazon_url": deal["amazon_url"],
-            "source": deal.get("source") or "mottoku",
-            "source_url": deal.get("source_url"),
-            "source_updated_at": deal.get("source_updated_at"),
-            "first_seen_at": deal.get("first_seen_at") or now,
-            "last_seen_at": deal.get("last_seen_at") or now,
-            "active": 1 if deal.get("active", 1) else 0,
-        },
-    )
-    cur = await conn.execute("SELECT id FROM amazon_jp_deals WHERE asin=?", (deal["asin"],))
     row = await cur.fetchone()
     return int(row["id"]), inserted
 
