@@ -1052,7 +1052,7 @@ async function openModal(id, opts) {
   const showChart = chartPoints.length >= 3;
   const verdictHtml = cheaper ? `<p class="dm-verdict"><span aria-hidden="true">✓</span>${isLowest ? "역대 최저가" : "평소보다 저렴"} · 평소가보다 ${Number(saveAmt).toLocaleString("ko-KR")}원 저렴해요</p>` : "";
   const chartHtml = showChart ? `<section id="dd-chart-root"><div class="dm-sec-head"><h2 class="dm-h2">가격 변동</h2><div class="dm-seg" role="tablist" aria-label="기간"><button type="button" data-range="30">1개월</button><button type="button" class="on" data-range="90">3개월</button><button type="button" data-range="all">전체</button></div></div><div class="dm-chart"><canvas id="modal-chart"></canvas></div></section>` : "";
-  const adHtml = config.showAds ? `<div class="dm-ad is-mid" aria-label="광고"><span>광고</span></div>` : "";
+  const adHtml = "";
   const originalHtml = deal.body_html ? `<section><div class="dm-sec-head"><h2 class="dm-h2">원문 내용</h2><span class="dm-sub">${esc(sourceLabels[deal.body_source] || deal.body_source || "")}</span></div><div class="dm-body-html">${deal.body_html}</div></section>` : "";
   const chatHtml = document.querySelector("#dm-chat-source #dd-chat")?.outerHTML || `<aside class="dm-chat" id="dd-chat"></aside>`;
   const stickyBuyHtml = isPostUrl(deal.mall_url)

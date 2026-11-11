@@ -569,6 +569,9 @@ body.dm-open { overflow: hidden; }
     padding: 0;
   }
 
+  /* modal-body를 세로로 쌓아 탭바가 위에 오게 */
+  #modal-body { flex-direction: column; }
+
   /* 탭 바 표시 */
   .dm-tab-bar { display: flex; }
 
