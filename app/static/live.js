@@ -1043,7 +1043,7 @@ async function openModal(id, opts) {
   const sourceLabel = sourceLabels[sourceKey] || sourceKey || "커뮤니티";
   const mallLabel = deal.seller || (deal.mall_url ? new URL(deal.mall_url, location.href).hostname.replace(/^www\./, "") : "상품");
   const starred = isBookmarked(id);
-  const ctaHtml = (isPostUrl(deal.mall_url) ? `<a class="dm-buy" href="/out/${id}" target="_blank" rel="noopener">${deal.seller ? esc(deal.seller) + "에서 " : ""}${won(deal.price)} 구매하기</a>` : "") + `<button type="button" class="dm-sq bookmark-btn${starred ? " on" : ""}" data-deal-id="${id}" aria-label="저장">☆</button>` + (isPostUrl(deal.deal_url) ? `<a class="dm-src" href="${esc(deal.deal_url)}" target="_blank" rel="noopener">원문</a>` : "");
+  const ctaHtml = (isPostUrl(deal.mall_url) ? `<a class="dm-buy" href="/out/${id}" target="_blank" rel="noopener">구매하기</a>` : "") + `<button type="button" class="dm-sq bookmark-btn${starred ? " on" : ""}" data-deal-id="${id}" aria-label="저장">☆</button>` + (isPostUrl(deal.deal_url) ? `<a class="dm-src" href="${esc(deal.deal_url)}" target="_blank" rel="noopener">원문</a>` : "");
   const cheaper = hasBaseline && deal.price && Number(deal.baseline_price) > Number(deal.price);
   const saveAmt = cheaper ? Number(deal.baseline_price) - Number(deal.price) : 0;
   const isLowest = hasBaseline && deal.min_price && deal.price && Number(deal.price) <= Number(deal.min_price);
@@ -1056,9 +1056,9 @@ async function openModal(id, opts) {
   const originalHtml = deal.body_html ? `<section><div class="dm-sec-head"><h2 class="dm-h2">원문 내용</h2><span class="dm-sub">${esc(sourceLabels[deal.body_source] || deal.body_source || "")}</span></div><div class="dm-body-html">${deal.body_html}</div></section>` : "";
   const chatHtml = document.querySelector("#dm-chat-source #dd-chat")?.outerHTML || `<aside class="dm-chat" id="dd-chat"></aside>`;
   const stickyBuyHtml = isPostUrl(deal.mall_url)
-    ? `<a class="dm-buy" href="/out/${id}" target="_blank" rel="noopener">${deal.seller ? esc(deal.seller) + "에서 " : ""}${won(deal.price)} 구매하기</a>`
+    ? `<a class="dm-buy" href="/out/${id}" target="_blank" rel="noopener">구매하기</a>`
     : isPostUrl(deal.deal_url)
-    ? `<a class="dm-buy" href="${esc(deal.deal_url)}" target="_blank" rel="noopener">${won(deal.price)} 구매하기</a>`
+    ? `<a class="dm-buy" href="${esc(deal.deal_url)}" target="_blank" rel="noopener">구매하기</a>`
     : "";
   const commentCount = deal.comments || 0;
   const tabBarHtml = `<div class="dm-tab-bar" role="tablist"><button type="button" class="dm-tab-btn active" data-tab="product" role="tab" aria-selected="true">상품 정보</button><button type="button" class="dm-tab-btn" data-tab="chat" role="tab" aria-selected="false">댓글${commentCount ? ` <span class="dm-tab-count">${commentCount}</span>` : ""}</button></div>`;
