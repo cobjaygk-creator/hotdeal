@@ -355,3 +355,11 @@ body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal
   padding: 9px 16px !important; font-weight: 700 !important; font-size: 13px !important;
   min-height: 0 !important; height: auto !important; white-space: nowrap !important;
 }
+
+/* 브랜드 로고: 목업처럼 파란 원 없이 텍스트 "쥬" 그대로 */
+.topbar-brand .brand-mark {
+  background: transparent !important;
+  color: var(--ink) !important;
+  font-weight: 800 !important;
+  font-family: var(--font-display) !important;
+}
