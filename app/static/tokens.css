@@ -72,6 +72,7 @@
   --discount: #F04452;       /* 할인율 % 전용 */
   --price: var(--grey-900);  /* 가격은 검정 */
   --success: #03B26C;
+  --success-soft: #E7F8EF;   /* 무료배송 등 성공 뱃지 배경 */
   --warning: #FE9800;
   --danger: #F04452;
 
@@ -158,6 +159,7 @@
     --bg: #17171C; --surface: #17171C; --surface-selected: #1A2638;
     --accent: #3182F6; --accent-hover: #4D94F7; --accent-soft: #1A2B45; --accent-soft-ink: #90C2FF;
     --discount: #FF5F6A; --danger: #FF5F6A;
+    --success-soft: #123224;
     --special-bg: #3A1C20; --special-line: #5A2A30; --hot-bg: #3A1C20; --hot-line: #5A2A30;
     --seg-active: var(--grey-200);
     --shadow: 0 1px 3px rgba(0,0,0,.4);
@@ -173,6 +175,7 @@
   --bg: #17171C; --surface: #17171C; --surface-selected: #1A2638;
   --accent: #3182F6; --accent-hover: #4D94F7; --accent-soft: #1A2B45; --accent-soft-ink: #90C2FF;
   --discount: #FF5F6A; --danger: #FF5F6A;
+  --success-soft: #123224;
   --special-bg: #3A1C20; --special-line: #5A2A30; --hot-bg: #3A1C20; --hot-line: #5A2A30;
   --seg-active: var(--grey-200);
   --shadow: 0 1px 3px rgba(0,0,0,.4);
