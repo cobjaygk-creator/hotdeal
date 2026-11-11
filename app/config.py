@@ -97,11 +97,7 @@ NAVER_SEED_CACHE_DAYS = 7
 NAVER_SEED_MIN_SIMILARITY = 0.35
 # Refresh Naver mall price comparison on deal detail after this many hours.
 MARKET_COMPARE_CACHE_HOURS = int(os.environ.get("MARKET_COMPARE_CACHE_HOURS") or "6")
-# List ticks stay list-only. Buy links / thumbs come from list HTML plus the
-# background enrich worker (PPOMPPU_ENRICH_*).
 DETAIL_ENRICH_ENABLED = True
-DETAIL_BACKFILL_PER_SOURCE = 2
-PPOMPPU_DETAIL_PER_TICK = 3
 # Global outbound proxy for all HTTP collection (applied by default to every
 # PoliteClient request when set). Per-source vars (PPOMPPU_PROXY_URL,
 # FMKOREA_PROXY_URL) take priority when explicitly passed.
