@@ -21,11 +21,11 @@
             and d.price <= d.min_price and d.price < d.baseline_price %}
       <div class="deal-tags">
         {% set list_source = d.first_source or (d.sources.split(",")[0] if d.sources else '') %}
-        {% if mall_name %}<span class="deal-tag deal-tag-mall" data-mall="{{ mall_key or '' }}">{{ mall_name }}</span>{% endif %}
-        {% if list_source %}<span class="deal-tag-sep" aria-hidden="true">|</span><span class="deal-tag deal-source">{{ source_labels.get(list_source, list_source) }}</span>{% endif %}
-        {% if d.category %}<span class="deal-tag deal-tag-cat">{{ d.category }}</span>{% endif %}
-        {% if (d.category or mall_name) and is_lowest %}<span class="deal-tag-sep" aria-hidden="true">|</span>{% endif %}
-        {% if is_lowest %}<span class="deal-tag deal-tag-lowest">최저가</span>{% endif %}
+        {% set has_prev = false %}
+        {% if mall_name %}<span class="deal-tag deal-tag-mall" data-mall="{{ mall_key or '' }}">{{ mall_name }}</span>{% set has_prev = true %}{% endif %}
+        {% if list_source %}{% if has_prev %}<span class="deal-tag-sep" aria-hidden="true">·</span>{% endif %}<span class="deal-tag deal-source">{{ source_labels.get(list_source, list_source) }}</span>{% set has_prev = true %}{% endif %}
+        {% if d.category %}{% if has_prev %}<span class="deal-tag-sep" aria-hidden="true">·</span>{% endif %}<span class="deal-tag deal-tag-cat">{{ d.category }}</span>{% set has_prev = true %}{% endif %}
+        {% if is_lowest %}{% if has_prev %}<span class="deal-tag-sep" aria-hidden="true">·</span>{% endif %}<span class="deal-tag deal-tag-lowest">최저가</span>{% endif %}
       </div>
       <span class="deal-title">{{ d.product_name | clean_title }}</span>
       <div class="deal-price-row">

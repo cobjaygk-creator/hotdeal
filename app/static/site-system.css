@@ -219,9 +219,10 @@ body[data-page="hotdeal"] #cat-chips .filter-chip.on { background:var(--ink); bo
 body[data-page="hotdeal"] #cat-chips .filter-chip .count { margin-left:4px; color:var(--grey-500); font-size:12px; }
 body[data-page="hotdeal"] #cat-chips .filter-chip.on .count { color:#aebccc; }
 body[data-page="hotdeal"] .homepage-filters { min-height:49px; gap:5px; }
-body[data-page="hotdeal"] .homepage-filters .sort-label { color:var(--ink-muted); font-size:12px; }
+body[data-page="hotdeal"] .homepage-filters .sort-label { display: none; }
 body[data-page="hotdeal"] .homepage-filters .sort-pill { padding:0 10px; font-size:13px; }
-body[data-page="hotdeal"] .homepage-filters [data-sort="discount"], body[data-page="hotdeal"] .homepage-filters [data-sort="comments"], body[data-page="hotdeal"] #hide-soldout { display:none; }
+body[data-page="hotdeal"] .homepage-filters [data-sort="discount"], body[data-page="hotdeal"] .homepage-filters [data-sort="comments"] { display: flex; }
+body[data-page="hotdeal"] #hide-soldout { display: none; }
 @media(max-width:767px){ body[data-page="hotdeal"] .homepage-feed-head { padding:35px 0 18px; } body[data-page="hotdeal"] .homepage-feed-head h1 { font-size:26px; } body[data-page="hotdeal"] #cat-chips .filter-chip { padding:0 13px; } }
 
 /* ============================================================
@@ -233,7 +234,7 @@ body[data-page="hotdeal"] .homepage-filters [data-sort="discount"], body[data-pa
 body[data-page="hotdeal"] .homepage-feed-head { padding: 14px 0 10px !important; margin: 0 !important; border-bottom: 0 !important; align-items: baseline !important; }
 body[data-page="hotdeal"] .homepage-feed-head h1 { font-size: 20px !important; letter-spacing: -.01em !important; }
 body[data-page="hotdeal"] .homepage-feed-head .home-intro { display: none !important; }
-body[data-page="hotdeal"] .homepage-feed-head .home-live { margin: 2px 0 0 !important; font-size: 12.5px !important; }
+body[data-page="hotdeal"] .homepage-feed-head .home-live { display: none !important; }
 body[data-page="hotdeal"] .homepage-feed-head .list-count { margin: 0 0 0 auto !important; color: var(--ink-faint) !important; font-size: 13px !important; font-weight: 500 !important; }
 body[data-page="hotdeal"] .homepage-feed-head .list-count strong { color: var(--ink-faint) !important; font-weight: 500 !important; }
 body[data-page="hotdeal"] #cat-chips { margin-top: 4px !important; }
@@ -244,8 +245,34 @@ body[data-page="hotdeal"] #cat-chips .filter-chip,
 body[data-page="hotdeal"] #source-chips .filter-chip { height: 34px !important; min-height: 34px !important; padding: 0 13px !important; font-size: 13px !important; }
 body[data-page="hotdeal"] #source-chips .filter-chip { height: 30px !important; min-height: 30px !important; font-size: 12.5px !important; }
 body[data-page="hotdeal"] .homepage-filters { min-height: 0 !important; margin: 0 0 6px !important; padding: 0 !important; gap: 14px !important; }
-body[data-page="hotdeal"] .homepage-filters .sort-pill { font-size: 12.5px !important; color: var(--ink-faint) !important; background: transparent !important; }
-body[data-page="hotdeal"] .homepage-filters .sort-pill.on { color: var(--ink) !important; font-weight: 700 !important; }
+/* sort-pill: components.css에 !important가 있어서 더 강한 선택자로 덮어씀 */
+body[data-page="hotdeal"] .homepage-filters .sort-pills { background: transparent !important; border: 0 !important; gap: 0 !important; }
+body[data-page="hotdeal"] .homepage-filters .sort-pill,
+body[data-page="hotdeal"] .homepage-filters .sort-pill:hover,
+body[data-page="hotdeal"] .homepage-filters .sort-pill.on,
+body[data-page="hotdeal"] .homepage-filters .sort-pill.on:hover,
+body[data-page="hotdeal"] .homepage-filters .sort-pill[aria-pressed="true"],
+body[data-page="hotdeal"] .homepage-filters .sort-pill[aria-pressed="true"]:hover {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  height: auto !important;
+  min-height: 0 !important;
+  padding: 2px 10px !important;
+  font-size: 13px !important;
+  color: var(--ink-muted) !important;
+  font-weight: 500 !important;
+}
+body[data-page="hotdeal"] .homepage-filters .sort-pill.on,
+body[data-page="hotdeal"] .homepage-filters .sort-pill.on:hover,
+body[data-page="hotdeal"] .homepage-filters .sort-pill[aria-pressed="true"],
+body[data-page="hotdeal"] .homepage-filters .sort-pill[aria-pressed="true"]:hover {
+  color: var(--ink) !important;
+  font-weight: 700 !important;
+}
+/* 목록/4열 토글: 목업에 없음 — 숨김 */
+body[data-page="hotdeal"] .homepage-filters .list-view-switch { display: none !important; }
 body[data-page="hotdeal"] .list-view-toolbar { padding: 0 0 10px !important; }
 
 /* 딜 행: li를 그리드로 — 썸네일 72px | 본문 1fr | 우측(버튼·메타) auto, 목업과 동일 */
@@ -287,6 +314,9 @@ body[data-page="hotdeal"] .rail-deal:last-child { border-bottom: 0 !important; }
 body[data-page="hotdeal"] .app-topbar { min-height: 56px !important; }
 body[data-page="hotdeal"] .topbar-inner { min-height: 56px !important; }
 
+/* mobile-ad: 광고 없을 때 여백 제거 */
+body[data-page="hotdeal"] .mobile-ad { min-height: 0 !important; margin: 0 !important; }
+
 /* 페이지 배경: 목업과 동일한 연회색 */
 body[data-page="hotdeal"] .app-main { background: var(--bg) !important; }
 body[data-page="hotdeal"] .app-topbar { background: var(--surface) !important; }
@@ -299,9 +329,8 @@ body[data-page="hotdeal"] .list-view-switch { background: transparent !important
 body[data-page="hotdeal"] .list-view-btn { background: transparent !important; color: var(--ink-muted) !important; box-shadow: none !important; padding: 0 10px; height: 30px; font-size: 12.5px; }
 body[data-page="hotdeal"] .list-view-btn.on { background: var(--ink) !important; color: var(--surface) !important; }
 
-/* 딜 태그 구분자: | → · */
-body[data-page="hotdeal"] .deal-tag-sep { font-size: 0 !important; }
-body[data-page="hotdeal"] .deal-tag-sep::before { content: "·"; font-size: 12px; color: var(--ink-faint); padding: 0 2px; }
+/* 딜 태그 구분자: · 직접 출력 */
+body[data-page="hotdeal"] .deal-tag-sep { font-size: 12px; color: var(--ink-faint); padding: 0 2px; }
 
 /* 딜 태그: 목업처럼 메타 텍스트 스타일 */
 body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal-tags { display: flex; align-items: center; gap: 2px; margin-bottom: 3px; }
