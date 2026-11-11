@@ -369,7 +369,7 @@ details:not([open]) > .account-dropdown { display: none; }
 }
 #cat-chips .filter-chip.on .count { opacity: .75; }
 /* 목업에 아이콘 없음 — 숨김 */
-#cat-chips .filter-chip .cat-icon { display: none; }
+#cat-chips .filter-chip .filter-chip-ico { display: none; }
 
 /* 소스 칩 */
 #source-chips .filter-chip {
