@@ -349,7 +349,7 @@ details:not([open]) > .account-dropdown { display: none; }
   flex: none;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   height: 34px;
   padding: 0 13px;
   border-radius: var(--radius-pill);
@@ -368,7 +368,8 @@ details:not([open]) > .account-dropdown { display: none; }
   color: var(--surface);
 }
 #cat-chips .filter-chip.on .count { opacity: .75; }
-#cat-chips .filter-chip .cat-icon { width: 14px; height: 14px; flex: none; }
+/* 목업에 아이콘 없음 — 숨김 */
+#cat-chips .filter-chip .cat-icon { display: none; }
 
 /* 소스 칩 */
 #source-chips .filter-chip {
