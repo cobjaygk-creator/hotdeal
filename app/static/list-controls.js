@@ -6,8 +6,11 @@
   if (!list) return;
 
   var viewSwitch = document.querySelector(".list-view-switch");
-  var view = document.body.dataset.page === "hotdeal" ? "vertical" : "horizontal";
-  try { if (localStorage.getItem("deal-list-view") === "vertical") view = "vertical"; } catch (e) {}
+  var view = "horizontal";
+  try {
+    var savedView = localStorage.getItem("deal-list-view");
+    if (savedView === "vertical" || savedView === "horizontal") view = savedView;
+  } catch (e) {}
   function applyView() {
     list.dataset.view = view;
     if (!viewSwitch) return;
