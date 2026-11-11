@@ -44,17 +44,6 @@ COLLECT_SLOW_MINUTES = int((os.environ.get("COLLECT_SLOW_MINUTES") or "30").stri
 QUASARZONE_INTERVAL_MINUTES = int(
     (os.environ.get("QUASARZONE_INTERVAL_MINUTES") or "30").strip() or "30"
 )
-# Headless Chromium for Quasarzone Cloudflare bypass (mirrors fmkorea pattern).
-QUASARZONE_BROWSER_ENABLED = (
-    os.environ.get("QUASARZONE_BROWSER_ENABLED") or "1"
-).strip().lower() not in ("", "0", "false", "no")
-QUASARZONE_BROWSER_MIN_GAP_SEC = int(
-    (os.environ.get("QUASARZONE_BROWSER_MIN_GAP_SEC") or "60").strip() or "60"
-)
-# Proxy for the quasarzone browser. Falls back to HTTP_PROXY_URL.
-QUASARZONE_PROXY_URL = (
-    os.environ.get("QUASARZONE_PROXY_URL") or HTTP_PROXY_URL or ""
-).strip()
 FAMILY_SALE_INTERVAL_MINUTES = 30
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "").strip()
 ADMIN_USERNAME = (os.environ.get("ADMIN_USERNAME") or "admin").strip() or "admin"
@@ -118,6 +107,18 @@ PPOMPPU_DETAIL_PER_TICK = 0
 # FMKOREA_PROXY_URL) take priority when explicitly passed.
 # Example: http://user:pass@host:port  or  socks5://user:pass@host:port
 HTTP_PROXY_URL = (os.environ.get("HTTP_PROXY_URL") or "").strip()
+
+# Headless Chromium for Quasarzone Cloudflare bypass (mirrors fmkorea pattern).
+QUASARZONE_BROWSER_ENABLED = (
+    os.environ.get("QUASARZONE_BROWSER_ENABLED") or "1"
+).strip().lower() not in ("", "0", "false", "no")
+QUASARZONE_BROWSER_MIN_GAP_SEC = int(
+    (os.environ.get("QUASARZONE_BROWSER_MIN_GAP_SEC") or "60").strip() or "60"
+)
+# Proxy for the quasarzone browser. Falls back to HTTP_PROXY_URL.
+QUASARZONE_PROXY_URL = (
+    os.environ.get("QUASARZONE_PROXY_URL") or HTTP_PROXY_URL or ""
+).strip()
 
 # Residential / Korea proxy for ppomppu detail HTML (buy-link extraction).
 # Falls back to HTTP_PROXY_URL when not set explicitly.
