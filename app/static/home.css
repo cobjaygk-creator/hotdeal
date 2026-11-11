@@ -474,6 +474,7 @@ details:not([open]) > .account-dropdown { display: none; }
   grid-template-columns: 1fr 300px;
   gap: 28px;
   align-items: start;
+  padding-top: 20px;
   padding-bottom: 48px;
 }
 .deal-list-column { min-width: 0; }
