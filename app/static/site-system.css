@@ -165,7 +165,7 @@ body[data-page="hotdeal"] .main-inner { padding-top: 0; }
 @media (min-width:900px) {
   body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] { grid-template-columns: 1fr; gap:0; }
   body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal-card { min-height:100px; }
-  body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal-thumb-wrap { width:72px; flex-basis:72px; margin:14px 14px 14px 0; }
+  body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal-thumb-wrap { width:72px; height:72px; flex-basis:72px; margin:14px 14px 14px 0; }
   body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal-thumb-hit,
   body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal-thumb { width:72px; height:72px; }
   body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal-row-side { display:flex; }
