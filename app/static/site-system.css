@@ -230,10 +230,15 @@ body[data-page="hotdeal"] .homepage-filters [data-sort="discount"], body[data-pa
    계속 끼어들어서 조금씩 어긋나던 문제를 막기 위해, 여기서는
    값을 !important로 확정해 더 이상 다른 규칙이 못 끼어들게 함.
    ============================================================ */
-body[data-page="hotdeal"] .homepage-feed-head { padding: 20px 0 14px !important; align-items: baseline !important; }
+body[data-page="hotdeal"] .homepage-feed-head { padding: 14px 0 10px !important; margin: 0 !important; border-bottom: 0 !important; align-items: baseline !important; }
 body[data-page="hotdeal"] .homepage-feed-head h1 { font-size: 20px !important; letter-spacing: -.01em !important; }
 body[data-page="hotdeal"] .homepage-feed-head .home-intro { display: none !important; }
-body[data-page="hotdeal"] .homepage-feed-head .home-live { margin: 0 !important; font-size: 12.5px !important; }
+body[data-page="hotdeal"] .homepage-feed-head .home-live { margin: 2px 0 0 !important; font-size: 12.5px !important; }
+body[data-page="hotdeal"] .homepage-feed-head .list-count { margin: 0 0 0 auto !important; color: var(--ink-faint) !important; font-size: 13px !important; font-weight: 500 !important; }
+body[data-page="hotdeal"] .homepage-feed-head .list-count strong { color: var(--ink-faint) !important; font-weight: 500 !important; }
+body[data-page="hotdeal"] #cat-chips { margin-top: 4px !important; }
+/* 홈 행 상단의 두꺼운 검정 구분선 제거 — 목업엔 없음 */
+body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] { border-top: 0 !important; }
 body[data-page="hotdeal"] #cat-chips { min-height: 0 !important; padding: 0 !important; margin: 0 0 6px !important; border: 0 !important; gap: 6px !important; }
 body[data-page="hotdeal"] #cat-chips .filter-chip,
 body[data-page="hotdeal"] #source-chips .filter-chip { height: 34px !important; min-height: 34px !important; padding: 0 13px !important; font-size: 13px !important; }
