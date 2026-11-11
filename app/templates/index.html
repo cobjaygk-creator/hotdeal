@@ -34,7 +34,7 @@
   {% endfor %}
 </div>
 <div class="chip-row" id="source-chips" role="tablist" aria-label="커뮤니티 선택">
-  <button type="button" class="filter-chip on" data-source="*" role="tab" aria-pressed="true">전체</button>
+  <button type="button" class="filter-chip on" data-source="*" role="tab" aria-pressed="true">전체 커뮤니티</button>
   {% for s in sources %}
   <button type="button" class="filter-chip" data-source="{{ s }}" role="tab" aria-pressed="false">{{ source_labels.get(s, s) }}</button>
   {% endfor %}
