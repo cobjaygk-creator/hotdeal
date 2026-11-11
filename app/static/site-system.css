@@ -223,3 +223,52 @@ body[data-page="hotdeal"] .homepage-filters .sort-label { color:var(--ink-muted)
 body[data-page="hotdeal"] .homepage-filters .sort-pill { padding:0 10px; font-size:13px; }
 body[data-page="hotdeal"] .homepage-filters [data-sort="discount"], body[data-page="hotdeal"] .homepage-filters [data-sort="comments"], body[data-page="hotdeal"] #hide-soldout { display:none; }
 @media(max-width:767px){ body[data-page="hotdeal"] .homepage-feed-head { padding:35px 0 18px; } body[data-page="hotdeal"] .homepage-feed-head h1 { font-size:26px; } body[data-page="hotdeal"] #cat-chips .filter-chip { padding:0 13px; } }
+
+/* ============================================================
+   목업 포팅 — 홈 피드 행/헤더/칩을 목업 수치 그대로 고정.
+   기존 캐스케이드(여러 세션이 쌓은 flex 여백·pill 태그 등)가
+   계속 끼어들어서 조금씩 어긋나던 문제를 막기 위해, 여기서는
+   값을 !important로 확정해 더 이상 다른 규칙이 못 끼어들게 함.
+   ============================================================ */
+body[data-page="hotdeal"] .homepage-feed-head { padding: 20px 0 14px !important; align-items: baseline !important; }
+body[data-page="hotdeal"] .homepage-feed-head h1 { font-size: 20px !important; letter-spacing: -.01em !important; }
+body[data-page="hotdeal"] .homepage-feed-head .home-intro { display: none !important; }
+body[data-page="hotdeal"] .homepage-feed-head .home-live { margin: 0 !important; font-size: 12.5px !important; }
+body[data-page="hotdeal"] #cat-chips { min-height: 0 !important; padding: 0 !important; margin: 0 0 6px !important; border: 0 !important; gap: 6px !important; }
+body[data-page="hotdeal"] #cat-chips .filter-chip,
+body[data-page="hotdeal"] #source-chips .filter-chip { height: 34px !important; min-height: 34px !important; padding: 0 13px !important; font-size: 13px !important; }
+body[data-page="hotdeal"] #source-chips .filter-chip { height: 30px !important; min-height: 30px !important; font-size: 12.5px !important; }
+body[data-page="hotdeal"] .homepage-filters { min-height: 0 !important; margin: 0 0 6px !important; padding: 0 !important; gap: 14px !important; }
+body[data-page="hotdeal"] .homepage-filters .sort-pill { font-size: 12.5px !important; color: var(--ink-faint) !important; background: transparent !important; }
+body[data-page="hotdeal"] .homepage-filters .sort-pill.on { color: var(--ink) !important; font-weight: 700 !important; }
+body[data-page="hotdeal"] .list-view-toolbar { padding: 0 0 10px !important; }
+
+/* 딜 행: li를 그리드로 — 썸네일 72px | 본문 1fr | 우측(버튼·메타) auto, 목업과 동일 */
+body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] > .deal-card {
+  display: grid !important;
+  grid-template-columns: 72px 1fr auto !important;
+  align-items: center !important;
+  gap: 14px !important;
+  padding: 14px 4px !important;
+  min-height: 0 !important;
+}
+body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal-thumb-wrap { width:72px !important; height:72px !important; flex:none !important; margin:0 !important; }
+body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal-thumb-hit,
+body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal-thumb { width:72px !important; height:72px !important; border-radius:12px !important; }
+body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal-row-main { padding:0 !important; }
+body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal-body { gap:5px !important; }
+body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal-title { font-size:14.5px !important; font-weight:500 !important; }
+body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal-price { font-size:16px !important; font-weight:800 !important; }
+body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal-discount { font-size:15px !important; font-weight:800 !important; }
+body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal-row-side { padding:0 !important; gap:8px !important; }
+/* 몰/출처/카테고리 태그: 목업처럼 배경 없는 순수 텍스트로 */
+body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal-tag {
+  background: transparent !important; border: 0 !important; padding: 0 !important; color: var(--ink-faint) !important; font-size: 12px !important; font-weight: 400 !important;
+}
+body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal-tag-mall { color: var(--ink-faint) !important; }
+body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal-tag-lowest { background: var(--accent-soft) !important; color: var(--accent-soft-ink) !important; padding: 2px 7px !important; border-radius: var(--radius-xs) !important; font-size: 11px !important; }
+
+/* 우측 레일 카드: 목업처럼 패딩/라운드/타이틀 크기 고정 */
+body[data-page="hotdeal"] .rail-panel { padding: 16px !important; border-radius: 14px !important; }
+body[data-page="hotdeal"] .rail-panel h2 { font-size: 14px !important; }
+body[data-page="hotdeal"] .rail-deal { font-size: 12.5px !important; padding: 6px 0 !important; }
