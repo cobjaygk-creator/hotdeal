@@ -10,6 +10,7 @@ import httpx
 from selectolax.parser import HTMLParser
 
 from app.config import (
+    HTTP_PROXY_URL,
     HTTP_TIMEOUT_SEC,
     MAX_RETRIES,
     MIN_REQUEST_INTERVAL_SEC,
@@ -85,10 +86,15 @@ class FetchResult:
 
 class PoliteClient:
     def __init__(self) -> None:
+        # When HTTP_PROXY_URL is set, route all requests through it by default.
+        # Per-call `proxy=` overrides this (per-source proxies take priority).
+        self._default_proxy: str | None = HTTP_PROXY_URL or None
+        init_proxy = self._default_proxy
         self._client = httpx.AsyncClient(
             headers=BROWSER_HEADERS,
             timeout=HTTP_TIMEOUT_SEC,
             follow_redirects=True,
+            **({"proxy": init_proxy} if init_proxy else {}),
         )
         self._proxy_clients: dict[str, httpx.AsyncClient] = {}
         self._impersonate_sessions: dict[str, object] = {}
@@ -141,16 +147,20 @@ class PoliteClient:
         max_retries: int | None = None,
         proxy: str | None = None,
     ) -> FetchResult:
+        # Per-call proxy overrides default; fall back to global HTTP_PROXY_URL.
+        effective_proxy = proxy or self._default_proxy
         host = httpx.URL(url).host or "default"
         req_timeout = timeout if timeout is not None else HTTP_TIMEOUT_SEC
         retries = MAX_RETRIES if max_retries is None else max(1, max_retries)
-        http = self._client_for(proxy)
+        # When using the global default proxy, the default _client already has
+        # the proxy baked in; pass None to _client_for so we reuse it.
+        http = self._client_for(proxy if proxy else None)
         extra: dict[str, str] = {}
         # Conditional GET on both direct and proxied fetches — an unchanged
         # community list returns a tiny 304 instead of the full page, which
         # matters a lot for residential-proxy GB. Keyed per exit so a direct
         # ETag never gets replayed to a proxy edge (or vice versa).
-        cc_key = f"{proxy or ''}\n{url}"
+        cc_key = f"{effective_proxy or ''}\n{url}"
         if cc_key in self._etag:
             extra["If-None-Match"] = self._etag[cc_key]
         if cc_key in self._modified:
@@ -166,9 +176,9 @@ class PoliteClient:
                 try:
                     # Chrome TLS + residential proxy: httpx is challenged by
                     # Cloudflare even when the exit IP is Korean.
-                    if proxy:
+                    if effective_proxy:
                         impersonated = await self._impersonate_get(
-                            url, encoding, timeout=req_timeout, proxy=proxy, cond=extra
+                            url, encoding, timeout=req_timeout, proxy=effective_proxy, cond=extra
                         )
                         if impersonated is not None and impersonated.not_modified:
                             return impersonated
@@ -184,7 +194,7 @@ class PoliteClient:
                             )
                             await asyncio.sleep(2.5)
                             impersonated = await self._impersonate_get(
-                                url, encoding, timeout=req_timeout, proxy=proxy
+                                url, encoding, timeout=req_timeout, proxy=effective_proxy
                             )
                             if impersonated is not None and not _soft_blocked(
                                 impersonated.text
@@ -207,16 +217,16 @@ class PoliteClient:
                         "%s on %s, falling back to curl (proxy=%s)",
                         resp.status_code,
                         url,
-                        bool(proxy),
+                        bool(effective_proxy),
                     )
                     return await self._curl_get(
-                        url, encoding, timeout=req_timeout, proxy=proxy
+                        url, encoding, timeout=req_timeout, proxy=effective_proxy
                     )
                 log.warning(
                     "%s on %s (proxy=%s curl_fallback=%s)",
                     resp.status_code,
                     url,
-                    bool(proxy),
+                    bool(effective_proxy),
                     curl_fallback,
                 )
                 return self._decode(
@@ -241,11 +251,11 @@ class PoliteClient:
                 self._etag.pop(cc_key, None)
                 self._modified.pop(cc_key, None)
                 if curl_fallback:
-                    log.warning("soft-block body on %s, falling back to curl (proxy=%s)", url, bool(proxy))
+                    log.warning("soft-block body on %s, falling back to curl (proxy=%s)", url, bool(effective_proxy))
                     return await self._curl_get(
-                        url, encoding, timeout=req_timeout, proxy=proxy
+                        url, encoding, timeout=req_timeout, proxy=effective_proxy
                     )
-                log.warning("soft-block body on %s (proxy=%s)", url, bool(proxy))
+                log.warning("soft-block body on %s (proxy=%s)", url, bool(effective_proxy))
                 return decoded
             if etag := resp.headers.get("ETag"):
                 self._etag[cc_key] = etag

@@ -102,9 +102,16 @@ MARKET_COMPARE_CACHE_HOURS = int(os.environ.get("MARKET_COMPARE_CACHE_HOURS") or
 DETAIL_ENRICH_ENABLED = True
 DETAIL_BACKFILL_PER_SOURCE = 0
 PPOMPPU_DETAIL_PER_TICK = 0
+# Global outbound proxy for all HTTP collection (applied by default to every
+# PoliteClient request when set). Per-source vars (PPOMPPU_PROXY_URL,
+# FMKOREA_PROXY_URL) take priority when explicitly passed.
+# Example: http://user:pass@host:port  or  socks5://user:pass@host:port
+HTTP_PROXY_URL = (os.environ.get("HTTP_PROXY_URL") or "").strip()
+
 # Residential / Korea proxy for ppomppu detail HTML (buy-link extraction).
+# Falls back to HTTP_PROXY_URL when not set explicitly.
 # Example: http://user:pass@host:port  or  socks5://host:port
-PPOMPPU_PROXY_URL = (os.environ.get("PPOMPPU_PROXY_URL") or "").strip()
+PPOMPPU_PROXY_URL = (os.environ.get("PPOMPPU_PROXY_URL") or HTTP_PROXY_URL).strip()
 
 # FMKorea fronts /hotdeal with an Akamai + WASM proof-of-work gate that plain
 # HTTP clients cannot pass. When enabled, a headless Chromium (Playwright)
@@ -127,7 +134,7 @@ FMKOREA_BROWSER_MIN_GAP_SEC = int(
 # token that rotates every few minutes so one page load stays on one exit IP.
 # Example: http://user-session-{session}:pass@gate.provider.com:7000
 FMKOREA_PROXY_URL = (
-    os.environ.get("FMKOREA_PROXY_URL") or os.environ.get("PPOMPPU_PROXY_URL") or ""
+    os.environ.get("FMKOREA_PROXY_URL") or os.environ.get("PPOMPPU_PROXY_URL") or HTTP_PROXY_URL or ""
 ).strip()
 FMKOREA_PROXY_SESSION_TTL_SEC = int(
     (os.environ.get("FMKOREA_PROXY_SESSION_TTL_SEC") or "480").strip() or "480"
