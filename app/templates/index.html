@@ -21,6 +21,7 @@
 <span id="stat-last" hidden>{{ stats.last_collect_at | kst }}</span>
 {% endif %}
 
+<div class="deal-layout"><main class="deal-list-column">
 <div class="chip-row" id="cat-chips" role="tablist" aria-label="카테고리">
   <a class="filter-chip {% if not category %}on{% endif %}" href="/" role="tab" aria-selected="{{ 'true' if not category else 'false' }}">
     {% with name='전체' %}{% include "_cat_icon.html" %}{% endwith %}
@@ -61,7 +62,6 @@
     <button type="button" class="list-view-btn" data-list-view="vertical" aria-pressed="false" aria-controls="deal-body">4열</button>
   </div>
 </div>
-<div class="deal-layout"><main class="deal-list-column">
 <ul class="deal-cards" id="deal-body" data-view="horizontal">
   {% for d in deals %}
   {% include "_deal_card.html" %}
