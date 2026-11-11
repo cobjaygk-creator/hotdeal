@@ -356,10 +356,57 @@ body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal
   min-height: 0 !important; height: auto !important; white-space: nowrap !important;
 }
 
-/* 브랜드 로고: 목업처럼 파란 원 없이 텍스트 "쥬" 그대로 */
+/* 브랜드 마크: 목업과 동일하게 26x26, radius 8px 블루 사각형 */
 .topbar-brand .brand-mark {
-  background: transparent !important;
-  color: var(--ink) !important;
-  font-weight: 800 !important;
-  font-family: var(--font-display) !important;
+  width: 26px !important;
+  height: 26px !important;
+  border-radius: 8px !important;
+  background: var(--accent) !important;
+  color: #fff !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+}
+
+/* ============================================================
+   목업 완전 적용 — 2026-11 최종 2차
+   소스칩 on 상태, 섹션 간격, 정렬 bar 등 나머지 차이 수정
+   ============================================================ */
+
+/* 소스 칩 선택 상태: 목업처럼 accent-soft 파란 연한 배경 (검은 배경 아님) */
+body[data-page="hotdeal"] #source-chips .filter-chip.on {
+  background: var(--accent-soft) !important;
+  border-color: var(--accent-soft) !important;
+  color: var(--accent-ink) !important;
+}
+
+/* 카테고리 칩 숫자: 목업처럼 흐리게 (opacity .6) */
+body[data-page="hotdeal"] #cat-chips .filter-chip .count {
+  opacity: 0.6 !important;
+  font-size: 12px !important;
+}
+body[data-page="hotdeal"] #cat-chips .filter-chip.on .count {
+  opacity: 0.75 !important;
+}
+
+/* 섹션 제목 영역: 목업과 동일하게 18px top margin, 10px bottom, border-bottom 없음 */
+body[data-page="hotdeal"] .homepage-feed-head {
+  display: flex !important;
+  align-items: baseline !important;
+  justify-content: space-between !important;
+  padding: 0 !important;
+  margin: 18px 0 10px !important;
+  border-bottom: 0 !important;
+}
+
+/* 정렬 바: 목업과 동일한 gap 14px, font-size 12.5px */
+body[data-page="hotdeal"] .homepage-filters {
+  gap: 14px !important;
+  font-size: 12.5px !important;
+  margin-bottom: 6px !important;
+}
+
+/* 소스 칩 행: 목업처럼 margin-bottom 4px */
+body[data-page="hotdeal"] #source-chips {
+  margin-bottom: 4px !important;
+  padding-bottom: 2px !important;
 }
