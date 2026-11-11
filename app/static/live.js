@@ -1055,8 +1055,53 @@ async function openModal(id, opts) {
   const adHtml = config.showAds ? `<div class="dm-ad is-mid" aria-label="광고"><span>광고</span></div>` : "";
   const originalHtml = deal.body_html ? `<section><div class="dm-sec-head"><h2 class="dm-h2">원문 내용</h2><span class="dm-sub">${esc(sourceLabels[deal.body_source] || deal.body_source || "")}</span></div><div class="dm-body-html">${deal.body_html}</div></section>` : "";
   const chatHtml = document.querySelector("#dm-chat-source #dd-chat")?.outerHTML || `<aside class="dm-chat" id="dd-chat"></aside>`;
-  modalBody.innerHTML = `<section class="dm-hero"><div class="dm-img">${deal.thumbnail_url ? `<img src="${esc(deal.thumbnail_url)}" alt="" referrerpolicy="no-referrer">` : "상품 이미지"}${deal.status === "expired" ? `<span class="dm-ended">종료</span>` : ""}</div><div class="dm-info"><p class="dm-meta"><span class="dm-mall">${esc(mallLabel)}</span><span>${esc(sourceLabel)}에서 ${esc(relativeTime(deal.last_seen_at))} 등록</span></p><h1 class="dm-title" id="modal-title">${esc(deal.product_name)}</h1><div class="dm-price">${detailOffHtml(deal)}<span class="won">${won(deal.price)}</span></div>${strikeHtml(deal, hasBaseline, cheaper)}${verdictHtml}<dl class="dm-dl"><dt>배송</dt><dd>${deal.shipping_fee === 0 ? "무료배송" : (deal.shipping_fee ? won(deal.shipping_fee) : "정보 없음")}</dd><dt>카테고리</dt><dd>${esc(deal.category || "기타")}</dd><dt>반응</dt><dd>추천 ${deal.votes || 0} · 댓글 ${deal.comments || 0}</dd></dl><div class="dm-spacer"></div><div class="dm-cta" id="modal-cta">${ctaHtml}</div><div id="dm-disclosure">${coupangDisclosureHtml(deal)}</div></div></section><div class="dm-band"></div><div class="dm-body"><div class="dm-main"><section><div class="dm-sec-head"><h2 class="dm-h2">쇼핑몰 가격 비교</h2><span class="dm-sub">현재 기준</span></div><div class="dm-mrow is-deal"><span class="name">${esc(mallLabel)} <span class="tag">이 딜</span></span><span class="track"><span class="bar" style="width:66%"></span></span><span class="won">${won(deal.price)}</span></div></section>${adHtml}${chartHtml}${originalHtml}<section><div class="dm-sec-head"><h2 class="dm-h2">원문 게시글</h2></div><ul class="dm-posts">${postHtml}</ul></section></div><aside class="dm-aside">${chatHtml}${config.showAds ? `<div class="dm-ad is-side" aria-label="광고"><span>광고</span></div>` : ""}</aside></div>`;
+  const stickyBuyHtml = isPostUrl(deal.mall_url)
+    ? `<a class="dm-buy" href="/out/${id}" target="_blank" rel="noopener">${deal.seller ? esc(deal.seller) + "에서 " : ""}${won(deal.price)} 구매하기</a>`
+    : isPostUrl(deal.deal_url)
+    ? `<a class="dm-buy" href="${esc(deal.deal_url)}" target="_blank" rel="noopener">${won(deal.price)} 구매하기</a>`
+    : "";
+  const commentCount = deal.comments || 0;
+  const tabBarHtml = `<div class="dm-tab-bar" role="tablist"><button type="button" class="dm-tab-btn active" data-tab="product" role="tab" aria-selected="true">상품 정보</button><button type="button" class="dm-tab-btn" data-tab="chat" role="tab" aria-selected="false">댓글${commentCount ? ` <span class="dm-tab-count">${commentCount}</span>` : ""}</button></div>`;
+  modalBody.innerHTML = `${tabBarHtml}<div class="dm-body" data-active-tab="product"><div class="dm-left"><section class="dm-hero"><div class="dm-img">${deal.thumbnail_url ? `<img src="${esc(deal.thumbnail_url)}" alt="" referrerpolicy="no-referrer">` : "상품 이미지"}${deal.status === "expired" ? `<span class="dm-ended">종료</span>` : ""}</div><div class="dm-info"><p class="dm-meta"><span class="dm-mall">${esc(mallLabel)}</span><span>${esc(sourceLabel)}에서 ${esc(relativeTime(deal.last_seen_at))} 등록</span></p><h1 class="dm-title" id="modal-title">${esc(deal.product_name)}</h1><div class="dm-price">${detailOffHtml(deal)}<span class="won">${won(deal.price)}</span></div>${strikeHtml(deal, hasBaseline, cheaper)}${verdictHtml}<dl class="dm-dl"><dt>배송</dt><dd>${deal.shipping_fee === 0 ? "무료배송" : (deal.shipping_fee ? won(deal.shipping_fee) : "정보 없음")}</dd><dt>카테고리</dt><dd>${esc(deal.category || "기타")}</dd><dt>반응</dt><dd>추천 ${deal.votes || 0} · 댓글 ${deal.comments || 0}</dd></dl><div class="dm-spacer"></div><div class="dm-cta" id="modal-cta">${ctaHtml}</div><div id="dm-disclosure">${coupangDisclosureHtml(deal)}</div></div></section><div class="dm-main"><section><div class="dm-sec-head"><h2 class="dm-h2">쇼핑몰 가격 비교</h2><span class="dm-sub">현재 기준</span></div><div class="dm-mrow is-deal"><span class="name">${esc(mallLabel)} <span class="tag">이 딜</span></span><span class="track"><span class="bar" style="width:66%"></span></span><span class="won">${won(deal.price)}</span></div></section>${adHtml}${chartHtml}${originalHtml}<section><div class="dm-sec-head"><h2 class="dm-h2">원문 게시글</h2></div><ul class="dm-posts">${postHtml}</ul></section></div>${stickyBuyHtml ? `<div class="dm-sticky-buy" id="modal-sticky-buy" hidden>${stickyBuyHtml}</div>` : ""}</div><aside class="dm-aside">${chatHtml}${config.showAds ? `<div class="dm-ad is-side" aria-label="광고"><span>광고</span></div>` : ""}</aside></div>`;
   modalCta = document.getElementById("modal-cta");
+  const stickyBuyEl = document.getElementById("modal-sticky-buy");
+  if (stickyBuyEl && modalCta) {
+    const dmLeft = document.querySelector(".dm-left");
+    // CTA가 처음 렌더될 때 dm-left 기준 상단 위치 계산
+    const getCtaTopInContainer = () => {
+      if (!dmLeft) return modalCta.getBoundingClientRect().top;
+      return modalCta.getBoundingClientRect().top - dmLeft.getBoundingClientRect().top + dmLeft.scrollTop;
+    };
+    const ctaInitialTop = getCtaTopInContainer();
+    const updateSticky = () => {
+      const scrollTop = dmLeft ? dmLeft.scrollTop : window.scrollY;
+      // CTA가 화면 밖으로 나갔거나, 최대 스크롤의 60% 이상 내려간 경우 표시
+      const maxScroll = dmLeft ? dmLeft.scrollHeight - dmLeft.clientHeight : document.body.scrollHeight - window.innerHeight;
+      const ctaScrolledOut = scrollTop > ctaInitialTop;
+      const nearBottom = maxScroll > 0 && scrollTop / maxScroll >= 0.6 && ctaInitialTop > maxScroll * 0.5;
+      stickyBuyEl.hidden = !ctaScrolledOut && !nearBottom;
+    };
+    (dmLeft || window).addEventListener("scroll", updateSticky, { passive: true });
+    updateSticky();
+  }
+  // 모바일 탭 전환
+  const dmBodyEl = modalBody.querySelector(".dm-body");
+  modalBody.querySelectorAll(".dm-tab-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const tab = btn.dataset.tab;
+      modalBody.querySelectorAll(".dm-tab-btn").forEach(b => {
+        b.classList.toggle("active", b === btn);
+        b.setAttribute("aria-selected", b === btn ? "true" : "false");
+      });
+      if (dmBodyEl) dmBodyEl.dataset.activeTab = tab;
+      // 댓글 탭으로 이동 시 chat scroll 맨 아래로
+      if (tab === "chat") {
+        const chatScroll = dmBodyEl?.querySelector(".dm-aside");
+        if (chatScroll) chatScroll.scrollTop = chatScroll.scrollHeight;
+      }
+    });
+  });
+
   const cat = document.querySelector("[data-dm-cat]");
   if (cat) cat.textContent = deal.category || "상세";
   if (showChart) {
