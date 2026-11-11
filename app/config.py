@@ -37,12 +37,12 @@ WATCHDOG_CHECK_SECONDS = int(
 COLLECT_INTERVAL_MINUTES = 3
 PPOMPPU_INTERVAL_SECONDS = int((os.environ.get("PPOMPPU_INTERVAL_SECONDS") or "30").strip() or "30")
 COLLECT_FAST_SECONDS = int((os.environ.get("COLLECT_FAST_SECONDS") or "30").strip() or "30")
-COLLECT_PROXY_SECONDS = int((os.environ.get("COLLECT_PROXY_SECONDS") or "480").strip() or "240")
+COLLECT_PROXY_SECONDS = int((os.environ.get("COLLECT_PROXY_SECONDS") or "90").strip() or "90")
 COLLECT_SLOW_MINUTES = int((os.environ.get("COLLECT_SLOW_MINUTES") or "30").strip() or "30")
 # Quasarzone has no RSS, so its list page is the heaviest proxy fetch left.
 # Give it its own (slower) cadence instead of dragging arca down with it.
 QUASARZONE_INTERVAL_MINUTES = int(
-    (os.environ.get("QUASARZONE_INTERVAL_MINUTES") or "30").strip() or "30"
+    (os.environ.get("QUASARZONE_INTERVAL_MINUTES") or "15").strip() or "15"
 )
 FAMILY_SALE_INTERVAL_MINUTES = 30
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "").strip()
@@ -100,8 +100,8 @@ MARKET_COMPARE_CACHE_HOURS = int(os.environ.get("MARKET_COMPARE_CACHE_HOURS") or
 # List ticks stay list-only. Buy links / thumbs come from list HTML plus the
 # background enrich worker (PPOMPPU_ENRICH_*).
 DETAIL_ENRICH_ENABLED = True
-DETAIL_BACKFILL_PER_SOURCE = 0
-PPOMPPU_DETAIL_PER_TICK = 0
+DETAIL_BACKFILL_PER_SOURCE = 2
+PPOMPPU_DETAIL_PER_TICK = 3
 # Global outbound proxy for all HTTP collection (applied by default to every
 # PoliteClient request when set). Per-source vars (PPOMPPU_PROXY_URL,
 # FMKOREA_PROXY_URL) take priority when explicitly passed.
@@ -135,7 +135,7 @@ FMKOREA_BROWSER_ENABLED = (
 # fetch is gate-blocked. Off by default: detail enrich runs many times per tick,
 # and full browser page loads burn residential-proxy GB fast. List-only is cheap.
 FMKOREA_BROWSER_DETAIL = (
-    os.environ.get("FMKOREA_BROWSER_DETAIL") or "0"
+    os.environ.get("FMKOREA_BROWSER_DETAIL") or "1"
 ).strip().lower() not in ("", "0", "false", "no")
 # Minimum seconds between any two headless FMKorea fetches (proxy-GB guard).
 FMKOREA_BROWSER_MIN_GAP_SEC = int(
@@ -156,9 +156,9 @@ PPOMPPU_ENRICH_INTERVAL_MINUTES = int(
 )
 MALL_ENRICH_INTERVAL_SECONDS = max(
     15,
-    int((os.environ.get("MALL_ENRICH_INTERVAL_SECONDS") or "300").strip() or "300"),
+    int((os.environ.get("MALL_ENRICH_INTERVAL_SECONDS") or "120").strip() or "120"),
 )
-PPOMPPU_ENRICH_BATCH = int((os.environ.get("PPOMPPU_ENRICH_BATCH") or "6").strip() or "6")
+PPOMPPU_ENRICH_BATCH = int((os.environ.get("PPOMPPU_ENRICH_BATCH") or "10").strip() or "10")
 
 # LLM category re-classification. The keyword classifier (app.engine.category)
 # still runs inline at collect time; this overrides it in the background when

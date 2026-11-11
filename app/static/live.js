@@ -509,8 +509,8 @@ function isPostUrl(url) {
 }
 
 const FRESH_STAGGER_MS = 150;
-const FRESH_PULSE_MS = 5000;
-const FRESH_DROP_MS = 700;
+const FRESH_PULSE_MS = 3000;
+const FRESH_DROP_MS = 400;
 
 function renderRow(deal, { fresh = false, freshIndex = 0 } = {}) {
   const li = document.createElement("li");

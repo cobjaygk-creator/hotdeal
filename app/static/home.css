@@ -497,6 +497,26 @@ details:not([open]) > .account-dropdown { display: none; }
 .deal-card:hover { background: var(--surface); }
 .deal-card.is-expired { opacity: .6; }
 
+/* 신규 등록 카드 깜빡 하이라이트 */
+@keyframes fresh-blink {
+  0%   { background: transparent; }
+  20%  { background: var(--fresh-color, #fff9e6); }
+  50%  { background: transparent; }
+  70%  { background: var(--fresh-color, #fff9e6); }
+  100% { background: transparent; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .deal-card.fresh {
+    --fresh-color: #edf4ff;
+    animation: fresh-blink 3s ease-in-out var(--fresh-delay, 0ms) 1 forwards;
+  }
+  .deal-card.hot-fresh {
+    --fresh-color: #fff3e0;
+    animation: fresh-blink 3s ease-in-out var(--fresh-delay, 0ms) 1 forwards;
+  }
+}
+.is-shifting { pointer-events: none; }
+
 /* ?몃꽕??*/
 .deal-thumb-wrap {
   width: 72px;
