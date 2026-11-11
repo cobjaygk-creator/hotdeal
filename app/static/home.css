@@ -428,7 +428,7 @@ body[data-page="hotdeal"] #hide-soldout { display: none; }
 body[data-page="hotdeal"] .homepage-filters .sort-pills {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 14px !important;
   background: transparent;
   border: 0;
   box-shadow: none;
