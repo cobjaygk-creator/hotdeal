@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import re
 from urllib.parse import urljoin
 
@@ -9,6 +10,8 @@ from app.http_client import PoliteClient
 from app.sources import RawPost
 from app.sources.html_fetch import fetch_parsed
 from app.util.timeparse import parse_int, parse_kr_datetime
+
+log = logging.getLogger(__name__)
 
 LIST_URL = "https://quasarzone.com/bbs/qb_saleinfo"
 VIEWS_RE = re.compile(r"/bbs/qb_saleinfo/views/(\d+)")
@@ -21,10 +24,23 @@ class QuasarzoneSource:
     name = "quasarzone"
 
     async def fetch_latest(self, client: PoliteClient) -> list[RawPost]:
-        # Quasarzone is the most expensive source: one list request is enough
-        # per cadence, and repeated challenge retries only add traffic without
-        # improving the result. Operators can override the cadence via env.
-        return await fetch_parsed(client, LIST_URL, parse_list, max_retries=1, curl_fallback=False)
+        # Try headless browser first (bypasses Cloudflare JS challenge).
+        from app.sources import qz_browser  # lazy import — Playwright optional
+        html = await qz_browser.fetch_html(LIST_URL, want_selector="div.v2-list-row")
+        if html:
+            posts = parse_list(html)
+            if posts:
+                return posts
+            log.warning("quasarzone browser returned html but parsed 0 posts")
+
+        # Fallback: plain HTTP (may hit Cloudflare challenge on datacenter IPs).
+        try:
+            return await fetch_parsed(
+                client, LIST_URL, parse_list, max_retries=1, curl_fallback=False
+            )
+        except Exception as exc:  # noqa: BLE001
+            log.warning("quasarzone http fallback failed: %s", exc)
+            return []
 
 
 def parse_list(html: str) -> list[RawPost]:

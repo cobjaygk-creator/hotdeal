@@ -310,6 +310,12 @@ async def lifespan(app: FastAPI):
             await fm_browser.shutdown()
         except Exception:  # noqa: BLE001
             pass
+        try:
+            from app.sources import qz_browser
+
+            await qz_browser.shutdown()
+        except Exception:  # noqa: BLE001
+            pass
         await state["db"].close()
 
 
