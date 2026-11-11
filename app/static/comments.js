@@ -78,8 +78,23 @@
     );
   }
 
+  const AV_PALETTES = [
+    ["#eef2ff","#2e63f6"],["#e8f8f0","#0ea35e"],["#fef3c7","#d97706"],
+    ["#fce7f3","#db2777"],["#ede9fe","#7c3aed"],["#fee2e2","#dc2626"],
+    ["#ecfdf5","#059669"],["#fff7ed","#ea580c"],
+  ];
+  function avColor(nick) {
+    let h = 0;
+    for (let i = 0; i < nick.length; i++) h = (h * 31 + nick.charCodeAt(i)) & 0xffff;
+    return AV_PALETTES[h % AV_PALETTES.length];
+  }
+
   function bubbleHtml(item) {
     const mine = item.mine ? " is-mine" : "";
+    const nick = item.nickname || "?";
+    const [bg, fg] = avColor(nick);
+    const initial = [...nick][0] || "?";
+    const av = `<div class="chat-av" style="background:${bg};color:${fg}" aria-hidden="true">${esc(initial)}</div>`;
     const quote =
       item.parent_nickname
         ? `<div class="chat-quote">@${esc(item.parent_nickname)} ${esc((item.parent_body || "").slice(0, 40))}</div>`
@@ -89,11 +104,14 @@
       : "";
     const reply = item.deleted
       ? ""
-      : `<button type="button" class="chat-reply" data-reply="${item.id}" data-nick="${esc(item.nickname)}">답글</button>`;
+      : `<button type="button" class="chat-reply" data-reply="${item.id}" data-nick="${esc(nick)}">↩ 답글</button>`;
     return `<article class="chat-row${mine}" data-cid="${item.id}">
-      <div class="chat-nick">${esc(item.nickname)}</div>
-      <div class="chat-bubble">${quote}<div class="chat-body">${esc(item.body)}</div></div>
-      <div class="chat-meta"><time>${esc(rel(item.created_at))}</time>${reply}${del}</div>
+      ${av}
+      <div class="chat-bubble">
+        <div class="chat-nick">${esc(nick)}<span class="chat-time">${esc(rel(item.created_at))}</span></div>
+        ${quote}<div class="chat-body">${esc(item.body)}</div>
+        <div class="chat-meta">${reply}${del}</div>
+      </div>
     </article>`;
   }
 

@@ -381,24 +381,36 @@ body.dm-open { overflow: hidden; }
 .chat-log::-webkit-scrollbar { width: 4px; }
 .chat-log::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 2px; }
 
-/* 개별 댓글 행 (.chat-row) */
+/* 개별 댓글 행 — 목업과 동일: 아바타 + 본문 가로 배치 */
 .chat-row {
-  display: flex; flex-direction: column;
+  display: flex; gap: 9px;
   padding: 10px 16px;
   border-bottom: 1px solid var(--border);
 }
 .chat-row:last-child { border-bottom: none; }
 .chat-row:hover { background: var(--bg); }
 
-/* 닉네임 */
+/* 아바타 원 */
+.chat-av {
+  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+  font-size: 11px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  user-select: none;
+}
+.chat-row.is-mine .chat-av { outline: 2px solid var(--accent); }
+
+/* 말풍선 (아바타 옆 전체) */
+.chat-bubble { flex: 1; min-width: 0; }
+
+/* 닉네임 + 시간 한 줄 */
 .chat-nick {
   font-size: 11.5px; font-weight: 600; color: var(--ink-muted);
-  margin-bottom: 3px;
+  margin-bottom: 2px; display: flex; align-items: baseline; gap: 6px;
+}
+.chat-time {
+  font-weight: 400; font-size: 11px; color: var(--ink-faint);
 }
 .chat-row.is-mine .chat-nick { color: var(--accent); }
-
-/* 말풍선 */
-.chat-bubble { min-width: 0; }
 
 /* 인용 (답글 대상) */
 .chat-quote {
@@ -414,24 +426,31 @@ body.dm-open { overflow: hidden; }
   word-break: break-word;
 }
 
-/* 메타 (시간·답글·삭제) */
+/* 답글·삭제 버튼 행 */
 .chat-meta {
-  display: flex; align-items: center; gap: 8px;
-  margin-top: 5px; font-size: 11px; color: var(--ink-faint);
+  display: flex; align-items: center; gap: 10px;
+  margin-top: 5px;
 }
-.chat-meta time { color: var(--ink-faint); }
 .chat-reply, .chat-del {
-  font-size: 11px; color: var(--ink-faint); background: none;
+  font-size: 11.5px; color: var(--ink-faint); background: none;
   border: none; cursor: pointer; font-family: inherit; padding: 0;
+  display: flex; align-items: center; gap: 2px;
 }
 .chat-reply:hover { color: var(--accent); }
 .chat-del:hover { color: var(--discount); }
 
 /* 빈 상태 */
 .chat-empty {
-  display: flex; align-items: center; justify-content: center;
-  padding: 32px 16px; color: var(--ink-faint); font-size: 13px;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 32px 16px; color: var(--ink-faint); font-size: 13px; gap: 10px;
 }
+.chat-quick { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.chat-quick-btn {
+  padding: 4px 10px; border-radius: 999px;
+  border: 1px solid var(--border); background: none;
+  font-size: 12px; color: var(--ink-muted); cursor: pointer; font-family: inherit;
+}
+.chat-quick-btn:hover { border-color: var(--accent); color: var(--accent); }
 
 /* 답글 바 */
 .chat-reply-bar {
