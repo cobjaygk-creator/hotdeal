@@ -1,668 +1,733 @@
 /*
-  home.css — 홈 피드 전용 스타일 (목업 1:1 적용)
-  base.html에서 모든 공통 CSS 뒤에 로드되므로 !important 최소화
-  목업 클래스명 → 실제 클래스명 매핑:
-    .chip          → .filter-chip
-    .srcrow .chip  → #source-chips .filter-chip
-    .sectiontitle  → .homepage-feed-head
-    .sortbar       → .homepage-filters
-    .row           → .deal-card  (deal-cards 내부)
-    .thumb         → .deal-thumb-wrap / .deal-thumb
-    .row-tags      → .deal-tags
-    .row-title     → .deal-title
-    .row-meta      → .deal-price-row
-    .pct           → .deal-discount
-    .price         → .deal-price
-    .buy           → .deal-buy-btn
-    .card (rail)   → .rail-panel
+  home.css — 목업 0-based 직접 포팅
+  기존 CSS 완전 무시, 목업 스펙 그대로 적용
+  모든 규칙 body[data-page="hotdeal"] 스코프 + 충돌 위치만 !important
+
+  [매핑]
+  .brand            → .topbar-brand
+  .brand-mark       → .brand-mark
+  .toptabs a        → .topbar-nav a
+  .topsearch        → .topbar-search
+  .chiprow          → .chip-row
+  .chip             → .filter-chip
+  .srcrow .chip     → #source-chips .filter-chip
+  .sectiontitle     → .homepage-feed-head
+  .sortbar (b/span) → .sort-pill(.on)
+  .feed             → .deal-cards
+  .row              → li.deal-card
+  .thumb            → .deal-thumb-wrap / .deal-thumb
+  .row-mid          → .deal-row-main > .deal-body
+  .row-tags         → .deal-tags  /  .deal-tag  /  .deal-tag-sep
+  .row-title        → .deal-title
+  .row-meta .pct    → .deal-discount
+  .row-meta .price  → .deal-price
+  .row-meta .ship   → .deal-shipping
+  .row-side         → .deal-row-side
+  .buy              → .deal-buy-btn
+  .row-stats        → .deal-comments + .time-abs
+  .rail             → .deal-rail
+  .card             → .rail-panel
+  .rank-item        → .rail-deal
+  .rank-n           → .rail-deal strong (index)
+  .rank-txt .t      → .rail-deal span
+  .alert-card       → .rail-alert
 */
 
-/* ═══════════════════════════════════════════════════════════
-   타이포그래피 완전 초기화 — 목업과 엄격하게 동일
-   목업 원본값:
-     body           Inter 14px / lh 1.5
-     brand          Space Grotesk 700 18px
-     nav tab        600 13.5px
-     cat chip       600 13px
-     src chip       500 12.5px
-     h1 (section)   Space Grotesk 700 20px / ls -0.01em
-     sort bar       400 12.5px  /  .on → 700
-     deal tag       400 12px
-     deal title     500 14.5px / lh 1.4
-     discount       Space Grotesk 800 15px
-     price          Space Grotesk 800 16px
-     buy btn        700 13px
-     stats          400 11.5px
-     rail h2        700 14px
-     rail rank .t   400 12.5px
-     rail rank .p   400 11.5px
-   ═══════════════════════════════════════════════════════════ */
-
-/* 1. 페이지 베이스 — Inter 14px / lh 1.5 */
-body[data-page="hotdeal"],
-body[data-page="hotdeal"] * {
-  font-family: 'Inter', 'Pretendard Variable', 'Pretendard', -apple-system, 'Apple SD Gothic Neo', sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   0. 베이스 폰트 (목업: body { Inter 14px / lh 1.5 })
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 body[data-page="hotdeal"] {
+  font-family: 'Inter', 'Pretendard Variable', 'Pretendard', -apple-system, sans-serif !important;
   font-size: 14px !important;
   line-height: 1.5 !important;
+  -webkit-font-smoothing: antialiased;
+}
+body[data-page="hotdeal"] * {
+  font-family: inherit;
+  box-sizing: border-box;
 }
 
-/* 2. Space Grotesk 적용 대상 — 숫자/라틴 헤드라인 */
-body[data-page="hotdeal"] .topbar-brand,
-body[data-page="hotdeal"] .homepage-feed-head h1,
-body[data-page="hotdeal"] .deal-layout .deal-price,
-body[data-page="hotdeal"] .deal-layout .deal-discount {
-  font-family: 'Space Grotesk', 'Inter', 'Pretendard Variable', 'Pretendard', sans-serif !important;
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   1. TOPBAR
+   목업: height 56px, surface bg, border-bottom
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+body[data-page="hotdeal"] .topbar-inner {
+  height: 56px !important;
+  min-height: 56px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 20px !important;
+  flex-wrap: nowrap !important;
 }
 
-/* 3. 브랜드: Space Grotesk 700 18px */
+/* 브랜드: Space Grotesk 700 18px */
 body[data-page="hotdeal"] .topbar-brand {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-family: 'Space Grotesk', 'Inter', sans-serif !important;
+  font-weight: 700 !important;
+  font-size: 18px !important;
+  flex: none !important;
+  color: var(--ink) !important;
+  text-decoration: none !important;
+}
+body[data-page="hotdeal"] .brand-mark {
+  width: 26px !important;
+  height: 26px !important;
+  min-width: 26px !important;
+  border-radius: 8px !important;
+  background: var(--accent) !important;
+  color: #fff !important;
+  display: grid !important;
+  place-items: center !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+}
+body[data-page="hotdeal"] .topbar-brand-copy {
+  display: block !important;
   font-size: 18px !important;
   font-weight: 700 !important;
-  letter-spacing: -0.01em !important;
-}
-
-/* 4. nav 탭: 600 13.5px */
-body[data-page="hotdeal"] .topbar-nav a {
-  font-size: 13.5px !important;
-  font-weight: 600 !important;
-  letter-spacing: 0 !important;
-}
-
-/* 5. 카테고리 칩: 600 13px */
-body[data-page="hotdeal"] #cat-chips .filter-chip {
-  font-size: 13px !important;
-  font-weight: 600 !important;
-  letter-spacing: 0 !important;
   line-height: 1 !important;
-}
-
-/* 6. 소스 칩: 500 12.5px */
-body[data-page="hotdeal"] #source-chips .filter-chip {
-  font-size: 12.5px !important;
-  font-weight: 500 !important;
-  letter-spacing: 0 !important;
-  line-height: 1 !important;
-}
-
-/* 7. 섹션 h1: Space Grotesk 700 20px / ls -0.01em */
-body[data-page="hotdeal"] .homepage-feed-head h1 {
-  font-size: 20px !important;
-  font-weight: 700 !important;
-  letter-spacing: -0.01em !important;
-  line-height: 1.3 !important;
-}
-
-/* 8. 카운트 "실시간 N,NNN개": 500 13px */
-body[data-page="hotdeal"] .homepage-feed-head .list-count,
-body[data-page="hotdeal"] .homepage-feed-head .list-count strong {
-  font-size: 13px !important;
-  font-weight: 500 !important;
-  letter-spacing: 0 !important;
-}
-
-/* 9. 정렬 바: 400 12.5px / 선택 → 700 */
-body[data-page="hotdeal"] .homepage-filters .sort-pill {
-  font-size: 12.5px !important;
-  font-weight: 400 !important;
-  letter-spacing: 0 !important;
-}
-body[data-page="hotdeal"] .homepage-filters .sort-pill.on,
-body[data-page="hotdeal"] .homepage-filters .sort-pill[aria-pressed="true"] {
-  font-weight: 700 !important;
-}
-
-/* 10. 딜 태그 (몰·출처·카테고리): 400 12px */
-body[data-page="hotdeal"] .deal-layout .deal-tag,
-body[data-page="hotdeal"] .deal-layout .deal-tag-sep {
-  font-size: 12px !important;
-  font-weight: 400 !important;
-  letter-spacing: 0 !important;
-}
-
-/* 11. 딜 제목: 500 14.5px / lh 1.4 */
-body[data-page="hotdeal"] .deal-layout .deal-title {
-  font-size: 14.5px !important;
-  font-weight: 500 !important;
-  line-height: 1.4 !important;
-  letter-spacing: 0 !important;
-}
-
-/* 12. 할인율: Space Grotesk 800 15px */
-body[data-page="hotdeal"] .deal-layout .deal-discount {
-  font-size: 15px !important;
-  font-weight: 800 !important;
-  letter-spacing: 0 !important;
-  line-height: 1 !important;
-}
-
-/* 13. 가격: Space Grotesk 800 16px */
-body[data-page="hotdeal"] .deal-layout .deal-price {
-  font-size: 16px !important;
-  font-weight: 800 !important;
-  letter-spacing: 0 !important;
-  line-height: 1 !important;
-}
-body[data-page="hotdeal"] .deal-layout .deal-price .won {
-  font-size: 14px !important;
-  font-weight: 700 !important;
-}
-
-/* 14. 무료배송 뱃지: 700 11.5px */
-body[data-page="hotdeal"] .deal-layout .deal-shipping {
-  font-size: 11.5px !important;
-  font-weight: 700 !important;
-  letter-spacing: 0 !important;
-}
-
-/* 15. 구매 버튼: 700 13px */
-body[data-page="hotdeal"] .deal-layout .deal-buy-btn {
-  font-size: 13px !important;
-  font-weight: 700 !important;
-  letter-spacing: 0 !important;
-}
-
-/* 16. 댓글수·시간: 400 11.5px */
-body[data-page="hotdeal"] .deal-layout .deal-comments,
-body[data-page="hotdeal"] .deal-layout .time-abs {
-  font-size: 11.5px !important;
-  font-weight: 400 !important;
-  letter-spacing: 0 !important;
-}
-
-/* 17. 레일 카드 h2: 700 14px */
-body[data-page="hotdeal"] .rail-panel h2 {
-  font-size: 14px !important;
-  font-weight: 700 !important;
-  letter-spacing: 0 !important;
-}
-
-/* 18. 레일 딜 텍스트 */
-body[data-page="hotdeal"] .rail-deal {
-  font-size: 12.5px !important;
-  font-weight: 400 !important;
-}
-/* ═══════════════════════════════════════════════════════════ */
-
-/* ───── 페이지 배경 ───── */
-body[data-page="hotdeal"] {
-  background: var(--bg);
-}
-
-/* ───── 헤더 ───── */
-body[data-page="hotdeal"] .app-topbar {
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  min-height: 56px;
-}
-body[data-page="hotdeal"] .topbar-inner {
-  min-height: 56px;
-}
-
-/* 브랜드 마크: 26×26 블루 사각형 */
-body[data-page="hotdeal"] .topbar-brand .brand-mark {
-  width: 26px;
-  height: 26px;
-  border-radius: 8px;
-  background: var(--accent);
-  color: #fff;
-  font-size: 14px;
-  font-weight: 700;
-}
-
-/* 브랜드 텍스트 */
-body[data-page="hotdeal"] .topbar-brand {
-  font-family: var(--font-display);
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  color: var(--ink);
 }
 body[data-page="hotdeal"] .topbar-brand-copy small {
-  display: none;
+  display: none !important;
 }
 
-/* 검색창 */
-body[data-page="hotdeal"] .topbar-search {
-  flex: 1;
-  max-width: 420px;
-  height: 38px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 10px;
+/* 네비 탭: 600 13.5px, hover/on = bg */
+body[data-page="hotdeal"] .topbar-nav {
+  display: flex !important;
+  gap: 4px !important;
+  flex: none !important;
 }
-
-/* 상단 nav 탭: 목업처럼 선택 시 연한 회색 배경 */
 body[data-page="hotdeal"] .topbar-nav a {
-  padding: 8px 10px;
-  border-radius: 8px;
-  font-weight: 600;
-  color: var(--ink-muted);
-  font-size: 13.5px;
-}
-body[data-page="hotdeal"] .topbar-nav a:hover {
-  color: var(--ink);
-  background: var(--bg);
-}
-body[data-page="hotdeal"] .topbar-nav a.on {
-  color: var(--ink);
-  background: var(--bg);  /* 목업: var(--bg) = #f5f6f8, 현재: --seg-active = white */
-}
-
-/* topbar-inner: pages.css의 112px 오버라이드 */
-body[data-page="hotdeal"] .topbar-inner {
-  min-height: 56px !important;
-  gap: 20px;
-}
-body[data-page="hotdeal"] .topbar-left {
-  gap: 4px;
-}
-body[data-page="hotdeal"] .topbar-right {
-  flex: 1;
-  justify-content: flex-end;
-  gap: 10px;
-}
-
-/* ───── 카테고리 칩 (#cat-chips) ───── */
-body[data-page="hotdeal"] #cat-chips {
-  display: flex;
-  gap: 6px;
-  padding: 0;
-  margin: 0 0 4px;
-  min-height: 0;
-  border: 0;
-  overflow-x: auto;
-  scrollbar-width: none;
-  flex-wrap: nowrap;
-}
-body[data-page="hotdeal"] #cat-chips::-webkit-scrollbar { display: none; }
-
-body[data-page="hotdeal"] #cat-chips .filter-chip {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  height: 34px;
-  min-height: 34px;
-  padding: 0 13px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--ink-muted);
-  font-weight: 600;
-  font-size: 13px;
-  white-space: nowrap;
-  box-shadow: none;
-}
-/* 아이콘 숨김 */
-body[data-page="hotdeal"] #cat-chips .filter-chip svg,
-body[data-page="hotdeal"] #cat-chips .filter-chip .cat-icon { display: none; }
-
-/* 선택된 카테고리: 검은 배경 */
-body[data-page="hotdeal"] #cat-chips .filter-chip.on {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: var(--surface);
-}
-
-/* 카테고리 숫자 */
-body[data-page="hotdeal"] #cat-chips .filter-chip .count {
-  opacity: 0.6;
-  font-weight: 600;
-  font-size: 12px;
-  color: inherit;
-}
-body[data-page="hotdeal"] #cat-chips .filter-chip.on .count {
-  opacity: 0.75;
-}
-
-/* ───── 소스 칩 (#source-chips) ───── */
-body[data-page="hotdeal"] #source-chips {
-  display: flex;
-  gap: 6px;
-  padding-bottom: 2px;
-  margin: 0 0 4px;
-  min-height: 0;
-  border: 0;
-  overflow-x: auto;
-  scrollbar-width: none;
-  flex-wrap: nowrap;
-}
-body[data-page="hotdeal"] #source-chips::-webkit-scrollbar { display: none; }
-
-body[data-page="hotdeal"] #source-chips .filter-chip {
-  flex: none;
-  display: flex;
-  align-items: center;
-  height: 30px;
-  min-height: 30px;
-  padding: 0 13px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--ink-faint);
-  font-weight: 500;
-  font-size: 12.5px;
-  white-space: nowrap;
-  box-shadow: none;
-}
-
-/* 선택된 소스: 파란 연한 배경 + 진한 파란 텍스트 (목업과 동일) */
-body[data-page="hotdeal"] #source-chips .filter-chip.on,
-body[data-page="hotdeal"] #source-chips .filter-chip[aria-pressed="true"] {
-  background: var(--accent-soft);
-  border-color: var(--accent-soft);
-  color: var(--accent-soft-ink);  /* #1B64DA — 진한 파란색, 흰색(--accent-ink) 아님 */
-}
-
-/* ───── 모바일 광고 여백 제거 ───── */
-body[data-page="hotdeal"] .mobile-ad {
-  min-height: 0;
-  margin: 0;
-}
-
-/* ───── 섹션 타이틀 (.homepage-feed-head = .sectiontitle) ───── */
-body[data-page="hotdeal"] .homepage-feed-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  margin: 18px 0 10px;
-  padding: 0;
-  border-bottom: 0;
-}
-body[data-page="hotdeal"] .homepage-feed-head h1 {
-  font-family: var(--font-display);
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  margin: 0;
-  color: var(--ink);
-}
-body[data-page="hotdeal"] .homepage-feed-head .page-kicker,
-body[data-page="hotdeal"] .homepage-feed-head .home-intro,
-body[data-page="hotdeal"] .homepage-feed-head .home-live,
-body[data-page="hotdeal"] .homepage-feed-head h1 small {
-  display: none;
-}
-/* 오른쪽 카운트: "실시간 N,NNN개" */
-body[data-page="hotdeal"] .homepage-feed-head .list-count {
-  color: var(--ink-faint);
-  font-size: 13px;
-  font-weight: 500;
-  margin: 0;
-}
-body[data-page="hotdeal"] .homepage-feed-head .list-count strong {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--ink-faint);
-}
-
-/* ───── 정렬 바 (.homepage-filters = .sortbar) ───── */
-body[data-page="hotdeal"] .homepage-filters {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  min-height: 0;
-  margin: 0 0 6px;
-  padding: 0;
-  border: 0;
-  border-bottom: 0;
-  background: transparent;
-  font-size: 12.5px;
-  color: var(--ink-faint);
-}
-
-/* 정렬 라벨 "정렬" 숨김 */
-body[data-page="hotdeal"] .homepage-filters .sort-label { display: none; }
-
-/* 목록/4열 토글 숨김 */
-body[data-page="hotdeal"] .homepage-filters .list-view-switch { display: none; }
-
-/* 품절 숨기기 버튼 숨김 */
-body[data-page="hotdeal"] #hide-soldout { display: none; }
-
-/* 정렬 pills 컨테이너 */
-body[data-page="hotdeal"] .homepage-filters .sort-pills {
-  display: flex;
-  align-items: center;
-  gap: 14px !important;
-  background: transparent;
-  border: 0;
-  box-shadow: none;
-  padding: 0;
-}
-
-/* 정렬 버튼 — components.css에 !important 있어서 더 강한 선택자 + !important */
-body[data-page="hotdeal"] .homepage-filters .sort-pill,
-body[data-page="hotdeal"] .homepage-filters .sort-pill:hover,
-body[data-page="hotdeal"] .homepage-filters .sort-pill:focus,
-body[data-page="hotdeal"] .homepage-filters .sort-pill.on,
-body[data-page="hotdeal"] .homepage-filters .sort-pill.on:hover,
-body[data-page="hotdeal"] .homepage-filters .sort-pill[aria-pressed="true"],
-body[data-page="hotdeal"] .homepage-filters .sort-pill[aria-pressed="true"]:hover {
+  padding: 8px 10px !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  color: var(--ink-muted) !important;
+  font-size: 13.5px !important;
+  text-decoration: none !important;
+  white-space: nowrap !important;
   background: transparent !important;
   border: 0 !important;
-  border-radius: 0 !important;
+}
+body[data-page="hotdeal"] .topbar-nav a.on,
+body[data-page="hotdeal"] .topbar-nav a:hover {
+  color: var(--ink) !important;
+  background: var(--bg) !important;
+}
+
+/* 검색: flex:1 최대 420px */
+body[data-page="hotdeal"] .topbar-search {
+  flex: 1 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  background: var(--bg) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 10px !important;
+  height: 38px !important;
+  padding: 0 12px !important;
+  max-width: 420px !important;
+  box-shadow: none !important;
+}
+body[data-page="hotdeal"] .topbar-search input {
+  border: 0 !important;
+  background: transparent !important;
+  outline: 0 !important;
+  color: var(--ink) !important;
+  width: 100% !important;
+  font-size: 13.5px !important;
+  font-family: inherit !important;
+}
+body[data-page="hotdeal"] .topbar-search input::placeholder {
+  color: var(--ink-faint) !important;
+}
+
+/* topbar-right: flex, gap */
+body[data-page="hotdeal"] .topbar-right {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  flex: none !important;
+  margin-left: auto !important;
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   2. 카테고리 칩 행
+   목업: .chiprow / .chip / .chip.on
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+body[data-page="hotdeal"] .chip-row {
+  display: flex !important;
+  gap: 6px !important;
+  overflow-x: auto !important;
+  padding-bottom: 2px !important;
+  margin-bottom: 4px !important;
+  scrollbar-width: none !important;
+  -webkit-overflow-scrolling: touch !important;
+  flex-wrap: nowrap !important;
+  /* 세로 탭/밑줄 완전 제거 */
+  border-bottom: 0 !important;
+  padding-top: 0 !important;
+}
+body[data-page="hotdeal"] .chip-row::-webkit-scrollbar { display: none !important; }
+
+body[data-page="hotdeal"] #cat-chips .filter-chip {
+  all: unset !important;
+  flex: none !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  height: 34px !important;
+  padding: 0 13px !important;
+  border-radius: 999px !important;
+  border: 1px solid var(--border) !important;
+  background: var(--surface) !important;
+  color: var(--ink-muted) !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  white-space: nowrap !important;
+  cursor: pointer !important;
+  box-sizing: border-box !important;
+  font-family: inherit !important;
+  line-height: 1 !important;
+  text-decoration: none !important;
+}
+body[data-page="hotdeal"] #cat-chips .filter-chip .count {
+  opacity: .6 !important;
+  font-weight: 600 !important;
+}
+body[data-page="hotdeal"] #cat-chips .filter-chip.on {
+  background: var(--ink) !important;
+  border-color: var(--ink) !important;
+  color: var(--surface) !important;
+}
+body[data-page="hotdeal"] #cat-chips .filter-chip.on .count {
+  opacity: .75 !important;
+}
+/* 카테고리 칩 아이콘 */
+body[data-page="hotdeal"] #cat-chips .filter-chip .cat-icon {
+  width: 14px !important;
+  height: 14px !important;
+  flex: none !important;
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   3. 소스(커뮤니티) 칩 행
+   목업: .srcrow .chip — 30px / 12.5px / 500 / ink-faint
+         .srcrow .chip.on — accent-soft bg / accent-ink text
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+body[data-page="hotdeal"] #source-chips .filter-chip {
+  all: unset !important;
+  flex: none !important;
+  display: flex !important;
+  align-items: center !important;
+  height: 30px !important;
+  padding: 0 12px !important;
+  border-radius: 999px !important;
+  border: 1px solid var(--border) !important;
+  background: var(--surface) !important;
+  color: var(--ink-faint) !important;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  white-space: nowrap !important;
+  cursor: pointer !important;
+  box-sizing: border-box !important;
+  font-family: inherit !important;
+  line-height: 1 !important;
+}
+body[data-page="hotdeal"] #source-chips .filter-chip.on {
+  background: var(--accent-soft) !important;
+  border-color: var(--accent-soft) !important;
+  color: var(--accent-ink) !important;
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   4. 섹션 헤더 + 카운트
+   목업: .sectiontitle — baseline, space-between, 18px 0 10px
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+body[data-page="hotdeal"] .homepage-feed-head {
+  display: flex !important;
+  align-items: baseline !important;
+  justify-content: space-between !important;
+  margin: 18px 0 10px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-bottom: 0 !important;
+  gap: 0 !important;
+}
+body[data-page="hotdeal"] .homepage-feed-head h1 {
+  font-family: 'Space Grotesk', 'Inter', sans-serif !important;
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  letter-spacing: -.01em !important;
+  margin: 0 !important;
+  line-height: 1.3 !important;
+  color: var(--ink) !important;
+}
+body[data-page="hotdeal"] .homepage-feed-head .home-live {
+  display: none !important;
+}
+body[data-page="hotdeal"] .list-count {
+  color: var(--ink-faint) !important;
+  font-weight: 500 !important;
+  font-size: 13px !important;
+  white-space: nowrap !important;
+  font-variant-numeric: tabular-nums !important;
+}
+body[data-page="hotdeal"] .list-count strong {
+  font-weight: 500 !important;
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   5. 정렬 바
+   목업: .sortbar — flex, gap 14px, ink-faint, 12.5px
+         .sortbar b — ink, 700 (selected)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+body[data-page="hotdeal"] .homepage-filters {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0 !important;
+  font-size: 12.5px !important;
+  color: var(--ink-faint) !important;
+  margin-bottom: 6px !important;
+  background: transparent !important;
+  border: 0 !important;
+  padding: 0 !important;
+}
+body[data-page="hotdeal"] .homepage-filters .sort-label { display: none !important; }
+body[data-page="hotdeal"] .homepage-filters .list-view-switch { display: none !important; }
+body[data-page="hotdeal"] #hide-soldout { display: none !important; }
+
+body[data-page="hotdeal"] .sort-pills,
+body[data-page="hotdeal"] .homepage-filters .sort-pills {
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+  background: transparent !important;
+  border: 0 !important;
   box-shadow: none !important;
   padding: 0 !important;
-  height: auto !important;
-  min-height: 0 !important;
+  margin: 0 !important;
+  flex-wrap: nowrap !important;
+}
+
+body[data-page="hotdeal"] .sort-pill {
+  all: unset !important;
+  display: inline !important;
   font-size: 12.5px !important;
   font-weight: 400 !important;
   color: var(--ink-faint) !important;
+  cursor: pointer !important;
+  font-family: inherit !important;
+  white-space: nowrap !important;
 }
-/* 선택된 정렬: bold + 검은색 */
-body[data-page="hotdeal"] .homepage-filters .sort-pill.on,
-body[data-page="hotdeal"] .homepage-filters .sort-pill[aria-pressed="true"] {
+body[data-page="hotdeal"] .sort-pill.on,
+body[data-page="hotdeal"] .sort-pill[aria-selected="true"] {
   font-weight: 700 !important;
   color: var(--ink) !important;
 }
 
-/* 할인율·댓글 항목 표시 (기본 숨겨진 경우 대비) */
-body[data-page="hotdeal"] .homepage-filters [data-sort="discount"],
-body[data-page="hotdeal"] .homepage-filters [data-sort="comments"] {
-  display: flex;
-}
-
-/* ───── 딜 목록 레이아웃 ───── */
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   6. 메인 레이아웃 (shell)
+   목업: .shell — grid 1fr 300px, gap 28px
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 body[data-page="hotdeal"] .deal-layout {
-  gap: 28px;
+  display: grid !important;
+  grid-template-columns: 1fr 300px !important;
+  gap: 28px !important;
+  align-items: start !important;
+  padding-bottom: 48px !important;
 }
-body[data-page="hotdeal"] .deal-layout .deal-cards {
-  gap: 0;
-  border: 0;
-}
-
-/* 데스크탑: 1열 풀폭 (목업과 동일) */
-@media (min-width: 900px) {
-  body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] {
-    display: flex;
-    flex-direction: column;
-    grid-template-columns: unset;
-    border-top: 0;
+@media (max-width: 860px) {
+  body[data-page="hotdeal"] .deal-layout {
+    grid-template-columns: 1fr !important;
+  }
+  body[data-page="hotdeal"] .deal-rail {
+    display: none !important;
   }
 }
 
-/* ───── 딜 카드 (.row) ───── */
-body[data-page="hotdeal"] .deal-layout .deal-card {
-  display: grid;
-  grid-template-columns: 72px 1fr auto;
-  gap: 14px;
-  align-items: center;
-  padding: 14px 4px;
-  border-radius: 0;
-  border-top: 0;
-  border-left: 0;
-  border-right: 0;
-  border-bottom: 1px solid var(--border);
-  background: transparent;
-  min-height: 0;
-}
-body[data-page="hotdeal"] .deal-layout .deal-card:hover {
-  background: var(--surface);
+body[data-page="hotdeal"] .deal-list-column {
+  min-width: 0 !important;
 }
 
-/* ───── 썸네일 (.thumb) ───── */
-body[data-page="hotdeal"] .deal-layout .deal-thumb-wrap {
-  width: 72px;
-  height: 72px;
-  flex: none;
-  margin: 0;
-}
-body[data-page="hotdeal"] .deal-layout .deal-thumb-hit,
-body[data-page="hotdeal"] .deal-layout .deal-thumb {
-  width: 72px;
-  height: 72px;
-  border-radius: 12px;
-}
-
-/* ───── 딜 본문 (.row-mid) ───── */
-body[data-page="hotdeal"] .deal-layout .deal-row-main {
-  padding: 0;
-  min-width: 0;
-}
-body[data-page="hotdeal"] .deal-layout .deal-body {
-  gap: 5px;
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   7. 딜 카드 (.deal-cards / li.deal-card)
+   목업: .feed .row — grid 72px 1fr auto, gap 14px
+         padding 14px 4px, border-bottom
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+body[data-page="hotdeal"] .deal-cards {
+  list-style: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
-/* 태그 행 (.row-tags) */
-body[data-page="hotdeal"] .deal-layout .deal-tags {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  margin-bottom: 3px;
+body[data-page="hotdeal"] .deal-card {
+  display: grid !important;
+  grid-template-columns: 72px 1fr auto !important;
+  gap: 14px !important;
+  align-items: center !important;
+  padding: 14px 4px !important;
+  border-bottom: 1px solid var(--border) !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  cursor: pointer !important;
 }
-body[data-page="hotdeal"] .deal-layout .deal-tag {
-  background: transparent;
-  border: 0;
-  padding: 0;
-  font-size: 12px;
-  color: var(--ink-faint);
-  font-weight: 400;
+body[data-page="hotdeal"] .deal-card:hover {
+  background: var(--surface) !important;
 }
-body[data-page="hotdeal"] .deal-layout .deal-tag-lowest {
-  background: var(--accent-soft);
-  color: var(--accent-ink);
-  padding: 2px 5px;
-  border-radius: 5px;
-  font-size: 10px;
-  font-weight: 800;
-}
-body[data-page="hotdeal"] .deal-layout .deal-tag-sep {
-  font-size: 12px;
-  color: var(--ink-faint);
-  opacity: 0.5;
-  padding: 0 2px;
+body[data-page="hotdeal"] .deal-card.is-expired {
+  opacity: .6 !important;
 }
 
-/* 제목 (.row-title) */
-body[data-page="hotdeal"] .deal-layout .deal-title {
-  font-size: 14.5px;
-  font-weight: 500;
-  color: var(--ink);
-  line-height: 1.4;
+/* 썸네일: 72x72 radius 12px */
+body[data-page="hotdeal"] .deal-thumb-wrap {
+  width: 72px !important;
+  height: 72px !important;
+  min-width: 72px !important;
+  border-radius: 12px !important;
+  background: linear-gradient(135deg, var(--border), var(--bg)) !important;
+  overflow: hidden !important;
+  position: relative !important;
+  flex: none !important;
+}
+body[data-page="hotdeal"] .deal-thumb {
+  width: 72px !important;
+  height: 72px !important;
+  object-fit: cover !important;
+  display: block !important;
+  border-radius: 12px !important;
+}
+body[data-page="hotdeal"] .deal-thumb.placeholder {
+  width: 72px !important;
+  height: 72px !important;
+  background: linear-gradient(135deg, var(--border), var(--bg)) !important;
+}
+body[data-page="hotdeal"] .deal-thumb-hit {
+  display: block !important;
+  width: 72px !important;
+  height: 72px !important;
+}
+/* 찜 버튼 위치 */
+body[data-page="hotdeal"] .deal-wish {
+  position: absolute !important;
+  bottom: 4px !important;
+  right: 4px !important;
+  background: rgba(255,255,255,.85) !important;
+  border-radius: 50% !important;
+  width: 22px !important;
+  height: 22px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 0 !important;
+  padding: 0 !important;
+  cursor: pointer !important;
+}
+/* 종료 오버레이 */
+body[data-page="hotdeal"] .deal-expired-overlay {
+  position: absolute !important;
+  inset: 0 !important;
+  background: rgba(0,0,0,.35) !important;
+  color: #fff !important;
+  display: grid !important;
+  place-items: center !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  border-radius: 12px !important;
 }
 
-/* 가격 행 (.row-meta) */
-body[data-page="hotdeal"] .deal-layout .deal-price-row {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin-top: 5px;
-  flex-wrap: wrap;
+/* 중앙 컬럼: .row-mid */
+body[data-page="hotdeal"] .deal-row-main {
+  min-width: 0 !important;
+  text-decoration: none !important;
+  color: inherit !important;
+  display: block !important;
 }
-body[data-page="hotdeal"] .deal-layout .deal-discount {
-  color: var(--discount);
-  font-weight: 800;
-  font-size: 15px;
-  font-family: var(--font-display);
-}
-body[data-page="hotdeal"] .deal-layout .deal-price {
-  font-weight: 800;
-  font-size: 16px;
-  color: var(--ink);
-  font-family: var(--font-display);
-}
-body[data-page="hotdeal"] .deal-layout .deal-price .won {
-  font-size: 14px;
-  font-weight: 700;
-}
-body[data-page="hotdeal"] .deal-layout .deal-shipping {
-  font-size: 11.5px;
-  color: var(--ok);
-  background: var(--ok-soft, #e7f8ef);
-  padding: 2px 6px;
-  border-radius: 5px;
-  font-weight: 700;
+body[data-page="hotdeal"] .deal-body {
+  min-width: 0 !important;
 }
 
-/* ───── 딜 우측 (버튼·댓글·시간) ───── */
-body[data-page="hotdeal"] .deal-layout .deal-row-side {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 8px;
-  padding: 0;
+/* 태그: 12px ink-faint */
+body[data-page="hotdeal"] .deal-tags {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  font-size: 12px !important;
+  color: var(--ink-faint) !important;
+  margin-bottom: 3px !important;
+  flex-wrap: nowrap !important;
+  overflow: hidden !important;
+}
+body[data-page="hotdeal"] .deal-tag {
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  color: var(--ink-faint) !important;
+  white-space: nowrap !important;
+  /* 뱃지 스타일 제거 */
+  background: transparent !important;
+  border: 0 !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+}
+body[data-page="hotdeal"] .deal-tag-sep {
+  opacity: .5 !important;
+  font-size: 12px !important;
+  color: var(--ink-faint) !important;
+}
+/* 최저가 뱃지만 유지 */
+body[data-page="hotdeal"] .deal-tag-lowest {
+  background: var(--accent-soft) !important;
+  color: var(--accent-ink) !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  padding: 2px 5px !important;
+  border-radius: 5px !important;
+  white-space: nowrap !important;
+  flex: none !important;
+}
+/* 딜 row-side의 역대 최저가 뱃지 */
+body[data-page="hotdeal"] .deal-row-side .deal-tag-lowest {
+  display: none !important;
 }
 
-/* 구매 버튼 (.buy) */
-body[data-page="hotdeal"] .deal-layout .deal-buy-btn {
-  background: var(--accent);
-  color: #fff;
-  border: 0;
-  border-radius: 9px;
-  padding: 9px 16px;
-  font-weight: 700;
-  font-size: 13px;
-  white-space: nowrap;
-  min-height: 0;
-  height: auto;
-  line-height: 1.4;
+/* 타이틀: 14.5px 500 truncate */
+body[data-page="hotdeal"] .deal-title {
+  font-size: 14.5px !important;
+  font-weight: 500 !important;
+  color: var(--ink) !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  display: block !important;
+  line-height: 1.4 !important;
+  max-width: 560px !important;
 }
 
-/* 댓글수·시간 */
-body[data-page="hotdeal"] .deal-layout .deal-comments,
-body[data-page="hotdeal"] .deal-layout .time-abs {
-  font-size: 11.5px;
-  color: var(--ink-faint);
+/* 가격 행: .row-meta */
+body[data-page="hotdeal"] .deal-price-row {
+  display: flex !important;
+  align-items: baseline !important;
+  gap: 8px !important;
+  margin-top: 5px !important;
+  flex-wrap: nowrap !important;
+}
+body[data-page="hotdeal"] .deal-discount {
+  color: var(--discount) !important;
+  font-weight: 800 !important;
+  font-size: 15px !important;
+  font-family: 'Space Grotesk', 'Inter', sans-serif !important;
+}
+body[data-page="hotdeal"] .deal-price {
+  font-weight: 800 !important;
+  font-size: 16px !important;
+  font-family: 'Space Grotesk', 'Inter', sans-serif !important;
+  color: var(--ink) !important;
+}
+body[data-page="hotdeal"] .deal-price .won {
+  font-size: 14px !important;
+  font-weight: 700 !important;
+}
+body[data-page="hotdeal"] .deal-shipping {
+  font-size: 11.5px !important;
+  color: var(--ok) !important;
+  background: var(--ok-soft) !important;
+  padding: 2px 6px !important;
+  border-radius: 5px !important;
+  font-weight: 700 !important;
+  white-space: nowrap !important;
+}
+body[data-page="hotdeal"] .deal-soldout {
+  font-size: 11.5px !important;
+  color: var(--ink-faint) !important;
+  font-weight: 500 !important;
 }
 
-/* ───── 우측 레일 (.card) ───── */
+/* 오른쪽 컬럼: .row-side */
+body[data-page="hotdeal"] .deal-row-side {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+  gap: 8px !important;
+  min-width: 0 !important;
+}
+
+/* 구매 버튼: .buy */
+body[data-page="hotdeal"] .deal-buy-btn {
+  display: inline-block !important;
+  background: var(--accent) !important;
+  color: #fff !important;
+  border: 0 !important;
+  border-radius: 9px !important;
+  padding: 9px 16px !important;
+  font-weight: 700 !important;
+  font-size: 13px !important;
+  white-space: nowrap !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
+  font-family: inherit !important;
+  line-height: 1 !important;
+}
+body[data-page="hotdeal"] .deal-buy-btn:hover {
+  opacity: .9 !important;
+}
+
+/* 댓글+시간: .row-stats */
+body[data-page="hotdeal"] .deal-comments,
+body[data-page="hotdeal"] .time-abs {
+  font-size: 11.5px !important;
+  color: var(--ink-faint) !important;
+  font-weight: 400 !important;
+  white-space: nowrap !important;
+}
+
+/* 더보기 버튼 */
+body[data-page="hotdeal"] .more-wrap {
+  padding: 20px 0 !important;
+  text-align: center !important;
+}
+
+/* 광고 슬롯 */
+body[data-page="hotdeal"] .inline-ad {
+  background: var(--bg) !important;
+  border: 1px dashed var(--border-strong) !important;
+  border-radius: 12px !important;
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   8. 레일 (.deal-rail / .rail-panel)
+   목업: .rail — flex-col gap 14px
+         .card — surface, border, radius 14px, pad 16px
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+body[data-page="hotdeal"] .deal-rail {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 14px !important;
+  position: sticky !important;
+  top: 72px !important;
+}
+
 body[data-page="hotdeal"] .rail-panel {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 16px;
-  box-shadow: none;
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 14px !important;
+  padding: 16px !important;
+  box-shadow: none !important;
 }
-body[data-page="hotdeal"] .rail-panel h2 {
-  font-size: 14px;
-  font-weight: 700;
-  margin: 0 0 12px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-body[data-page="hotdeal"] .rail-deal {
-  font-size: 12.5px;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--border);
-  gap: 10px;
-}
-body[data-page="hotdeal"] .rail-deal:last-child { border-bottom: 0; }
 
-/* ───── 모바일 조정 (< 900px) ───── */
-@media (max-width: 899px) {
-  body[data-page="hotdeal"] .deal-layout .deal-card {
-    grid-template-columns: 56px 1fr auto;
-    gap: 10px;
-    padding: 12px 4px;
-  }
-  body[data-page="hotdeal"] .deal-layout .deal-thumb-wrap,
-  body[data-page="hotdeal"] .deal-layout .deal-thumb-hit,
-  body[data-page="hotdeal"] .deal-layout .deal-thumb { width: 56px; height: 56px; }
-  body[data-page="hotdeal"] .deal-layout .deal-row-side { display: none; }
+body[data-page="hotdeal"] .rail-panel h2 {
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  margin: 0 0 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  color: var(--ink) !important;
+  font-family: inherit !important;
+}
+body[data-page="hotdeal"] .rail-panel h2 a {
+  font-size: 12px !important;
+  color: var(--ink-faint) !important;
+  font-weight: 500 !important;
+  text-decoration: none !important;
+}
+
+/* 인기 딜 아이템 (.rank-item → .rail-deal) */
+body[data-page="hotdeal"] .rail-deal {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 8px 0 !important;
+  border-bottom: 1px solid var(--border) !important;
+  text-decoration: none !important;
+  color: inherit !important;
+}
+body[data-page="hotdeal"] .rail-deal:last-of-type {
+  border-bottom: 0 !important;
+  padding-bottom: 0 !important;
+}
+body[data-page="hotdeal"] .rail-deal strong {
+  font-family: 'Space Grotesk', 'Inter', sans-serif !important;
+  font-weight: 700 !important;
+  width: 18px !important;
+  min-width: 18px !important;
+  color: var(--ink-faint) !important;
+  font-size: 13px !important;
+  flex: none !important;
+}
+body[data-page="hotdeal"] .rail-deal:nth-child(1) strong,
+body[data-page="hotdeal"] .rail-deal:nth-child(2) strong,
+body[data-page="hotdeal"] .rail-deal:nth-child(3) strong {
+  color: var(--accent) !important;
+}
+body[data-page="hotdeal"] .rail-deal span {
+  font-size: 12.5px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  min-width: 0 !important;
+  flex: 1 !important;
+  display: block !important;
+}
+
+/* 키워드 알림 패널 */
+body[data-page="hotdeal"] .rail-alert form {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+}
+body[data-page="hotdeal"] .rail-alert input[type="search"],
+body[data-page="hotdeal"] .rail-alert input[name="q"] {
+  width: 100% !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 8px !important;
+  height: 36px !important;
+  padding: 0 10px !important;
+  background: var(--bg) !important;
+  color: var(--ink) !important;
+  font-size: 13px !important;
+  font-family: inherit !important;
+  outline: 0 !important;
+  box-sizing: border-box !important;
+}
+body[data-page="hotdeal"] .rail-alert button[type="submit"] {
+  all: unset !important;
+  display: block !important;
+  width: 100% !important;
+  background: var(--accent) !important;
+  color: #fff !important;
+  border: 0 !important;
+  border-radius: 8px !important;
+  height: 36px !important;
+  font-weight: 700 !important;
+  font-size: 13px !important;
+  text-align: center !important;
+  cursor: pointer !important;
+  box-sizing: border-box !important;
+  font-family: inherit !important;
+}
+
+/* 광고 슬롯 */
+body[data-page="hotdeal"] .rail-ad {
+  background: var(--bg) !important;
+  border: 1px dashed var(--border-strong) !important;
+  border-radius: 12px !important;
+  min-height: 250px !important;
+  display: grid !important;
+  place-items: center !important;
+  color: var(--ink-faint) !important;
+  font-size: 12px !important;
+}
+
+/* 빈 목록 */
+body[data-page="hotdeal"] .empty-row,
+body[data-page="hotdeal"] #filter-empty {
+  padding: 32px 0 !important;
+  text-align: center !important;
+  color: var(--ink-faint) !important;
+  font-size: 14px !important;
 }
