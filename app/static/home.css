@@ -1,9 +1,7 @@
-/* ═══════════════════════════════════════════════════
-   home.css — 목업 직접 포팅, 완전 독립형
-   모든 CSS를 이 파일 하나로 처리
-   ═══════════════════════════════════════════════════ */
+﻿/* ?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧??   home.css ??紐⑹뾽 吏곸젒 ?ы똿, ?꾩쟾 ?낅┰??   紐⑤뱺 CSS瑜????뚯씪 ?섎굹濡?泥섎━
+   ?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧??*/
 
-/* ── 리셋 ── */
+/* ?? 由ъ뀑 ?? */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 a { color: inherit; text-decoration: none; }
 button { font: inherit; cursor: pointer; border: 0; background: transparent; padding: 0; }
@@ -11,7 +9,7 @@ ul, ol { list-style: none; }
 img { display: block; max-width: 100%; }
 input, textarea, select { font: inherit; }
 
-/* ── 토큰 (목업 그대로) ── */
+/* ?? ?좏겙 (紐⑹뾽 洹몃?濡? ?? */
 :root {
   --bg: #f5f6f8;
   --surface: #ffffff;
@@ -32,23 +30,23 @@ input, textarea, select { font: inherit; }
   --radius-pill: 999px;
 }
 
-/* ── 베이스 ── */
+/* ?? 踰좎씠???? */
 html { height: 100%; }
 body {
   min-height: 100%;
   background: var(--bg);
   color: var(--ink);
   font-family: var(--font);
-  font-size: 14px;
+  font-size: 15.4px;
   line-height: 1.5;
   -webkit-font-smoothing: auto;
   -moz-osx-font-smoothing: auto;
 }
 .tabular { font-variant-numeric: tabular-nums; }
 
-/* ══════════════════════════════════════════════════
+/* ?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧
    GNB (topbar)
-   ══════════════════════════════════════════════════ */
+   ?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧 */
 .app-topbar {
   position: sticky;
   top: 0;
@@ -62,25 +60,25 @@ body {
   display: flex;
   align-items: center;
   gap: 20px;
-  height: 56px;
+  height: 62px;
   padding: 0 16px;
 }
 
-/* 메뉴 버튼 (모바일) */
+/* 硫붾돱 踰꾪듉 (紐⑤컮?? */
 .menu-btn {
   display: none;
   color: var(--ink-muted);
   padding: 4px;
 }
 
-/* 브랜드 */
+/* 釉뚮옖??*/
 .topbar-brand {
   display: flex;
   align-items: center;
   gap: 8px;
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 18px;
+  font-size: 19.8px;
   flex: none;
   color: var(--ink);
 }
@@ -92,18 +90,20 @@ body {
   color: #fff;
   display: grid;
   place-items: center;
-  font-size: 14px;
+  font-size: 15.4px;
   font-weight: 700;
   flex: none;
 }
 .topbar-brand-copy { line-height: 1; }
 .topbar-brand-copy small { display: none; }
 
-/* 네비 탭 */
+/* ?ㅻ퉬 ??*/
 .topbar-left {
   display: flex;
   align-items: center;
   gap: 0;
+  flex: 1;
+  min-width: 0;
 }
 .topbar-nav {
   display: flex;
@@ -115,7 +115,7 @@ body {
   border-radius: 8px;
   font-weight: 600;
   color: var(--ink-muted);
-  font-size: 13.5px;
+  font-size: 14.8px;
   white-space: nowrap;
 }
 .topbar-nav a.on,
@@ -124,7 +124,7 @@ body {
   background: var(--bg);
 }
 
-/* 오른쪽 영역 */
+/* ?ㅻⅨ履??곸뿭 */
 .topbar-right {
   display: flex;
   align-items: center;
@@ -132,9 +132,8 @@ body {
   margin-left: auto;
 }
 
-/* 검색 */
+/* 寃??*/
 .topbar-search {
-  flex: 1;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -143,8 +142,9 @@ body {
   border-radius: 10px;
   height: 38px;
   padding: 0 12px;
+  width: 420px;
   max-width: 420px;
-  min-width: 160px;
+  margin-left: 16px;
 }
 .topbar-search input {
   border: 0;
@@ -152,11 +152,11 @@ body {
   outline: 0;
   color: var(--ink);
   width: 100%;
-  font-size: 13.5px;
+  font-size: 14.8px;
 }
 .topbar-search input::placeholder { color: var(--ink-faint); }
 
-/* 아이콘 버튼들 */
+/* ?꾩씠肄?踰꾪듉??*/
 .icon-btn, .topbar-wishlist {
   display: flex;
   align-items: center;
@@ -165,13 +165,13 @@ body {
   height: 32px;
   border-radius: 8px;
   color: var(--ink-muted);
-  font-size: 13px;
+  font-size: 14.3px;
   font-weight: 600;
   flex: none;
 }
 .icon-btn:hover, .topbar-wishlist:hover { background: var(--bg); color: var(--ink); }
 
-/* 테마 토글 */
+/* ?뚮쭏 ?좉? */
 .theme-toggle {
   display: flex;
   align-items: center;
@@ -183,7 +183,7 @@ body {
 }
 .theme-toggle:hover { background: var(--bg); }
 
-/* 계정 pill */
+/* 怨꾩젙 pill */
 .account-pill {
   display: flex;
   align-items: center;
@@ -194,7 +194,7 @@ body {
   background: var(--surface);
   cursor: pointer;
   list-style: none;
-  font-size: 13px;
+  font-size: 14.3px;
   font-weight: 500;
   color: var(--ink-muted);
 }
@@ -206,14 +206,14 @@ body {
   color: var(--ink-muted);
   display: grid;
   place-items: center;
-  font-size: 11px;
+  font-size: 12.1px;
   font-weight: 700;
   flex: none;
 }
-.account-caret { font-size: 10px; }
+.account-caret { font-size: 11px; }
 .account-pill-name { max-width: 60px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* 드롭다운 */
+/* ?쒕∼?ㅼ슫 */
 .account-menu { position: relative; }
 .account-dropdown {
   position: absolute;
@@ -230,17 +230,17 @@ body {
 .account-dropdown a {
   display: block;
   padding: 10px 14px;
-  font-size: 13.5px;
+  font-size: 14.8px;
   color: var(--ink);
 }
 .account-dropdown a:hover { background: var(--bg); }
 details:not([open]) > .account-dropdown { display: none; }
 
-/* 알림 드롭다운 */
+/* ?뚮┝ ?쒕∼?ㅼ슫 */
 .inbox-dropdown { width: 300px; }
 .inbox-head {
   padding: 12px 14px 8px;
-  font-size: 13px;
+  font-size: 14.3px;
   font-weight: 700;
   color: var(--ink);
   border-bottom: 1px solid var(--border);
@@ -248,7 +248,7 @@ details:not([open]) > .account-dropdown { display: none; }
   justify-content: space-between;
   align-items: center;
 }
-.inbox-head a { font-size: 12px; font-weight: 400; color: var(--ink-faint); }
+.inbox-head a { font-size: 13.2px; font-weight: 400; color: var(--ink-faint); }
 .inbox-list { max-height: 320px; overflow-y: auto; padding: 4px 0; }
 .inbox-badge {
   position: absolute;
@@ -260,7 +260,7 @@ details:not([open]) > .account-dropdown { display: none; }
   background: var(--accent);
 }
 
-/* 사이드바 (숨김 — 오버레이 방식) */
+/* ?ъ씠?쒕컮 (?④? ???ㅻ쾭?덉씠 諛⑹떇) */
 .sidebar-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 30; }
 .sidebar-backdrop.show { display: block; }
 .sidebar {
@@ -279,7 +279,7 @@ details:not([open]) > .account-dropdown { display: none; }
 }
 .sidebar.open { transform: translateX(0); }
 .sidebar-label {
-  font-size: 11px;
+  font-size: 12.1px;
   font-weight: 700;
   letter-spacing: .06em;
   color: var(--ink-faint);
@@ -294,16 +294,15 @@ details:not([open]) > .account-dropdown { display: none; }
   gap: 10px;
   padding: 8px 10px;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: 15.4px;
   font-weight: 500;
   color: var(--ink-muted);
 }
 .sidebar-nav a.on, .sidebar-nav a:hover { background: var(--bg); color: var(--ink); }
 .nav-ico { width: 20px; display: flex; align-items: center; justify-content: center; color: var(--ink-faint); }
 
-/* ══════════════════════════════════════════════════
-   앱 셸
-   ══════════════════════════════════════════════════ */
+/* ?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧
+   ????   ?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧 */
 .app-shell {
   min-height: calc(100vh - 56px);
 }
@@ -316,13 +315,13 @@ details:not([open]) > .account-dropdown { display: none; }
   padding: 0 16px;
 }
 
-/* 푸터 */
+/* ?명꽣 */
 .site-footer {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 24px 16px;
-  font-size: 12px;
+  font-size: 13.2px;
   color: var(--ink-faint);
   max-width: 1180px;
   margin: 0 auto;
@@ -331,9 +330,9 @@ details:not([open]) > .account-dropdown { display: none; }
 .site-footer a:hover { color: var(--ink); }
 .site-footer-sep { opacity: .5; }
 
-/* ══════════════════════════════════════════════════
-   칩 행 (카테고리 / 소스)
-   ══════════════════════════════════════════════════ */
+/* ?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧
+   移???(移댄뀒怨좊━ / ?뚯뒪)
+   ?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧 */
 .chip-row {
   display: flex;
   gap: 6px;
@@ -344,7 +343,7 @@ details:not([open]) > .account-dropdown { display: none; }
 }
 .chip-row::-webkit-scrollbar { display: none; }
 
-/* 카테고리 칩 */
+/* 移댄뀒怨좊━ 移?*/
 #cat-chips .filter-chip {
   flex: none;
   display: flex;
@@ -357,21 +356,21 @@ details:not([open]) > .account-dropdown { display: none; }
   background: var(--surface);
   color: var(--ink-muted);
   font-weight: 600;
-  font-size: 13px;
+  font-size: 14.3px;
   white-space: nowrap;
   cursor: pointer;
 }
-#cat-chips .filter-chip .count { opacity: .6; }
+#cat-chips .filter-chip .count { display: none; }
 #cat-chips .filter-chip.on {
   background: var(--ink);
   border-color: var(--ink);
   color: var(--surface);
 }
 #cat-chips .filter-chip.on .count { opacity: .75; }
-/* 목업에 아이콘 없음 — 숨김 */
+/* 紐⑹뾽???꾩씠肄??놁쓬 ???④? */
 #cat-chips .filter-chip .filter-chip-ico { display: none; }
 
-/* 소스 칩 */
+/* ?뚯뒪 移?*/
 #source-chips .filter-chip {
   flex: none;
   display: flex;
@@ -382,7 +381,7 @@ details:not([open]) > .account-dropdown { display: none; }
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--ink-faint);
-  font-size: 12.5px;
+  font-size: 13.8px;
   font-weight: 500;
   white-space: nowrap;
   cursor: pointer;
@@ -393,14 +392,14 @@ details:not([open]) > .account-dropdown { display: none; }
   color: var(--accent-ink);
 }
 
-/* ══════════════════════════════════════════════════
-   모바일 광고
-   ══════════════════════════════════════════════════ */
+/* ?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧
+   紐⑤컮??愿묎퀬
+   ?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧 */
 .mobile-ad { margin: 4px 0; }
 
-/* ══════════════════════════════════════════════════
-   섹션 헤더
-   ══════════════════════════════════════════════════ */
+/* ?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧
+   ?뱀뀡 ?ㅻ뜑
+   ?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧 */
 .homepage-feed-head {
   display: flex;
   align-items: baseline;
@@ -409,7 +408,7 @@ details:not([open]) > .account-dropdown { display: none; }
 }
 .homepage-feed-head h1 {
   font-family: var(--font-display);
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 700;
   letter-spacing: -.01em;
   color: var(--ink);
@@ -418,13 +417,13 @@ details:not([open]) > .account-dropdown { display: none; }
 .list-count {
   color: var(--ink-faint);
   font-weight: 500;
-  font-size: 13px;
+  font-size: 14.3px;
   font-variant-numeric: tabular-nums;
 }
 
-/* 어드민 수집 버튼 */
+/* ?대뱶誘??섏쭛 踰꾪듉 */
 #collect-btn {
-  font-size: 12px;
+  font-size: 13.2px;
   padding: 5px 10px;
   border-radius: 6px;
   border: 1px solid var(--border);
@@ -432,9 +431,8 @@ details:not([open]) > .account-dropdown { display: none; }
   color: var(--ink-muted);
 }
 
-/* ══════════════════════════════════════════════════
-   정렬 바
-   ══════════════════════════════════════════════════ */
+/* ?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧
+   ?뺣젹 諛?   ?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧 */
 .homepage-filters {
   display: flex;
   align-items: center;
@@ -450,7 +448,7 @@ details:not([open]) > .account-dropdown { display: none; }
   gap: 14px;
 }
 .sort-pill {
-  font-size: 12.5px;
+  font-size: 13.8px;
   font-weight: 400;
   color: var(--ink-faint);
   cursor: pointer;
@@ -466,9 +464,9 @@ details:not([open]) > .account-dropdown { display: none; }
   color: var(--ink);
 }
 
-/* ══════════════════════════════════════════════════
-   메인 레이아웃 (목업: .shell)
-   ══════════════════════════════════════════════════ */
+/* ?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧
+   硫붿씤 ?덉씠?꾩썐 (紐⑹뾽: .shell)
+   ?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧 */
 .deal-layout {
   display: grid;
   grid-template-columns: 1fr 300px;
@@ -479,9 +477,9 @@ details:not([open]) > .account-dropdown { display: none; }
 }
 .deal-list-column { min-width: 0; }
 
-/* ══════════════════════════════════════════════════
-   딜 카드 (목업: .feed .row)
-   ══════════════════════════════════════════════════ */
+/* ?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧
+   ??移대뱶 (紐⑹뾽: .feed .row)
+   ?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧 */
 .deal-cards {
   display: flex;
   flex-direction: column;
@@ -499,7 +497,7 @@ details:not([open]) > .account-dropdown { display: none; }
 .deal-card:hover { background: var(--surface); }
 .deal-card.is-expired { opacity: .6; }
 
-/* 썸네일 */
+/* ?몃꽕??*/
 .deal-thumb-wrap {
   width: 72px;
   height: 72px;
@@ -534,7 +532,7 @@ details:not([open]) > .account-dropdown { display: none; }
   color: #fff;
   display: grid;
   place-items: center;
-  font-size: 12px;
+  font-size: 13.2px;
   font-weight: 700;
   border-radius: 12px;
 }
@@ -552,7 +550,7 @@ details:not([open]) > .account-dropdown { display: none; }
 }
 .deal-wish-ico { flex: none; }
 
-/* 중앙 (목업: .row-mid) */
+/* 以묒븰 (紐⑹뾽: .row-mid) */
 .deal-row-main {
   min-width: 0;
   display: block;
@@ -561,29 +559,29 @@ details:not([open]) > .account-dropdown { display: none; }
 }
 .deal-body { min-width: 0; }
 
-/* 태그 (목업: .row-tags) */
+/* ?쒓렇 (紐⑹뾽: .row-tags) */
 .deal-tags {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: 13.2px;
   color: var(--ink-faint);
   margin-bottom: 3px;
   overflow: hidden;
 }
 .deal-tag {
-  font-size: 12px;
+  font-size: 13.2px;
   font-weight: 400;
   color: var(--ink-faint);
   white-space: nowrap;
 }
 .deal-tag-sep { opacity: .5; }
 
-/* 최저가 뱃지 */
+/* 理쒖?媛 諭껋? */
 .deal-tag-lowest {
   background: var(--accent-soft);
   color: var(--accent-ink);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
   padding: 2px 5px;
   border-radius: 5px;
@@ -591,9 +589,9 @@ details:not([open]) > .account-dropdown { display: none; }
 }
 .deal-row-side .deal-tag-lowest { display: none; }
 
-/* 타이틀 (목업: .row-title) */
+/* ??댄? (紐⑹뾽: .row-title) */
 .deal-title {
-  font-size: 14.5px;
+  font-size: 16px;
   font-weight: 500;
   color: var(--ink);
   white-space: nowrap;
@@ -603,7 +601,7 @@ details:not([open]) > .account-dropdown { display: none; }
   line-height: 1.4;
 }
 
-/* 가격 행 (목업: .row-meta) */
+/* 媛寃???(紐⑹뾽: .row-meta) */
 .deal-price-row {
   display: flex;
   align-items: baseline;
@@ -613,18 +611,18 @@ details:not([open]) > .account-dropdown { display: none; }
 .deal-discount {
   color: var(--discount);
   font-weight: 800;
-  font-size: 15px;
+  font-size: 16.5px;
   font-family: var(--font-display);
 }
 .deal-price {
   font-weight: 800;
-  font-size: 16px;
+  font-size: 17.6px;
   font-family: var(--font-display);
   color: var(--ink);
 }
-.deal-price .won { font-size: 14px; font-weight: 700; }
+.deal-price .won { font-size: 15.4px; font-weight: 700; }
 .deal-shipping {
-  font-size: 11.5px;
+  font-size: 12.6px;
   color: var(--ok);
   background: var(--ok-soft);
   padding: 2px 6px;
@@ -632,9 +630,9 @@ details:not([open]) > .account-dropdown { display: none; }
   font-weight: 700;
   white-space: nowrap;
 }
-.deal-soldout { font-size: 11.5px; color: var(--ink-faint); }
+.deal-soldout { font-size: 12.6px; color: var(--ink-faint); }
 
-/* 오른쪽 (목업: .row-side) */
+/* ?ㅻⅨ履?(紐⑹뾽: .row-side) */
 .deal-row-side {
   display: flex;
   flex-direction: column;
@@ -642,7 +640,7 @@ details:not([open]) > .account-dropdown { display: none; }
   gap: 8px;
 }
 
-/* 구매 버튼 (목업: .buy) */
+/* 援щℓ 踰꾪듉 (紐⑹뾽: .buy) */
 .deal-buy-btn {
   display: inline-block;
   background: var(--accent);
@@ -650,23 +648,22 @@ details:not([open]) > .account-dropdown { display: none; }
   border-radius: 9px;
   padding: 9px 16px;
   font-weight: 700;
-  font-size: 13px;
+  font-size: 14.3px;
   white-space: nowrap;
   cursor: pointer;
   line-height: 1;
 }
 .deal-buy-btn:hover { opacity: .9; }
 
-/* 댓글·시간 (목업: .row-stats) */
-.deal-comments,
+/* ?볤?쨌?쒓컙 (紐⑹뾽: .row-stats) */
 .time-abs {
-  font-size: 11.5px;
+  font-size: 12.6px;
   color: var(--ink-faint);
   font-weight: 400;
   white-space: nowrap;
 }
 
-/* 더보기 */
+/* ?붾낫湲?*/
 .more-wrap { padding: 20px 0; text-align: center; }
 .btn-secondary {
   display: inline-block;
@@ -675,21 +672,21 @@ details:not([open]) > .account-dropdown { display: none; }
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--ink-muted);
-  font-size: 13.5px;
+  font-size: 14.8px;
   font-weight: 600;
   cursor: pointer;
 }
 .btn-secondary:hover { background: var(--bg); }
 
-/* 빈 행 */
+/* 鍮???*/
 .empty-row, #filter-empty, .empty {
   padding: 32px 0;
   text-align: center;
   color: var(--ink-faint);
-  font-size: 14px;
+  font-size: 15.4px;
 }
 
-/* 광고 */
+/* 愿묎퀬 */
 .inline-ad {
   background: var(--bg);
   border: 1px dashed var(--border-strong);
@@ -697,9 +694,9 @@ details:not([open]) > .account-dropdown { display: none; }
   overflow: hidden;
 }
 
-/* ══════════════════════════════════════════════════
-   레일 (목업: .rail .card)
-   ══════════════════════════════════════════════════ */
+/* ?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧
+   ?덉씪 (紐⑹뾽: .rail .card)
+   ?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧 */
 .deal-rail {
   display: flex;
   flex-direction: column;
@@ -715,7 +712,7 @@ details:not([open]) > .account-dropdown { display: none; }
   padding: 16px;
 }
 .rail-panel h2 {
-  font-size: 14px;
+  font-size: 15.7px;
   font-weight: 700;
   margin: 0 0 12px;
   display: flex;
@@ -724,16 +721,16 @@ details:not([open]) > .account-dropdown { display: none; }
   color: var(--ink);
 }
 .rail-panel h2 a {
-  font-size: 12px;
+  font-size: 13.2px;
   color: var(--ink-faint);
   font-weight: 500;
 }
 .rail-panel .muted {
-  font-size: 13px;
+  font-size: 14.3px;
   color: var(--ink-faint);
 }
 
-/* 인기 딜 */
+/* ?멸린 ??*/
 .rail-deal {
   display: flex;
   align-items: center;
@@ -750,14 +747,14 @@ details:not([open]) > .account-dropdown { display: none; }
   width: 18px;
   min-width: 18px;
   color: var(--ink-faint);
-  font-size: 13px;
+  font-size: 14.3px;
   flex: none;
 }
 .rail-deal:nth-child(1) strong,
 .rail-deal:nth-child(2) strong,
 .rail-deal:nth-child(3) strong { color: var(--accent); }
 .rail-deal span {
-  font-size: 12.5px;
+  font-size: 13.8px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -766,7 +763,7 @@ details:not([open]) > .account-dropdown { display: none; }
   display: block;
 }
 
-/* 키워드 알림 */
+/* ?ㅼ썙???뚮┝ */
 .rail-alert form {
   display: flex;
   flex-direction: column;
@@ -781,7 +778,7 @@ details:not([open]) > .account-dropdown { display: none; }
   padding: 0 10px;
   background: var(--bg);
   color: var(--ink);
-  font-size: 13px;
+  font-size: 14.3px;
   outline: 0;
 }
 .rail-alert input::placeholder { color: var(--ink-faint); }
@@ -794,12 +791,12 @@ details:not([open]) > .account-dropdown { display: none; }
   border-radius: 8px;
   height: 36px;
   font-weight: 700;
-  font-size: 13px;
+  font-size: 14.3px;
   text-align: center;
   cursor: pointer;
 }
 
-/* 광고 슬롯 */
+/* 愿묎퀬 ?щ’ */
 .rail-ad, .sidebar-ad {
   background: var(--bg);
   border: 1px dashed var(--border-strong);
@@ -808,22 +805,24 @@ details:not([open]) > .account-dropdown { display: none; }
   display: grid;
   place-items: center;
   color: var(--ink-faint);
-  font-size: 12px;
+  font-size: 13.2px;
   overflow: hidden;
 }
 
-/* ══════════════════════════════════════════════════
-   모바일 대응
-   ══════════════════════════════════════════════════ */
+/* ?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧
+   紐⑤컮?????   ?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧 */
 @media (max-width: 860px) {
   .deal-layout { grid-template-columns: 1fr; }
   .deal-rail { display: none; }
   .topbar-nav { display: none; }
   .menu-btn { display: flex; }
-  .topbar-brand-copy { font-size: 16px; }
+  .topbar-brand-copy { font-size: 17.6px; }
 }
 @media (max-width: 600px) {
-  .deal-title { font-size: 13.5px; }
-  .deal-price { font-size: 14px; }
-  .deal-buy-btn { padding: 8px 10px; font-size: 12px; }
+  .deal-title { font-size: 14.8px; }
+  .deal-price { font-size: 15.4px; }
+  .deal-buy-btn { padding: 8px 10px; font-size: 13.2px; }
 }
+
+
+

@@ -962,11 +962,16 @@ async def deal_out(deal_id: int):
     isn't called again), then logs the click the same way /out/coupang does."""
     db = _db()
     cur = await db.execute(
-        "SELECT mall_url, affiliate_url, affiliate_checked_at FROM deals WHERE id=?", (deal_id,)
+        "SELECT mall_url, affiliate_url, affiliate_checked_at, deal_url FROM deals WHERE id=?", (deal_id,)
     )
     row = await cur.fetchone()
-    if not row or not row["mall_url"]:
+    if not row:
         raise HTTPException(404, "구매 링크를 찾을 수 없습니다")
+    if not row["mall_url"]:
+        fallback = row["deal_url"] if row["deal_url"] else None
+        if not fallback:
+            raise HTTPException(404, "구매 링크를 찾을 수 없습니다")
+        return RedirectResponse(fallback, status_code=302)
     mall_url = row["mall_url"]
     target = row["affiliate_url"] or mall_url
     if not row["affiliate_checked_at"]:
