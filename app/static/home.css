@@ -17,6 +17,176 @@
     .card (rail)   → .rail-panel
 */
 
+/* ═══════════════════════════════════════════════════════════
+   타이포그래피 완전 초기화 — 목업과 엄격하게 동일
+   목업 원본값:
+     body           Inter 14px / lh 1.5
+     brand          Space Grotesk 700 18px
+     nav tab        600 13.5px
+     cat chip       600 13px
+     src chip       500 12.5px
+     h1 (section)   Space Grotesk 700 20px / ls -0.01em
+     sort bar       400 12.5px  /  .on → 700
+     deal tag       400 12px
+     deal title     500 14.5px / lh 1.4
+     discount       Space Grotesk 800 15px
+     price          Space Grotesk 800 16px
+     buy btn        700 13px
+     stats          400 11.5px
+     rail h2        700 14px
+     rail rank .t   400 12.5px
+     rail rank .p   400 11.5px
+   ═══════════════════════════════════════════════════════════ */
+
+/* 1. 페이지 베이스 — Inter 14px / lh 1.5 */
+body[data-page="hotdeal"],
+body[data-page="hotdeal"] * {
+  font-family: 'Inter', 'Pretendard Variable', 'Pretendard', -apple-system, 'Apple SD Gothic Neo', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+body[data-page="hotdeal"] {
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+}
+
+/* 2. Space Grotesk 적용 대상 — 숫자/라틴 헤드라인 */
+body[data-page="hotdeal"] .topbar-brand,
+body[data-page="hotdeal"] .homepage-feed-head h1,
+body[data-page="hotdeal"] .deal-layout .deal-price,
+body[data-page="hotdeal"] .deal-layout .deal-discount {
+  font-family: 'Space Grotesk', 'Inter', 'Pretendard Variable', 'Pretendard', sans-serif !important;
+}
+
+/* 3. 브랜드: Space Grotesk 700 18px */
+body[data-page="hotdeal"] .topbar-brand {
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.01em !important;
+}
+
+/* 4. nav 탭: 600 13.5px */
+body[data-page="hotdeal"] .topbar-nav a {
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+}
+
+/* 5. 카테고리 칩: 600 13px */
+body[data-page="hotdeal"] #cat-chips .filter-chip {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+  line-height: 1 !important;
+}
+
+/* 6. 소스 칩: 500 12.5px */
+body[data-page="hotdeal"] #source-chips .filter-chip {
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0 !important;
+  line-height: 1 !important;
+}
+
+/* 7. 섹션 h1: Space Grotesk 700 20px / ls -0.01em */
+body[data-page="hotdeal"] .homepage-feed-head h1 {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.01em !important;
+  line-height: 1.3 !important;
+}
+
+/* 8. 카운트 "실시간 N,NNN개": 500 13px */
+body[data-page="hotdeal"] .homepage-feed-head .list-count,
+body[data-page="hotdeal"] .homepage-feed-head .list-count strong {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0 !important;
+}
+
+/* 9. 정렬 바: 400 12.5px / 선택 → 700 */
+body[data-page="hotdeal"] .homepage-filters .sort-pill {
+  font-size: 12.5px !important;
+  font-weight: 400 !important;
+  letter-spacing: 0 !important;
+}
+body[data-page="hotdeal"] .homepage-filters .sort-pill.on,
+body[data-page="hotdeal"] .homepage-filters .sort-pill[aria-pressed="true"] {
+  font-weight: 700 !important;
+}
+
+/* 10. 딜 태그 (몰·출처·카테고리): 400 12px */
+body[data-page="hotdeal"] .deal-layout .deal-tag,
+body[data-page="hotdeal"] .deal-layout .deal-tag-sep {
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  letter-spacing: 0 !important;
+}
+
+/* 11. 딜 제목: 500 14.5px / lh 1.4 */
+body[data-page="hotdeal"] .deal-layout .deal-title {
+  font-size: 14.5px !important;
+  font-weight: 500 !important;
+  line-height: 1.4 !important;
+  letter-spacing: 0 !important;
+}
+
+/* 12. 할인율: Space Grotesk 800 15px */
+body[data-page="hotdeal"] .deal-layout .deal-discount {
+  font-size: 15px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0 !important;
+  line-height: 1 !important;
+}
+
+/* 13. 가격: Space Grotesk 800 16px */
+body[data-page="hotdeal"] .deal-layout .deal-price {
+  font-size: 16px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0 !important;
+  line-height: 1 !important;
+}
+body[data-page="hotdeal"] .deal-layout .deal-price .won {
+  font-size: 14px !important;
+  font-weight: 700 !important;
+}
+
+/* 14. 무료배송 뱃지: 700 11.5px */
+body[data-page="hotdeal"] .deal-layout .deal-shipping {
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0 !important;
+}
+
+/* 15. 구매 버튼: 700 13px */
+body[data-page="hotdeal"] .deal-layout .deal-buy-btn {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0 !important;
+}
+
+/* 16. 댓글수·시간: 400 11.5px */
+body[data-page="hotdeal"] .deal-layout .deal-comments,
+body[data-page="hotdeal"] .deal-layout .time-abs {
+  font-size: 11.5px !important;
+  font-weight: 400 !important;
+  letter-spacing: 0 !important;
+}
+
+/* 17. 레일 카드 h2: 700 14px */
+body[data-page="hotdeal"] .rail-panel h2 {
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0 !important;
+}
+
+/* 18. 레일 딜 텍스트 */
+body[data-page="hotdeal"] .rail-deal {
+  font-size: 12.5px !important;
+  font-weight: 400 !important;
+}
+/* ═══════════════════════════════════════════════════════════ */
+
 /* ───── 페이지 배경 ───── */
 body[data-page="hotdeal"] {
   background: var(--bg);
