@@ -156,6 +156,11 @@ class PoliteClient:
         # the proxy baked in; pass None to _client_for so we reuse it.
         http = self._client_for(proxy if proxy else None)
         extra: dict[str, str] = {}
+        # Auto-Referer: set the origin as referer so community sites (ppomppu
+        # etc.) that check the header don't return a plain 403.
+        parsed = httpx.URL(url)
+        origin = f"{parsed.scheme}://{parsed.host}"
+        extra["Referer"] = origin + "/"
         # Conditional GET on both direct and proxied fetches — an unchanged
         # community list returns a tiny 304 instead of the full page, which
         # matters a lot for residential-proxy GB. Keyed per exit so a direct
@@ -275,7 +280,8 @@ class PoliteClient:
     ) -> list[str]:
         curl = "curl.exe" if sys.platform == "win32" else "curl"
         max_time = str(int(timeout if timeout is not None else HTTP_TIMEOUT_SEC))
-        referer = f"{httpx.URL(url).scheme}://{httpx.URL(url).host}/"
+        _u = httpx.URL(url)
+        referer = f"{_u.scheme}://{_u.host}/"
         argv = [
             curl,
             "-sL",
