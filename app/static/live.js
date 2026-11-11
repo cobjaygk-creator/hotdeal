@@ -449,32 +449,42 @@ function joinMeta(parts) {
     .join('<span class="deal-tag-sep" aria-hidden="true">|</span>');
 }
 
+function joinDot(parts) {
+  return parts
+    .filter(Boolean)
+    .map((p, i) => i === 0 ? p : `<span class="deal-tag-sep" aria-hidden="true">·</span>${p}`)
+    .join('');
+}
+
 function tagsHtml(deal) {
   const parts = [];
+  const mall = mallFromUrl(deal.mall_url);
+  if (mall.label) {
+    parts.push(`<span class="deal-tag deal-tag-mall" data-mall="${esc(mall.key)}">${esc(mall.label)}</span>`);
+  }
+  const src = labelFirstSource(deal);
+  if (src && src !== "-") {
+    parts.push(`<span class="deal-tag deal-source">${esc(src)}</span>`);
+  }
   if (deal.category) {
     parts.push(`<span class="deal-tag deal-tag-cat">${esc(deal.category)}</span>`);
   }
-  const mall = mallFromUrl(deal.mall_url);
-  if (mall.label) {
-    parts.push(
-      `<span class="deal-tag deal-tag-mall" data-mall="${esc(mall.key)}">${esc(mall.label)}</span>`
-    );
-  }
   const lowest = lowestHtml(deal);
   if (lowest) parts.push(lowest);
-  return `<div class="deal-tags">${joinMeta(parts)}</div>`;
+  return `<div class="deal-tags">${joinDot(parts)}</div>`;
 }
 
 function priceRowMeta(deal, ts) {
-  const parts = [`<div class="deal-price">${priceHtml(deal.price)}</div>`];
-  const src = labelFirstSource(deal);
-  if (src && src !== "-") {
-    parts.push(`<span class="deal-source">${esc(src)}</span>`);
+  let html = '';
+  if (deal.discount_rate != null && deal.discount_rate < 0) {
+    html += `<span class="deal-discount">${Math.round(-deal.discount_rate * 100)}%</span>`;
   }
-  parts.push(
-    `<time class="time-rel${isRecentTs(ts) ? " is-recent" : ""}" datetime="${esc(ts)}" data-ts="${esc(ts)}">${esc(relativeTime(ts))}</time>`
-  );
-  return parts.join('<span class="deal-meta-sep" aria-hidden="true">|</span>');
+  html += `<div class="deal-price">${priceHtml(deal.price)}</div>`;
+  if (deal.shipping_fee === 0) {
+    html += `<span class="deal-shipping">무료배송</span>`;
+  }
+  html += `<time class="time-abs" datetime="${esc(ts)}" data-ts="${esc(ts)}">${esc(clockTime(ts))}</time>`;
+  return html;
 }
 
 function matchesSources(raw) {
@@ -555,7 +565,6 @@ function renderRow(deal, { fresh = false, freshIndex = 0 } = {}) {
     (isPostUrl(deal.mall_url)
       ? `<a class="deal-buy-btn" href="/out/${deal.id}" target="_blank" rel="noopener" onclick="event.stopPropagation()">구매하기</a>`
       : "") +
-    `<time class="time-abs" datetime="${esc(ts)}" data-ts="${esc(ts)}">${esc(clockTime(ts))}</time>` +
     `</div>`;
   applyChipClass(li);
   return li;
