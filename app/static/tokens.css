@@ -49,7 +49,7 @@
   --grey-900: #191F28;   /* 제목, 가격 */
 
   /* ---- 표면 / 잉크 ---- */
-  --bg: #FFFFFF;
+  --bg: #f5f6f8;
   --surface: #FFFFFF;
   --surface-sunken: var(--grey-100);
   --surface-hover: var(--grey-50);
@@ -57,9 +57,9 @@
   --ink: var(--grey-900);
   --ink-body: var(--grey-800);
   --ink-muted: var(--grey-600);
-  --ink-faint: var(--grey-500);
-  --border: var(--grey-100);
-  --border-strong: var(--grey-200);
+  --ink-faint: #9aa1ab;
+  --border: #e7e9ec;
+  --border-strong: #d8dbe0;
 
   /* ---- 액션 블루 (버튼·선택·최저가 배지에만) ---- */
   --accent: #3182F6;

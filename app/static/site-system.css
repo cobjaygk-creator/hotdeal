@@ -97,14 +97,14 @@ body[data-page="hotdeal"] .deal-discovery-meta { font-size:var(--text-label); }
 }
 
 /* 2026-10 Deal Now: banner-free, mobile-first commerce feed */
-body { background: #fff; }
+body { background: var(--bg); }
 body[data-page="hotdeal"] .app-topbar { border-bottom: 1px solid var(--border); background: color-mix(in srgb, var(--surface) 94%, transparent); }
 body[data-page="hotdeal"] .topbar-inner { width: min(var(--maxw), calc(100% - 64px)); min-height: var(--header-h); gap: var(--space-5); }
 body[data-page="hotdeal"] .topbar-brand { color: var(--ink); font-size: 22px; letter-spacing: -.055em; transform: none; }
 body[data-page="hotdeal"] .topbar-brand-copy { color: var(--ink); }
 body[data-page="hotdeal"] .topbar-brand-copy small { display: none; }
 body[data-page="hotdeal"] .topbar-nav { display: flex; }
-body[data-page="hotdeal"] .topbar-search { order: initial; height: 42px; min-width: 250px; max-width: 320px; border: 0; border-radius: 12px; background: var(--surface-sunken); }
+body[data-page="hotdeal"] .topbar-search { order: initial; height: 38px; min-width: 250px; max-width: 420px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); }
 body[data-page="hotdeal"] .topbar-wishlist { order: initial; margin-left: 0; }
 body[data-page="hotdeal"] .topbar-right { flex: 1; justify-content: flex-end; gap: var(--space-3); }
 body[data-page="hotdeal"] .topbar-right .inbox-menu, body[data-page="hotdeal"] .topbar-right > .icon-btn, body[data-page="hotdeal"] .topbar-right .theme-toggle { order: initial; }
@@ -273,7 +273,56 @@ body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal
 body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal-tag-mall { color: var(--ink-faint) !important; }
 body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal-tag-lowest { background: var(--accent-soft) !important; color: var(--accent-soft-ink) !important; padding: 2px 7px !important; border-radius: var(--radius-xs) !important; font-size: 11px !important; }
 
-/* 우측 레일 카드: 목업처럼 패딩/라운드/타이틀 크기 고정 */
-body[data-page="hotdeal"] .rail-panel { padding: 16px !important; border-radius: 14px !important; }
-body[data-page="hotdeal"] .rail-panel h2 { font-size: 14px !important; }
-body[data-page="hotdeal"] .rail-deal { font-size: 12.5px !important; padding: 6px 0 !important; }
+/* 우측 레일 카드: 목업처럼 흰 카드 + 테두리 */
+body[data-page="hotdeal"] .rail-panel { padding: 16px !important; border-radius: 14px !important; background: var(--surface) !important; border: 1px solid var(--border-strong) !important; box-shadow: none !important; }
+body[data-page="hotdeal"] .rail-panel h2 { font-size: 14px !important; margin: 0 0 12px !important; display: flex; align-items: center; justify-content: space-between; }
+body[data-page="hotdeal"] .rail-deal { font-size: 12.5px !important; padding: 6px 0 !important; border-bottom: 1px solid var(--border) !important; }
+body[data-page="hotdeal"] .rail-deal:last-child { border-bottom: 0 !important; }
+
+/* ============================================================
+   목업 완전 적용 — 2026-11 최종
+   ============================================================ */
+
+/* Topbar: 56px 높이, 흰 배경, 테두리 */
+body[data-page="hotdeal"] .app-topbar { min-height: 56px !important; }
+body[data-page="hotdeal"] .topbar-inner { min-height: 56px !important; }
+
+/* 페이지 배경: 목업과 동일한 연회색 */
+body[data-page="hotdeal"] .app-main { background: var(--bg) !important; }
+body[data-page="hotdeal"] .app-topbar { background: var(--surface) !important; }
+
+/* 딜 카드 hover: 목업처럼 흰색 */
+body[data-page="hotdeal"] .deal-layout .deal-card:hover { background: var(--surface) !important; }
+
+/* 정렬 바: 목업처럼 텍스트 스타일 (세그먼트 컨트롤 배경 제거) */
+body[data-page="hotdeal"] .list-view-switch { background: transparent !important; border: 1px solid var(--border) !important; border-radius: var(--radius-pill) !important; overflow: hidden; }
+body[data-page="hotdeal"] .list-view-btn { background: transparent !important; color: var(--ink-muted) !important; box-shadow: none !important; padding: 0 10px; height: 30px; font-size: 12.5px; }
+body[data-page="hotdeal"] .list-view-btn.on { background: var(--ink) !important; color: var(--surface) !important; }
+
+/* 딜 태그 구분자: | → · */
+body[data-page="hotdeal"] .deal-tag-sep { font-size: 0 !important; }
+body[data-page="hotdeal"] .deal-tag-sep::before { content: "·"; font-size: 12px; color: var(--ink-faint); padding: 0 2px; }
+
+/* 딜 태그: 목업처럼 메타 텍스트 스타일 */
+body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal-tags { display: flex; align-items: center; gap: 2px; margin-bottom: 3px; }
+body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal-tag { font-size: 12px !important; color: var(--ink-faint) !important; }
+body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal-tag-mall { color: var(--ink-faint) !important; }
+
+/* 무료배송 뱃지: 목업처럼 녹색 필박스 */
+body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal-shipping {
+  background: var(--success-soft) !important; color: var(--success) !important;
+  padding: 2px 6px !important; border-radius: 5px !important; font-size: 11.5px !important; font-weight: 700 !important;
+}
+
+/* 댓글수/시간: 목업처럼 작은 muted 텍스트 */
+body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal-comments,
+body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .time-abs {
+  font-size: 11.5px !important; color: var(--ink-faint) !important;
+}
+
+/* 구매 버튼: 목업처럼 블루 필박스 */
+body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal-buy-btn {
+  background: var(--accent) !important; color: #fff !important; border-radius: 9px !important;
+  padding: 9px 16px !important; font-weight: 700 !important; font-size: 13px !important;
+  min-height: 0 !important; height: auto !important; white-space: nowrap !important;
+}
