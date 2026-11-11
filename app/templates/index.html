@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}{% if og_deal %}{{ og_deal.product_name }} · 핫딜모음{% else %}실시간 핫딜모음{% endif %}{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="/static/home.css?v={{ asset_v | default('') }}">{% endblock %}
 {% block extra_head %}
 {% if og_deal %}
 <meta property="og:type" content="product">
