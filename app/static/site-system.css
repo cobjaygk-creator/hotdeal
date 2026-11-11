@@ -164,10 +164,13 @@ body[data-page="hotdeal"] .main-inner { padding-top: 0; }
 /* 홈 피드: 목업처럼 좌측 풀폭 리스트 + 우측 레일 2단 레이아웃 */
 @media (min-width:900px) {
   body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] { grid-template-columns: 1fr; gap:0; }
-  body[data-page="hotdeal"] .deal-layout .deal-card { min-height:100px; }
-  body[data-page="hotdeal"] .deal-layout .deal-thumb-wrap { width:72px; flex-basis:72px; }
-  body[data-page="hotdeal"] .deal-layout .deal-thumb-hit, body[data-page="hotdeal"] .deal-layout .deal-thumb { width:72px; height:72px; }
+  body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal-card { min-height:100px; }
+  body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal-thumb-wrap { width:72px; flex-basis:72px; margin:14px 14px 14px 0; }
+  body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal-thumb-hit,
+  body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal-thumb { width:72px; height:72px; }
   body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal-row-side { display:flex; }
+  body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal-title { font-size:14.5px; font-weight:500; }
+  body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal-price { font-size:16px; font-weight:800; }
 }
 
 /* Home rebuild v1: product-first grid, keeping live list controls and data attributes intact. */
