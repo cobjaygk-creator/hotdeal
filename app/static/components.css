@@ -318,7 +318,7 @@ button:disabled,
   border: 1px solid var(--border);
   border-radius: var(--radius-pill);
   background: var(--surface);
-  color: var(--ink-muted);
+  color: var(--ink-muted) !important;
   font: inherit;
   font-size: 13.5px;
   font-weight: 600;
@@ -330,10 +330,13 @@ button:disabled,
   box-shadow: none;
   transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
 }
-.filter-chip:hover { opacity: 1; color: var(--ink); border-color: var(--border-strong); background: var(--surface-hover); box-shadow: none; }
+/* .filter-chip can render as a <button> or an <a>; the generic `button{}`
+   skin (components.css ~L146) forces white text via !important, so these
+   need !important too or the button variant goes text-on-text invisible. */
+.filter-chip:hover { opacity: 1; color: var(--ink) !important; border-color: var(--border-strong); background: var(--surface-hover); box-shadow: none; }
 .filter-chip.on,
 .filter-chip.on:hover {
-  color: var(--surface);
+  color: var(--surface) !important;
   background: var(--ink);
   border-color: var(--ink);
   font-weight: 700;
@@ -352,12 +355,12 @@ button:disabled,
 
 /* 커뮤니티 멀티셀렉트 칩: 카테고리 칩보다 한 단계 가벼운 톤 */
 #source-chips.chip-row:has(.filter-chip) { margin-bottom: 16px; }
-#source-chips .filter-chip { height: 30px; font-size: 12.5px; font-weight: 500; color: var(--ink-faint); }
+#source-chips .filter-chip { height: 30px; font-size: 12.5px; font-weight: 500; color: var(--ink-faint) !important; }
 #source-chips .filter-chip.on,
 #source-chips .filter-chip.on:hover {
   background: var(--accent-soft);
   border-color: var(--accent-soft);
-  color: var(--accent-soft-ink);
+  color: var(--accent-soft-ink) !important;
   font-weight: 600;
 }
 
