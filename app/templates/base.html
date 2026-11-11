@@ -25,6 +25,8 @@
   <script type="application/ld+json">{{ website_jsonld | tojson }}</script>
   {# asset_v는 main.py에서 주입. 없으면 빈 문자열이 되어 아무 영향 없음 #}
   {% set v = asset_v | default('', true) %}
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap">
   <link rel="preload" href="/static/fonts/PretendardVariable.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/static/fonts.css?v={{ v }}">
   <link rel="stylesheet" href="/static/tokens.css?v={{ v }}">

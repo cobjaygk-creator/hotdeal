@@ -232,7 +232,7 @@ body[data-page="hotdeal"] #hide-soldout { display: none; }
    값을 !important로 확정해 더 이상 다른 규칙이 못 끼어들게 함.
    ============================================================ */
 body[data-page="hotdeal"] .homepage-feed-head { padding: 14px 0 10px !important; margin: 0 !important; border-bottom: 0 !important; align-items: baseline !important; }
-body[data-page="hotdeal"] .homepage-feed-head h1 { font-size: 20px !important; letter-spacing: -.01em !important; }
+body[data-page="hotdeal"] .homepage-feed-head h1 { font-size: 20px !important; letter-spacing: -.01em !important; font-family: var(--font-display) !important; }
 body[data-page="hotdeal"] .homepage-feed-head .home-intro { display: none !important; }
 body[data-page="hotdeal"] .homepage-feed-head .home-live { display: none !important; }
 body[data-page="hotdeal"] .homepage-feed-head .list-count { margin: 0 0 0 auto !important; color: var(--ink-faint) !important; font-size: 13px !important; font-weight: 500 !important; }
@@ -290,8 +290,8 @@ body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal
 body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal-row-main { padding:0 !important; }
 body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal-body { gap:5px !important; }
 body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal-title { font-size:14.5px !important; font-weight:500 !important; }
-body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal-price { font-size:16px !important; font-weight:800 !important; }
-body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal-discount { font-size:15px !important; font-weight:800 !important; }
+body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal-price { font-size:16px !important; font-weight:800 !important; font-family: var(--font-display) !important; }
+body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal-discount { font-size:15px !important; font-weight:800 !important; font-family: var(--font-display) !important; }
 body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal-row-side { padding:0 !important; gap:8px !important; }
 /* 몰/출처/카테고리 태그: 목업처럼 배경 없는 순수 텍스트로 */
 body[data-page="hotdeal"] .deal-layout .deal-cards[data-view="horizontal"] .deal-tag {

@@ -72,10 +72,10 @@ h2 {
   color: var(--ink);
   text-decoration: none;
   font-size: 17px;
-  font-weight: 800;
+  font-weight: 700;
+  font-family: var(--font-display, "Space Grotesk", sans-serif);
   letter-spacing: -0.01em;
   white-space: nowrap;
-  text-transform: uppercase;
 }
 .topbar-brand:hover { color: var(--ink); }
 

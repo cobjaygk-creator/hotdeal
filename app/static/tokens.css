@@ -135,7 +135,8 @@
   --modal-w: 1040px;
   --thumb-row: 88px;
 
-  --font: "Pretendard Variable", "Pretendard", -apple-system, "Apple SD Gothic Neo",
+  --font-display: "Space Grotesk", "Inter", "Pretendard Variable", "Pretendard", sans-serif;
+  --font: "Inter", "Pretendard Variable", "Pretendard", -apple-system, "Apple SD Gothic Neo",
     "Noto Sans KR", sans-serif;
 
   --bg-elevated: var(--surface);
