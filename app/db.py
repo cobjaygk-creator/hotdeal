@@ -139,6 +139,13 @@ CREATE TABLE IF NOT EXISTS push_subscriptions (
 );
 CREATE INDEX IF NOT EXISTS idx_push_subs_user ON push_subscriptions(user_id);
 
+CREATE TABLE IF NOT EXISTS family_notif_sent (
+    sale_id INTEGER NOT NULL,
+    notif_type TEXT NOT NULL DEFAULT 'd1',
+    sent_at TEXT NOT NULL,
+    PRIMARY KEY (sale_id, notif_type)
+);
+
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     display_name TEXT NOT NULL,

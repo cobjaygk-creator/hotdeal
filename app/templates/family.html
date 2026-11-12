@@ -56,7 +56,10 @@
   <a class="filter-chip {% if not cats %}on{% endif %}" href="/family{% if base_params %}?{{ base_params | join('&') }}{% endif %}">전체 <span class="count">{{ stats.live + stats.upcoming }}</span></a>
   {% for c in all_cats %}
     {%- set cp = base_params + ['cat=' ~ c] -%}
-    <a class="filter-chip {% if c in cats %}on{% endif %}" href="/family?{{ cp | join('&') }}">{{ c }}</a>
+    <span class="filter-chip-wrap" data-cat="{{ c }}">
+      <a class="filter-chip {% if c in cats %}on{% endif %}" href="/family?{{ cp | join('&') }}">{{ c }}</a>
+      <button class="fam-fav-btn" type="button" data-cat="{{ c }}" aria-label="{{ c }} 즐겨찾기" title="즐겨찾기">★</button>
+    </span>
   {% endfor %}
   {%- set cp2 = [] -%}
   {%- for p in base_params %}{% if not p.startswith('code=') %}{%- set _ = cp2.append(p) %}{%- endif %}{%- endfor -%}
@@ -196,6 +199,7 @@
                 {% if s.status == '확인필요' %}기간미정{% else %}{{ s.status }}{% endif %}
               </span>
               {% if s.has_entry_code %}<span class="fam-badge code">입장코드</span>{% endif %}
+              {% if s.status == '예정' and s.dday == 1 %}<span class="fam-badge tomorrow">내일시작</span>{% endif %}
             </div>
             {% if s.thumbnail_url %}
             <img class="fam-cover-img" src="{{ s.thumbnail_url }}" alt="" loading="lazy" referrerpolicy="no-referrer">
@@ -318,5 +322,40 @@ document.getElementById("family-collect")?.addEventListener("click", async () =>
   try { await fetch("/api/family/collect", { method: "POST" }); location.reload(); }
   catch { btn.disabled = false; btn.textContent = "지금 수집"; }
 });
+
+// ── 카테고리 즐겨찾기 (localStorage) ──
+(function initCatFav() {
+  let favs;
+  try { favs = JSON.parse(localStorage.getItem('famCatFav') || '{}'); } catch { favs = {}; }
+
+  const row = document.getElementById('family-cats');
+  if (!row) return;
+
+  // 즐겨찾기된 카테고리를 먼저 오도록 재배열
+  const wraps = Array.from(row.querySelectorAll('.filter-chip-wrap'));
+  wraps.forEach(w => {
+    const cat = w.dataset.cat;
+    if (favs[cat]) {
+      row.insertBefore(w, row.querySelector('.filter-chip-wrap'));
+    }
+    const btn = w.querySelector('.fam-fav-btn');
+    if (btn) btn.classList.toggle('on', !!favs[cat]);
+  });
+
+  row.addEventListener('click', e => {
+    const btn = e.target.closest('.fam-fav-btn');
+    if (!btn) return;
+    e.preventDefault();
+    const cat = btn.dataset.cat;
+    try { favs = JSON.parse(localStorage.getItem('famCatFav') || '{}'); } catch { favs = {}; }
+    if (favs[cat]) { delete favs[cat]; btn.classList.remove('on'); }
+    else { favs[cat] = 1; btn.classList.add('on'); }
+    try { localStorage.setItem('famCatFav', JSON.stringify(favs)); } catch {}
+    // 재배열
+    const allWraps = Array.from(row.querySelectorAll('.filter-chip-wrap'));
+    allWraps.sort((a, b) => (favs[b.dataset.cat] ? 1 : 0) - (favs[a.dataset.cat] ? 1 : 0));
+    allWraps.forEach(w => row.insertBefore(w, row.querySelector('.filter-chip:last-of-type') || null));
+  });
+})();
 </script>
 {% endblock %}

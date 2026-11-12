@@ -116,6 +116,22 @@
 /* ──────────────────────────────────────────
    칩 행 — 랭킹 · 패밀리 (dark ink 활성 스타일)
    ────────────────────────────────────────── */
+.filter-chip-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.fam-fav-btn {
+  width: 22px; height: 22px;
+  border: none; background: none;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--ink-faint, #c0c5cf);
+  padding: 0;
+  line-height: 1;
+  transition: color .15s;
+}
+.fam-fav-btn:hover, .fam-fav-btn.on { color: #f59e0b; }
 .ranking-tabs .filter-chip,
 #family-cats .filter-chip {
   flex: none;
@@ -544,9 +560,10 @@
   color: #fff;
   backdrop-filter: blur(4px);
 }
-.fam-badge.live  { background: var(--ok, #0ea35e); }
-.fam-badge.soon  { background: var(--accent, #2e63f6); }
-.fam-badge.code  { background: #7c3aed; }
+.fam-badge.live     { background: var(--ok, #0ea35e); }
+.fam-badge.soon     { background: var(--accent, #2e63f6); }
+.fam-badge.code     { background: #7c3aed; }
+.fam-badge.tomorrow { background: #f97316; }
 .fam-cover-badge {
   position: absolute;
   bottom: 8px;

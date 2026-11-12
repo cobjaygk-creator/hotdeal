@@ -64,7 +64,7 @@ from app.config import (
 from app.db import connect, get_meta, upsert_family_sale, utcnow_iso
 from app.engine import auth as user_auth
 from app.engine import comments as deal_comments
-from app.engine.alerts import add_sub, channels_ready, default_target, delete_sub, list_subs
+from app.engine.alerts import add_sub, channels_ready, default_target, delete_sub, dispatch_family_d1_alerts, list_subs
 from app.engine.category import CATEGORIES as DEAL_CATEGORIES
 from app.engine.dedupe import collapse_duplicate_deals
 from app.engine import points
@@ -260,6 +260,15 @@ async def lifespan(app: FastAPI):
             next_run_time=datetime.now() + timedelta(seconds=25),
         )
         scheduler.add_job(
+            _scheduled_family_d1_notif,
+            "interval",
+            hours=1,
+            id="family_d1_notif",
+            max_instances=1,
+            coalesce=True,
+            next_run_time=datetime.now() + timedelta(seconds=60),
+        )
+        scheduler.add_job(
             _scheduled_ppomppu_mall_enrich,
             "interval",
             seconds=MALL_ENRICH_INTERVAL_SECONDS,
@@ -397,6 +406,16 @@ async def _scheduled_family() -> None:
                 await collect_family_sales(conn, state["http"])
         except Exception:
             log.exception("family collect failed")
+
+
+async def _scheduled_family_d1_notif() -> None:
+    try:
+        async with _own_db() as conn:
+            sent = await dispatch_family_d1_alerts(conn, state["http"])
+            if sent:
+                log.info("family d1 alerts sent=%d", sent)
+    except Exception:
+        log.exception("family d1 notif failed")
 
 
 async def _scheduled_ppomppu_mall_enrich() -> None:

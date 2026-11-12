@@ -313,3 +313,66 @@ async def _deliver_webpush(conn, sub: dict, deal: dict) -> None:
                 "DELETE FROM push_subscriptions WHERE id=?", (row["id"],)
             )
 
+
+async def dispatch_family_d1_alerts(conn, client) -> int:
+    """D-1 알림: 내일 시작하는 패밀리세일을 telegram/discord로 발송."""
+    from datetime import date, timedelta
+
+    tomorrow = (date.today() + timedelta(days=1)).isoformat()
+    cur = await conn.execute(
+        """
+        SELECT fs.* FROM family_sales fs
+        WHERE fs.start_date LIKE ? || '%'
+          AND NOT EXISTS (
+              SELECT 1 FROM family_notif_sent ns
+              WHERE ns.sale_id = fs.id AND ns.notif_type = 'd1'
+          )
+        """,
+        (tomorrow,),
+    )
+    rows = [dict(r) for r in await cur.fetchall()]
+    if not rows:
+        return 0
+
+    sent = 0
+    from app.db import utcnow_iso
+    now = utcnow_iso()
+    for sale in rows:
+        title = sale.get("title") or ""
+        brands = sale.get("brand_names") or ""
+        try:
+            import json as _json
+            brands_list = _json.loads(brands) if isinstance(brands, str) and brands.startswith("[") else []
+            brands_label = " / ".join(brands_list) if brands_list else brands
+        except Exception:
+            brands_label = brands
+        discount = sale.get("discount_label") or sale.get("discount_max")
+        disc_txt = f" ({discount}%+)" if isinstance(discount, int) else (f" ({discount})" if discount else "")
+        deal_url = sale.get("deal_url") or sale.get("source_url") or ""
+        lines = [
+            f"🛍️ [내일 시작] {title}",
+            f"브랜드: {brands_label}" if brands_label else None,
+            f"할인: {disc_txt.strip('() ')}" if disc_txt else None,
+            f"시작: {sale.get('start_date', '')[:10]} ~ {sale.get('end_date', '')[:10]}",
+            deal_url or f"{SITE_URL}/family",
+        ]
+        text = "\n".join(l for l in lines if l)
+
+        try:
+            if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
+                url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+                await client.post_json(url, {"chat_id": TELEGRAM_CHAT_ID, "text": text})
+            if DISCORD_WEBHOOK_URL:
+                await client.post_json(DISCORD_WEBHOOK_URL, {"content": text[:1900]})
+            await conn.execute(
+                "INSERT OR IGNORE INTO family_notif_sent(sale_id, notif_type, sent_at) VALUES(?,?,?)",
+                (sale["id"], "d1", now),
+            )
+            await conn.commit()
+            sent += 1
+            log.info("family d1 alert sent sale=%s", sale["id"])
+        except Exception:
+            log.exception("family d1 alert failed sale=%s", sale["id"])
+
+    return sent
+
