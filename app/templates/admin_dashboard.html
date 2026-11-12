@@ -60,12 +60,13 @@
 <div class="h2-label">소스 수집 현황</div>
 <div class="source-status-grid">
   {% for src, info in stats.collect_by_source.items() %}
-  <div class="source-status-card">
+  <div class="source-status-card{% if info.error %} has-error{% endif %}"
+       {% if info.error %}title="{{ info.error }}"{% endif %}>
     <span class="source-dot {% if info.error %}err{% else %}ok{% endif %}"></span>
     <span class="source-name">{{ src }}</span>
     <span class="source-detail">
       {% if info.error %}
-        실패
+        <span class="collect-err-msg">{{ info.error }}</span>
       {% elif info.at %}
         {{ info.at | kst if info.at else '–' }}
       {% endif %}
