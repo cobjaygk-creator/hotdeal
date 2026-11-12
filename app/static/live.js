@@ -815,7 +815,7 @@ function ingest(items, { animate = false, allowInsert = true } = {}) {
 
 function setLive(ok, text) {
   if (!dot) return;
-  statusEl.textContent = "";
+  if (statusEl) statusEl.textContent = "";
   dot.classList.toggle("on", ok);
   dot.classList.toggle("off", !ok);
   const meta = document.getElementById("live-meta");
