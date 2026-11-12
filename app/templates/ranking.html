@@ -11,7 +11,6 @@
   {% if deals %}<a class="feed-lead-link" href="/deal/{{ deals[0].id }}"><span>현재 1위</span><strong>{{ deals[0].product_name | clean_title }}</strong></a>{% endif %}
 </section>
 <div class="chip-row ranking-tabs" role="tablist" aria-label="랭킹 범위"><button class="filter-chip on" type="button">전체</button><button class="filter-chip" type="button">식품</button><button class="filter-chip" type="button">디지털</button><button class="filter-chip" type="button">가전</button><button class="filter-chip" type="button">생활</button></div>
-<div class="list-view-toolbar"><div class="list-view-switch" role="group" aria-label="목록 보기 방식"><button type="button" class="list-view-btn on" data-list-view="horizontal" aria-pressed="true" aria-controls="ranking-body">목록</button><button type="button" class="list-view-btn" data-list-view="vertical" aria-pressed="false" aria-controls="ranking-body">4열</button></div></div>
 <div class="deal-layout"><main class="deal-list-column"><ol class="deal-cards ranking-list" id="ranking-body" data-view="horizontal">
   {% for d in deals %}
   {% include "_deal_card.html" %}
