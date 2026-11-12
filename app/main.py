@@ -1700,12 +1700,7 @@ async def notifications_page(request: Request):
     user = getattr(request.state, "user", None)
     if not user:
         return RedirectResponse("/alerts", status_code=303)
-    try:
-        return await _do_notifications_page(request, user)
-    except Exception as exc:
-        import traceback
-        log.exception("notifications_page failed")
-        return HTMLResponse(f"<pre>{traceback.format_exc()}</pre>", status_code=500)
+    return await _do_notifications_page(request, user)
 
 
 async def _do_notifications_page(request: Request, user: dict):
