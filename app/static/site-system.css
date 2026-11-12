@@ -214,6 +214,7 @@
 }
 .ranking-list > li.deal-card .deal-thumb-wrap {
   position: relative;
+  overflow: visible;
 }
 .ranking-list > li.deal-card .deal-thumb-wrap::before {
   content: counter(ranking);
