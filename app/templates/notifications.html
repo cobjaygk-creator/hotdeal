@@ -195,7 +195,7 @@
             <a class="notif-action" href="{{ n.action_url }}" onclick="event.stopPropagation()">{{ n.action_label }} →</a>
           </div>
           <div class="notif-right">
-            <span class="notif-time">{{ n.sent_at[:16] | replace('T', ' ') if n.sent_at else '' }}</span>
+            <span class="notif-time">{% if n.sent_at %}{{ n.sent_at[:16] | replace('T', ' ') }}{% endif %}</span>
             {% if not n.read_at %}<span class="unread-dot"></span>{% endif %}
           </div>
         </div>

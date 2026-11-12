@@ -1760,7 +1760,7 @@ async def notifications_page(request: Request):
             "sent_at": n["sent_at"],
             "read_at": n["read_at"],
             "title": n["product_name"],
-            "subtitle": f"키워드 \"{n['keyword']}\" 매칭 · {'{:,}'.format(int(n['price']))}원" if n.get("price") else f"키워드 \"{n['keyword']}\" 매칭",
+            "subtitle": f"키워드 \"{n['keyword']}\" 매칭 · {'{:,}'.format(int(n['price'] or 0))}원" if n.get("price") else f"키워드 \"{n['keyword']}\" 매칭",
             "action_url": f"/deal/{n['deal_id']}",
             "action_label": "딜 보러 가기",
             "meta": n.get("source") or "",
