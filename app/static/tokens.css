@@ -1,0 +1,86 @@
+/* ═══════════════════════════════════════════
+   tokens.css  —  모든 페이지에 로드되는 CSS 변수
+   ═══════════════════════════════════════════ */
+:root {
+  /* 배경 */
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+
+  /* 텍스트 */
+  --ink: #15181d;
+  --ink-muted: #6b7280;
+  --ink-faint: #9aa1ab;
+
+  /* 테두리 */
+  --border: #e7e9ec;
+  --border-strong: #d8dbe0;
+
+  /* 강조색 */
+  --accent: #2e63f6;
+  --accent-ink: #1d46c4;
+  --accent-soft: #eaf0ff;
+
+  /* 할인/오류 */
+  --discount: #ef3b4a;
+  --discount-soft: #fdecee;
+
+  /* 긍정 */
+  --ok: #0ea35e;
+  --ok-soft: #e7f8ef;
+
+  /* 폰트 */
+  --font-display: 'Space Grotesk', Inter, 'Pretendard Variable', Pretendard, system-ui, sans-serif;
+  --font: 'Inter', 'Pretendard Variable', Pretendard, -apple-system, 'Apple SD Gothic Neo', sans-serif;
+
+  /* 반경 */
+  --radius-pill: 999px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+
+  color-scheme: light dark;
+}
+
+/* 다크모드 — 시스템 설정 */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1117;
+    --surface: #1a1d26;
+    --border: #272b38;
+    --border-strong: #3a3f52;
+    --ink: #eef0f5;
+    --ink-muted: #a0a7bb;
+    --ink-faint: #5a6075;
+    --accent: #5280ff;
+    --accent-ink: #3a60e0;
+    --accent-soft: #1a2140;
+    --discount: #f55a68;
+    --discount-soft: #2d1218;
+    --ok: #22c97a;
+    --ok-soft: #0d2e1e;
+    color-scheme: dark;
+  }
+}
+
+/* 다크모드 — 사용자 토글 */
+:root[data-theme="dark"] {
+  --bg: #0f1117;
+  --surface: #1a1d26;
+  --border: #272b38;
+  --border-strong: #3a3f52;
+  --ink: #eef0f5;
+  --ink-muted: #a0a7bb;
+  --ink-faint: #5a6075;
+  --accent: #5280ff;
+  --accent-ink: #3a60e0;
+  --accent-soft: #1a2140;
+  --discount: #f55a68;
+  --discount-soft: #2d1218;
+  --ok: #22c97a;
+  --ok-soft: #0d2e1e;
+  color-scheme: dark;
+}
+
+/* 라이트모드 강제 */
+:root[data-theme="light"] {
+  color-scheme: light;
+}
