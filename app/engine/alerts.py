@@ -318,65 +318,184 @@ async def _deliver_webpush(conn, sub: dict, deal: dict) -> None:
             )
 
 
+def _family_alert_text(sale: dict, notif_type: str) -> str:
+    """패밀리세일 알림 텍스트 생성 (D-1 / D-0 공용)."""
+    import json as _json
+    title = sale.get("title") or ""
+    brands = sale.get("brand_names") or ""
+    try:
+        brands_list = _json.loads(brands) if isinstance(brands, str) and brands.startswith("[") else []
+        brands_label = " / ".join(brands_list) if brands_list else brands
+    except Exception:
+        brands_label = brands
+    discount = sale.get("discount_label") or sale.get("discount_max")
+    disc_txt = f"{discount}%+" if isinstance(discount, int) else (str(discount) if discount else "")
+    deal_url = sale.get("deal_url") or sale.get("source_url") or f"{SITE_URL}/family"
+    prefix = "🛍️ [내일 시작]" if notif_type == "d1" else "🎉 [오늘 시작]"
+    lines = [
+        f"{prefix} {title}",
+        f"브랜드: {brands_label}" if brands_label else None,
+        f"할인: {disc_txt}" if disc_txt else None,
+        f"기간: {sale.get('start_date', '')[:10]} ~ {sale.get('end_date', '')[:10]}",
+        deal_url,
+    ]
+    return "\n".join(l for l in lines if l)
+
+
+async def _deliver_family_alert_to_user(conn, client, user_id: int, text: str) -> bool:
+    """사용자 개인 채널로 패밀리세일 알림 발송. 성공하면 True."""
+    cur = await conn.execute(
+        "SELECT notify_channel, notify_target FROM users WHERE id=?", (user_id,)
+    )
+    row = await cur.fetchone()
+    if not row:
+        return False
+    channel = row["notify_channel"] or ""
+    target = row["notify_target"] or ""
+    try:
+        if channel == "telegram" and target and TELEGRAM_BOT_TOKEN:
+            url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+            await client.post_json(url, {"chat_id": target, "text": text})
+            return True
+        if channel == "discord" and target:
+            await client.post_json(target, {"content": text[:1900]})
+            return True
+        if channel == "webpush":
+            from app.engine.push import send_web_push
+            cur2 = await conn.execute(
+                "SELECT id, endpoint, p256dh, auth FROM push_subscriptions WHERE user_id=?",
+                (user_id,),
+            )
+            subs = [dict(r) for r in await cur2.fetchall()]
+            payload = {"title": text.split("\n", 1)[0], "body": text, "url": f"{SITE_URL}/family"}
+            for s in subs:
+                info = {"endpoint": s["endpoint"], "keys": {"p256dh": s["p256dh"], "auth": s["auth"]}}
+                status = await send_web_push(info, payload)
+                if status in (404, 410):
+                    await conn.execute("DELETE FROM push_subscriptions WHERE id=?", (s["id"],))
+            return bool(subs)
+    except Exception:
+        log.exception("family user alert failed user=%s channel=%s", user_id, channel)
+    return False
+
+
 async def dispatch_family_d1_alerts(conn, client) -> int:
-    """D-1 알림: 내일 시작하는 패밀리세일을 telegram/discord로 발송."""
+    """D-1 알림: 내일 시작하는 패밀리세일 — 사이트 채널 + per-user 개별 발송."""
     from datetime import date, timedelta
 
     tomorrow = (date.today() + timedelta(days=1)).isoformat()
     cur = await conn.execute(
-        """
-        SELECT fs.* FROM family_sales fs
-        WHERE fs.start_date LIKE ? || '%'
-          AND NOT EXISTS (
-              SELECT 1 FROM family_notif_sent ns
-              WHERE ns.sale_id = fs.id AND ns.notif_type = 'd1'
-          )
-        """,
+        "SELECT fs.* FROM family_sales fs WHERE fs.start_date LIKE ? || '%'",
         (tomorrow,),
     )
     rows = [dict(r) for r in await cur.fetchall()]
     if not rows:
         return 0
 
-    sent = 0
-    from app.db import utcnow_iso
     now = utcnow_iso()
+    sent = 0
     for sale in rows:
-        title = sale.get("title") or ""
-        brands = sale.get("brand_names") or ""
-        try:
-            import json as _json
-            brands_list = _json.loads(brands) if isinstance(brands, str) and brands.startswith("[") else []
-            brands_label = " / ".join(brands_list) if brands_list else brands
-        except Exception:
-            brands_label = brands
-        discount = sale.get("discount_label") or sale.get("discount_max")
-        disc_txt = f" ({discount}%+)" if isinstance(discount, int) else (f" ({discount})" if discount else "")
-        deal_url = sale.get("deal_url") or sale.get("source_url") or ""
-        lines = [
-            f"🛍️ [내일 시작] {title}",
-            f"브랜드: {brands_label}" if brands_label else None,
-            f"할인: {disc_txt.strip('() ')}" if disc_txt else None,
-            f"시작: {sale.get('start_date', '')[:10]} ~ {sale.get('end_date', '')[:10]}",
-            deal_url or f"{SITE_URL}/family",
-        ]
-        text = "\n".join(l for l in lines if l)
+        text = _family_alert_text(sale, "d1")
+        sale_id = sale["id"]
 
-        try:
-            if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
-                url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-                await client.post_json(url, {"chat_id": TELEGRAM_CHAT_ID, "text": text})
-            if DISCORD_WEBHOOK_URL:
-                await client.post_json(DISCORD_WEBHOOK_URL, {"content": text[:1900]})
+        # ── 사이트 전체 채널 (기존, 중복 방지) ──────────────────────
+        site_sent = await conn.execute(
+            "SELECT 1 FROM family_notif_sent WHERE sale_id=? AND notif_type='d1'",
+            (sale_id,),
+        )
+        if not await site_sent.fetchone():
+            try:
+                if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
+                    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+                    await client.post_json(url, {"chat_id": TELEGRAM_CHAT_ID, "text": text})
+                if DISCORD_WEBHOOK_URL:
+                    await client.post_json(DISCORD_WEBHOOK_URL, {"content": text[:1900]})
+                await conn.execute(
+                    "INSERT OR IGNORE INTO family_notif_sent(sale_id, notif_type, sent_at) VALUES(?,?,?)",
+                    (sale_id, "d1", now),
+                )
+                sent += 1
+            except Exception:
+                log.exception("family d1 site alert failed sale=%s", sale_id)
+
+        # ── per-user 개별 발송 ───────────────────────────────────────
+        # family_sale_wishes에서 notif_d1=1인 사용자 조회
+        # 이미 발송한 경우: family_notif_sent에 (sale_id, 'd1_user_{user_id}') 기록
+        cur2 = await conn.execute(
+            """SELECT fw.user_id FROM family_sale_wishes fw
+               WHERE fw.sale_id=? AND fw.notif_d1=1 AND fw.user_id IS NOT NULL""",
+            (sale_id,),
+        )
+        user_rows = [r["user_id"] for r in await cur2.fetchall()]
+        for uid in user_rows:
+            notif_key = f"d1_u{uid}"
+            check = await conn.execute(
+                "SELECT 1 FROM family_notif_sent WHERE sale_id=? AND notif_type=?",
+                (sale_id, notif_key),
+            )
+            if await check.fetchone():
+                continue
+            if await _is_quiet_hour(conn, uid):
+                continue
+            ok = await _deliver_family_alert_to_user(conn, client, uid, text)
+            # 발송 성공/실패 무관하게 중복 방지 기록 (실패시 다음 사이클에서 재시도 안 함)
             await conn.execute(
                 "INSERT OR IGNORE INTO family_notif_sent(sale_id, notif_type, sent_at) VALUES(?,?,?)",
-                (sale["id"], "d1", now),
+                (sale_id, notif_key, now),
             )
-            await conn.commit()
-            sent += 1
-            log.info("family d1 alert sent sale=%s", sale["id"])
-        except Exception:
-            log.exception("family d1 alert failed sale=%s", sale["id"])
+            if ok:
+                sent += 1
+
+        await conn.commit()
+        log.info("family d1 done sale=%s", sale_id)
+
+    return sent
+
+
+async def dispatch_family_d0_alerts(conn, client) -> int:
+    """D-0 알림: 오늘 시작하는 패밀리세일 — notif_d0=1인 사용자에게 개별 발송."""
+    from datetime import date
+
+    today = date.today().isoformat()
+    cur = await conn.execute(
+        "SELECT fs.* FROM family_sales fs WHERE fs.start_date LIKE ? || '%'",
+        (today,),
+    )
+    rows = [dict(r) for r in await cur.fetchall()]
+    if not rows:
+        return 0
+
+    now = utcnow_iso()
+    sent = 0
+    for sale in rows:
+        sale_id = sale["id"]
+        text = _family_alert_text(sale, "d0")
+
+        cur2 = await conn.execute(
+            """SELECT fw.user_id FROM family_sale_wishes fw
+               WHERE fw.sale_id=? AND fw.notif_d0=1 AND fw.user_id IS NOT NULL""",
+            (sale_id,),
+        )
+        user_rows = [r["user_id"] for r in await cur2.fetchall()]
+        for uid in user_rows:
+            notif_key = f"d0_u{uid}"
+            check = await conn.execute(
+                "SELECT 1 FROM family_notif_sent WHERE sale_id=? AND notif_type=?",
+                (sale_id, notif_key),
+            )
+            if await check.fetchone():
+                continue
+            if await _is_quiet_hour(conn, uid):
+                continue
+            ok = await _deliver_family_alert_to_user(conn, client, uid, text)
+            await conn.execute(
+                "INSERT OR IGNORE INTO family_notif_sent(sale_id, notif_type, sent_at) VALUES(?,?,?)",
+                (sale_id, notif_key, now),
+            )
+            if ok:
+                sent += 1
+
+        await conn.commit()
 
     return sent
 
