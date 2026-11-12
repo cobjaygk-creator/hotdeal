@@ -1701,11 +1701,13 @@ async def notifications_page(request: Request):
     if not user:
         return RedirectResponse("/alerts", status_code=303)
     db = _db()
-    # 딜 알림
+    uid = int(user["id"])
+
+    # 딜 알림 (실제 발송 기록)
     cur = await db.execute(
         """
         SELECT s.deal_id, s.sent_at, s.read_at, sub.keyword,
-               d.product_name, d.price, d.grade, d.discount_rate
+               d.product_name, d.price, d.grade, d.discount_rate, d.source
         FROM alert_sent s
         JOIN alert_subs sub ON sub.id = s.sub_id
         JOIN deals d ON d.id = s.deal_id
@@ -1713,23 +1715,82 @@ async def notifications_page(request: Request):
         ORDER BY s.sent_at DESC
         LIMIT 50
         """,
-        (int(user["id"]),),
+        (uid,),
     )
-    deal_notifs = [dict(r) for r in await cur.fetchall()]
-    # 패밀리세일 찜 목록 (알림 구독 중인 것)
+    deal_rows = [dict(r) for r in await cur.fetchall()]
+
+    # 패밀리세일 실제 발송 기록 (d1_u{uid} / d0_u{uid} 키)
+    d1_key = f"d1_u{uid}"
+    d0_key = f"d0_u{uid}"
     cur = await db.execute(
         """
-        SELECT fs.id, fs.title, fs.start_date, fs.end_date, fs.brand_names,
-               fw.notif_d1, fw.notif_d0, fw.created_at AS wish_at
+        SELECT ns.sale_id, ns.notif_type, ns.sent_at,
+               fs.title, fs.start_date, fs.end_date, fs.brand_names,
+               fs.deal_url, fs.source_url, fs.discount_max, fs.discount_label
+        FROM family_notif_sent ns
+        JOIN family_sales fs ON fs.id = ns.sale_id
+        WHERE ns.notif_type IN (?, ?)
+        ORDER BY ns.sent_at DESC
+        LIMIT 30
+        """,
+        (d1_key, d0_key),
+    )
+    family_rows = [dict(r) for r in await cur.fetchall()]
+
+    # 패밀리세일 구독 목록 (알림 설정 중인 것 — 필터 사이드바용)
+    cur = await db.execute(
+        """
+        SELECT fs.id, fs.title, fs.start_date, fs.end_date,
+               fw.notif_d1, fw.notif_d0
         FROM family_sale_wishes fw
         JOIN family_sales fs ON fs.id = fw.sale_id
         WHERE fw.user_id = ? AND (fw.notif_d1 = 1 OR fw.notif_d0 = 1)
         ORDER BY fs.start_date ASC
         """,
-        (int(user["id"]),),
+        (uid,),
     )
     family_subs = [dict(r) for r in await cur.fetchall()]
-    # 미읽음 모두 읽음 처리
+
+    # 통합 알림 목록 구성
+    import json as _json
+    notifications = []
+    for n in deal_rows:
+        notifications.append({
+            "type": "deal",
+            "sent_at": n["sent_at"],
+            "read_at": n["read_at"],
+            "title": n["product_name"],
+            "subtitle": f"키워드 \"{n['keyword']}\" 매칭 · {'{:,}'.format(int(n['price']))}원" if n.get("price") else f"키워드 \"{n['keyword']}\" 매칭",
+            "action_url": f"/deal/{n['deal_id']}",
+            "action_label": "딜 보러 가기",
+            "meta": n.get("source") or "",
+        })
+    for f in family_rows:
+        ntype = "d1" if f["notif_type"] == d1_key else "d0"
+        label = "D-1 알림" if ntype == "d1" else "D-0 알림"
+        try:
+            brands = _json.loads(f["brand_names"]) if f.get("brand_names","").startswith("[") else []
+            brand_str = " · ".join(brands[:2]) if brands else f.get("brand_names","")
+        except Exception:
+            brand_str = f.get("brand_names","")
+        disc = f.get("discount_label") or (f"{f['discount_max']}%+" if f.get("discount_max") else "")
+        subtitle = f"{label} · {brand_str}"
+        if disc:
+            subtitle += f" · {disc}"
+        link = f.get("deal_url") or f.get("source_url") or "/family"
+        notifications.append({
+            "type": "family",
+            "sent_at": f["sent_at"],
+            "read_at": None,  # 패밀리 발송은 read_at 없음
+            "title": f["title"],
+            "subtitle": subtitle,
+            "action_url": link,
+            "action_label": "세일 보러 가기",
+            "meta": f"{(f.get('start_date') or '')[:10]} ~ {(f.get('end_date') or '')[:10]}",
+        })
+    notifications.sort(key=lambda x: x["sent_at"] or "", reverse=True)
+
+    # 딜 알림 미읽음 → 읽음 처리
     await db.execute(
         """
         UPDATE alert_sent SET read_at = ?
@@ -1737,16 +1798,24 @@ async def notifications_page(request: Request):
             SELECT id FROM alert_subs WHERE user_id = ?
         )
         """,
-        (utcnow_iso(), int(user["id"])),
+        (utcnow_iso(), uid),
     )
     await db.commit()
+
+    unread_count = sum(1 for n in notifications if not n.get("read_at"))
+    family_count = sum(1 for n in notifications if n["type"] == "family")
+    deal_count = sum(1 for n in notifications if n["type"] == "deal")
+
     return TEMPLATES.TemplateResponse(
         "notifications.html",
         {
             "request": request,
             "nav": "notifications",
-            "deal_notifs": deal_notifs,
+            "notifications": notifications,
             "family_subs": family_subs,
+            "unread_count": unread_count,
+            "family_count": family_count,
+            "deal_count": deal_count,
         },
     )
 
