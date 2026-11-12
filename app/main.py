@@ -71,7 +71,7 @@ from app.engine import points
 from app.engine.ppomppu_enrich import enrich_missing_ppomppu_malls
 from app.family.parse import parse_discount
 from app.family.pipeline import collect_family_sales
-from app.family.query import CATEGORIES, DISC_OPTIONS, SORT_OPTIONS, get_sale, list_sales, parse_cats
+from app.family.query import CATEGORIES, DISC_OPTIONS, SORT_OPTIONS, get_sale, list_sales, month_grid, parse_cats, parse_year_month
 from app.events import EventHub
 from app.http_client import PoliteClient
 from app.pipeline import collect_and_process
@@ -676,11 +676,15 @@ async def family_index(
     code: str | None = None,
     sort: str | None = None,
     disc: int | None = None,
+    view: str | None = None,
+    year: int | None = None,
+    month: int | None = None,
 ):
     cats = parse_cats(cat or [])
     entry_only = code == "1"
     sort = sort if sort in SORT_OPTIONS else "dday"
     min_disc = disc if disc in DISC_OPTIONS else None
+    cal_view = view == "calendar"
 
     sales = await list_sales(
         _db(),
@@ -731,6 +735,17 @@ async def family_index(
         "codes": sum(1 for s in live if s.get("has_entry_code")),
         "last": last,
     }
+
+    cal_year, cal_month = parse_year_month(year, month)
+    cal = month_grid(cal_year, cal_month, live) if cal_view else None
+
+    # prev/next month for calendar nav
+    import calendar as _cal
+    prev_month = (cal_month - 2) % 12 + 1
+    prev_year = cal_year - 1 if cal_month == 1 else cal_year
+    next_month = cal_month % 12 + 1
+    next_year = cal_year + 1 if cal_month == 12 else cal_year
+
     return TEMPLATES.TemplateResponse(
         "family.html",
         {
@@ -744,6 +759,14 @@ async def family_index(
             "sort": sort,
             "disc": min_disc,
             "disc_options": DISC_OPTIONS,
+            "cal_view": cal_view,
+            "cal": cal,
+            "cal_year": cal_year,
+            "cal_month": cal_month,
+            "prev_year": prev_year,
+            "prev_month": prev_month,
+            "next_year": next_year,
+            "next_month": next_month,
             "stats": stats,
         },
     )

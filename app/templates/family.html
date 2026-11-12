@@ -17,8 +17,8 @@
   <p class="fam-hero-sub"><span class="title-live-dot dot"></span>마지막 수집 {{ stats.last | kst }}</p>
 </div>
 
-{# ── D-day 임박 타임라인 (7일 이내 마감) ── #}
-{% if urgent %}
+{# ── D-day 임박 타임라인 (7일 이내 마감, 그리드 뷰에서만) ── #}
+{% if urgent and not cal_view %}
 <section class="fam-urgent" aria-label="이번 주 마감 임박">
   <h2 class="fam-urgent-head">⏰ 이번 주 마감</h2>
   <ul class="fam-urgent-list">
@@ -27,15 +27,12 @@
       <a class="fam-urgent-link"
          href="{{ s.deal_url or s.source_url }}"
          target="_blank" rel="noopener noreferrer">
-        <span class="fam-dday-badge {% if s.dday <= 1 %}red{% elif s.dday <= 3 %}orange{% endif %}">
-          D-{{ s.dday }}
-        </span>
+        <span class="fam-dday-badge {% if s.dday <= 1 %}red{% elif s.dday <= 3 %}orange{% endif %}">D-{{ s.dday }}</span>
         <span class="fam-urgent-info">
           <span class="fam-urgent-title">{{ s.title }}</span>
           <span class="fam-urgent-sub">
             {% if s.brands_label and s.brands_label != '-' %}{{ s.brands_label }} · {% endif %}
-            {{ s.end_date }} 종료
-            {% if s.discount_label %} · {{ s.discount_label }}{% endif %}
+            {{ s.end_date }} 종료{% if s.discount_label %} · {{ s.discount_label }}{% endif %}
           </span>
         </span>
         <span class="fam-urgent-arrow">›</span>
@@ -50,13 +47,12 @@
 {% endif %}
 
 {# ── 필터 칩 (카테고리) ── #}
-{% macro fam_url(extra='') %}{% set base = '/family' %}{% set parts = [] %}{% if cats %}{% for c in cats %}{% set _ = parts.append('cat=' ~ c) %}{% endfor %}{% endif %}{% if entry_only %}{% set _ = parts.append('code=1') %}{% endif %}{% if extra %}{% set _ = parts.append(extra) %}{% endif %}{{ base }}{% if parts %}?{{ parts | join('&') }}{% endif %}{% endmacro %}
-
 <div class="chip-row" id="family-cats" role="tablist" aria-label="패밀리세일 분류">
   {%- set base_params = [] -%}
   {%- if entry_only %}{%- set _ = base_params.append('code=1') %}{%- endif -%}
   {%- if sort and sort != 'dday' %}{%- set _ = base_params.append('sort=' ~ sort) %}{%- endif -%}
   {%- if disc %}{%- set _ = base_params.append('disc=' ~ disc) %}{%- endif -%}
+  {%- if cal_view %}{%- set _ = base_params.append('view=calendar') %}{%- endif -%}
   <a class="filter-chip {% if not cats %}on{% endif %}" href="/family{% if base_params %}?{{ base_params | join('&') }}{% endif %}">전체 <span class="count">{{ stats.live + stats.upcoming }}</span></a>
   {% for c in all_cats %}
     {%- set cp = base_params + ['cat=' ~ c] -%}
@@ -68,8 +64,10 @@
   <a class="filter-chip {% if entry_only %}on{% endif %}" href="/family?{{ cp2 | join('&') }}">🏷️ 입장코드</a>
 </div>
 
-{# ── 정렬 + 할인율 필터 ── #}
+{# ── 정렬 + 할인율 필터 + 뷰 토글 + 브랜드 검색 ── #}
 <div class="fam-sort-bar">
+  {# 정렬 (캘린더 뷰에서는 숨김) #}
+  {% if not cal_view %}
   <div class="fam-sort-group">
     <span class="fam-sort-label">정렬</span>
     {%- set sp = [] -%}
@@ -81,6 +79,7 @@
     <a class="fam-sort-pill {% if sort == s_opt %}on{% endif %}" href="/family?{{ scp | join('&') }}">{{ s_label }}</a>
     {%- endfor -%}
   </div>
+  {# 할인율 필터 #}
   <div class="fam-sort-group">
     <span class="fam-sort-label">할인율</span>
     {%- set dp = [] -%}
@@ -93,6 +92,27 @@
     <a class="fam-sort-pill {% if disc == d_opt %}on{% endif %}" href="/family?{{ dcp | join('&') }}">{{ d_opt }}%+</a>
     {%- endfor -%}
   </div>
+  {% endif %}
+
+  {# 뷰 토글 (그리드 ↔ 캘린더) #}
+  <div class="fam-sort-group fam-view-toggle">
+    {%- set vp = [] -%}
+    {%- for c in cats %}{%- set _ = vp.append('cat=' ~ c) %}{%- endfor -%}
+    {%- if entry_only %}{%- set _ = vp.append('code=1') %}{%- endif -%}
+    {%- if sort and sort != 'dday' %}{%- set _ = vp.append('sort=' ~ sort) %}{%- endif -%}
+    {%- if disc %}{%- set _ = vp.append('disc=' ~ disc) %}{%- endif -%}
+    <a class="fam-sort-pill {% if not cal_view %}on{% endif %}" href="/family{% if vp %}?{{ vp | join('&') }}{% endif %}" title="그리드 뷰">⊞ 그리드</a>
+    {%- set vcp = vp + ['view=calendar'] -%}
+    <a class="fam-sort-pill {% if cal_view %}on{% endif %}" href="/family?{{ vcp | join('&') }}" title="캘린더 뷰">📅 캘린더</a>
+  </div>
+
+  {# 브랜드 검색 (그리드 뷰에서만) #}
+  {% if not cal_view %}
+  <div class="fam-sort-group fam-brand-search-wrap">
+    <input class="fam-brand-search" id="fam-brand-search" type="search" placeholder="브랜드 검색…" autocomplete="off" aria-label="브랜드 검색">
+  </div>
+  {% endif %}
+
   {% if is_admin %}
   <div class="fam-sort-group">
     <button type="button" id="family-collect" class="fam-sort-pill">지금 수집</button>
@@ -101,22 +121,75 @@
   {% endif %}
 </div>
 
-{# ── 카드 그리드 ── #}
+{# ════════════════════════════════════
+   캘린더 뷰
+   ════════════════════════════════════ #}
+{% if cal_view and cal %}
+<div class="fam-cal-wrap">
+  <div class="fam-cal-nav">
+    {%- set prevp = [] -%}
+    {%- for c in cats %}{%- set _ = prevp.append('cat=' ~ c) %}{%- endfor -%}
+    {%- if entry_only %}{%- set _ = prevp.append('code=1') %}{%- endif -%}
+    {%- set _ = prevp.append('view=calendar') -%}
+    {%- set _ = prevp.append('year=' ~ prev_year) -%}
+    {%- set _ = prevp.append('month=' ~ prev_month) -%}
+    <a class="fam-cal-nav-btn" href="/family?{{ prevp | join('&') }}">‹</a>
+    <span class="fam-cal-month-label">{{ cal.label }}</span>
+    {%- set nextp = [] -%}
+    {%- for c in cats %}{%- set _ = nextp.append('cat=' ~ c) %}{%- endfor -%}
+    {%- if entry_only %}{%- set _ = nextp.append('code=1') %}{%- endif -%}
+    {%- set _ = nextp.append('view=calendar') -%}
+    {%- set _ = nextp.append('year=' ~ next_year) -%}
+    {%- set _ = nextp.append('month=' ~ next_month) -%}
+    <a class="fam-cal-nav-btn" href="/family?{{ nextp | join('&') }}">›</a>
+  </div>
+  <div class="fam-cal-grid">
+    {% for dow in ['일','월','화','수','목','금','토'] %}
+    <div class="fam-cal-dow">{{ dow }}</div>
+    {% endfor %}
+    {% for week in cal.weeks %}
+      {% for day in week %}
+      <div class="fam-cal-day {% if not day.in_month %}fam-cal-day--out{% endif %} {% if day.count %}fam-cal-day--has{% endif %} {% if day.has_code %}fam-cal-day--code{% endif %}">
+        <span class="fam-cal-daynum">{{ day.day }}</span>
+        {% if day.sales %}
+        <ul class="fam-cal-events">
+          {% for s in day.sales[:3] %}
+          <li class="fam-cal-event">
+            <a href="{{ s.deal_url or s.source_url }}" target="_blank" rel="noopener noreferrer"
+               class="fam-cal-event-link {% if s.status == '진행중' %}live{% endif %}">
+              {% if s.discount_label %}<span class="fam-cal-disc">{{ s.discount_label }}</span>{% endif %}
+              {{ s.brands_label if s.brands_label != '-' else s.title[:16] }}
+            </a>
+          </li>
+          {% endfor %}
+          {% if day.sales|length > 3 %}
+          <li class="fam-cal-more">+{{ day.sales|length - 3 }}개</li>
+          {% endif %}
+        </ul>
+        {% endif %}
+      </div>
+      {% endfor %}
+    {% endfor %}
+  </div>
+</div>
+
+{# ════════════════════════════════════
+   그리드 뷰
+   ════════════════════════════════════ #}
+{% else %}
 <div class="deal-layout">
   <main class="deal-list-column">
     <ul class="fam-grid" id="family-body" data-view="vertical">
       {% for s in sales %}
-      <li class="fam-card{% if s.has_entry_code %} has-code{% endif %}">
+      <li class="fam-card{% if s.has_entry_code %} has-code{% endif %}"
+          data-brand="{{ s.brands_label | lower }}" data-title="{{ s.title | lower }}">
         {# 카드 전체 = 세일 사이트 직행 (deal_url 우선, 없으면 원문) #}
         <a class="fam-card-link"
            href="{{ s.deal_url or s.source_url }}"
            target="_blank" rel="noopener noreferrer">
           <div class="fam-cover{% if s.thumbnail_url %} has-img{% endif %}">
-            {# D-day 뱃지 #}
             {% if s.dday is not none %}
-            <span class="fam-dday-badge {% if s.dday <= 1 %}red{% elif s.dday <= 3 %}orange{% endif %}">
-              D-{{ s.dday }}
-            </span>
+            <span class="fam-dday-badge {% if s.dday <= 1 %}red{% elif s.dday <= 3 %}orange{% endif %}">D-{{ s.dday }}</span>
             {% endif %}
             <div class="fam-badges">
               <span class="fam-badge status {% if s.status == '진행중' %}live{% endif %}">
@@ -145,22 +218,28 @@
             </div>
           </div>
         </a>
-        {# 하단 액션 바: 원문 버튼 + 입장코드 복사 #}
+        {# 하단 액션 바 #}
         <div class="fam-actions">
-          {% if s.deal_url and s.source_url %}
-          <a class="fam-action-src" href="{{ s.source_url }}" target="_blank" rel="noopener noreferrer" title="원문 보기">원문 ↗</a>
-          {% elif s.source_url %}
-          <a class="fam-action-src" href="{{ s.source_url }}" target="_blank" rel="noopener noreferrer" title="원문 보기">원문 ↗</a>
-          {% else %}
-          <span></span>
-          {% endif %}
-          {% if s.has_entry_code and s.entry_code %}
-          <button class="fam-action-code" type="button"
-                  data-code="{{ s.entry_code|e }}"
-                  onclick="famCopyCode(this)">📋 {{ s.entry_code }}</button>
-          {% elif s.has_entry_code %}
-          <span class="fam-badge code" style="margin:0">입장코드 있음</span>
-          {% endif %}
+          <div class="fam-actions-left">
+            {% if s.source_url %}
+            <a class="fam-action-src" href="{{ s.source_url }}" target="_blank" rel="noopener noreferrer">원문 ↗</a>
+            {% endif %}
+            <a class="fam-action-detail" href="/family/{{ s.id }}">자세히</a>
+          </div>
+          <div class="fam-actions-right">
+            {# 찜 버튼 #}
+            <button class="fam-wish-btn" type="button"
+                    data-sale-id="{{ s.id }}"
+                    aria-label="찜하기"
+                    onclick="famToggleWish(this)">♡</button>
+            {% if s.has_entry_code and s.entry_code %}
+            <button class="fam-action-code" type="button"
+                    data-code="{{ s.entry_code|e }}"
+                    onclick="famCopyCode(this)">📋 {{ s.entry_code }}</button>
+            {% elif s.has_entry_code %}
+            <span class="fam-badge code" style="margin:0">입장코드 있음</span>
+            {% endif %}
+          </div>
         </div>
       </li>
       {% else %}
@@ -183,54 +262,61 @@
     </section>
   </aside>
 </div>
-
-{# ── 모달 (상세 정보 선택적 열람용으로 유지) ── #}
-<div class="family-modal" id="family-modal" hidden>
-  <div class="family-modal-dim" data-family-close></div>
-  <section class="family-modal-panel" role="dialog" aria-modal="true">
-    <button class="family-modal-close" type="button" data-family-close>×</button>
-    <div class="family-modal-image" id="family-modal-image">세일 이미지</div>
-    <div class="family-modal-copy">
-      <p class="page-kicker">FAMILY SALE</p>
-      <h2 id="family-modal-title"></h2>
-      <p id="family-modal-brands" class="muted"></p>
-      <dl>
-        <dt>상태</dt><dd id="family-modal-status"></dd>
-        <dt>기간</dt><dd id="family-modal-dates"></dd>
-        <dt>할인</dt><dd id="family-modal-discount"></dd>
-        <dt>장소</dt><dd id="family-modal-location"></dd>
-      </dl>
-      <a id="family-modal-link" class="btn" href="#">세일 사이트 열기</a>
-    </div>
-  </section>
-</div>
+{% endif %}
 
 <script>
-// 입장코드 1클릭 복사
+// ── 입장코드 1클릭 복사 ──
 function famCopyCode(btn) {
   const code = btn.dataset.code;
   navigator.clipboard.writeText(code).then(() => {
     const orig = btn.textContent;
     btn.textContent = '✔ 복사됨';
-    btn.style.background = 'var(--ok, #0ea35e)';
-    btn.style.color = '#fff';
+    btn.style.background = 'var(--ok, #0ea35e)'; btn.style.color = '#fff';
     setTimeout(() => { btn.textContent = orig; btn.style.background = ''; btn.style.color = ''; }, 1800);
   }).catch(() => {
-    // fallback: select text
     const ta = document.createElement('textarea');
-    ta.value = code; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    ta.value = code; ta.style.cssText = 'position:fixed;opacity:0';
     document.body.appendChild(ta); ta.select();
-    document.execCommand('copy');
-    document.body.removeChild(ta);
+    document.execCommand('copy'); document.body.removeChild(ta);
   });
 }
 
-// admin: 지금 수집 버튼
+// ── 찜 버튼 (localStorage) ──
+(function initWish() {
+  let wished;
+  try { wished = JSON.parse(localStorage.getItem('famWish') || '{}'); } catch { wished = {}; }
+  document.querySelectorAll('.fam-wish-btn').forEach(btn => {
+    if (wished[btn.dataset.saleId]) btn.classList.add('on');
+  });
+})();
+
+function famToggleWish(btn) {
+  const id = btn.dataset.saleId;
+  let wished;
+  try { wished = JSON.parse(localStorage.getItem('famWish') || '{}'); } catch { wished = {}; }
+  if (wished[id]) { delete wished[id]; btn.classList.remove('on'); }
+  else { wished[id] = 1; btn.classList.add('on'); }
+  try { localStorage.setItem('famWish', JSON.stringify(wished)); } catch {}
+}
+
+// ── 브랜드 검색 (클라이언트 필터) ──
+const brandInput = document.getElementById('fam-brand-search');
+if (brandInput) {
+  brandInput.addEventListener('input', () => {
+    const q = brandInput.value.trim().toLowerCase();
+    document.querySelectorAll('#family-body .fam-card').forEach(card => {
+      const match = !q || card.dataset.brand.includes(q) || card.dataset.title.includes(q);
+      card.style.display = match ? '' : 'none';
+    });
+  });
+}
+
+// ── admin: 지금 수집 ──
 document.getElementById("family-collect")?.addEventListener("click", async () => {
   const btn = document.getElementById("family-collect");
   btn.disabled = true; btn.textContent = "수집 중…";
   try { await fetch("/api/family/collect", { method: "POST" }); location.reload(); }
-  catch (e) { btn.disabled = false; btn.textContent = "지금 수집"; }
+  catch { btn.disabled = false; btn.textContent = "지금 수집"; }
 });
 </script>
 {% endblock %}
