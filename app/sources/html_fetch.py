@@ -17,6 +17,8 @@ PROXY_FIRST_HOSTS = (
     "damoang.net",
     "quasarzone.com",
     "fmkorea.com",
+    "www.clien.net",
+    "www.dealbada.com",
 )
 
 
