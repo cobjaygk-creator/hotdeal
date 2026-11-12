@@ -1,29 +1,46 @@
 {% extends "admin_base.html" %}
-{% block title %}신고관리 · 핫딜모음{% endblock %}
+{% block title %}신고관리 · 핫딜이쥬 관리자{% endblock %}
 {% block admin_body %}
-<div class="page-head">
+
+<div class="adm-page-head">
   <h1>신고관리</h1>
-  <div class="page-meta">최근 {{ reports|length }}건 · <a href="/admin/reports/history">처리 이력</a></div>
+  <span class="adm-page-meta">{{ reports|length }}건 · <a href="/admin/reports/history">처리 이력</a></span>
 </div>
-{% if reports %}
-<div class="table-card"><div class="table-scroll">
-<table class="admin-table">
-  <thead>
-    <tr><th>시각</th><th>딜</th><th>사유</th><th>내용</th><th>상태</th></tr>
-  </thead>
-  <tbody>
-    {% for r in reports %}
-    <tr>
-      <td>{{ r.created_at }}</td>
-      <td><a href="/deal/{{ r.deal_id }}">{{ r.product_name or r.deal_id }}</a></td>
-      <td>{{ r.reason }}</td>
-      <td>{{ r.detail or "" }}</td><td><form method="post" action="/admin/reports/status"><input type="hidden" name="report_id" value="{{ r.id }}"><select name="status"><option value="received" {% if r.status == "received" %}selected{% endif %}>접수</option><option value="reviewing" {% if r.status == "reviewing" %}selected{% endif %}>확인 중</option><option value="resolved" {% if r.status == "resolved" %}selected{% endif %}>수정 완료</option><option value="dismissed" {% if r.status == "dismissed" %}selected{% endif %}>반영하지 않음</option></select><button class="btn-secondary" type="submit">저장</button></form></td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
-</div></div>
-{% else %}
-<p class="muted">아직 신고가 없습니다.</p>
-{% endif %}
+
+<div class="adm-panel">
+  {% if reports %}
+  <div class="adm-table-wrap">
+    <table class="adm-table">
+      <thead>
+        <tr><th>시각</th><th>딜</th><th>사유</th><th>내용</th><th style="width:200px">상태</th></tr>
+      </thead>
+      <tbody>
+        {% for r in reports %}
+        <tr>
+          <td style="font-size:12px;white-space:nowrap;color:var(--ink-muted)">{{ r.created_at[:16] | replace('T',' ') if r.created_at else "" }}</td>
+          <td style="max-width:200px"><a href="/deal/{{ r.deal_id }}" target="_blank" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.product_name or ("딜 #" ~ r.deal_id) }}</a></td>
+          <td>{{ r.reason }}</td>
+          <td style="max-width:140px;font-size:12px;color:var(--ink-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.detail or "" }}</td>
+          <td>
+            <form method="post" action="/admin/reports/status" style="display:flex;gap:6px;align-items:center">
+              <input type="hidden" name="report_id" value="{{ r.id }}">
+              <select name="status" class="adm-select" style="flex:1">
+                <option value="received" {% if r.status == 'received' %}selected{% endif %}>접수</option>
+                <option value="reviewing" {% if r.status == 'reviewing' %}selected{% endif %}>확인 중</option>
+                <option value="resolved" {% if r.status == 'resolved' %}selected{% endif %}>수정 완료</option>
+                <option value="dismissed" {% if r.status == 'dismissed' %}selected{% endif %}>반영 안함</option>
+              </select>
+              <button class="adm-btn primary" type="submit" style="font-size:12px;padding:5px 10px;white-space:nowrap">저장</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="adm-empty">아직 신고가 없습니다</div>
+  {% endif %}
+</div>
+
 {% endblock %}

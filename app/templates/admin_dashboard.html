@@ -1,47 +1,210 @@
 {% extends "admin_base.html" %}
-{% block title %}관리자 · 핫딜모음{% endblock %}
+{% block title %}대시보드 · 핫딜이쥬 관리자{% endblock %}
 {% block admin_body %}
-<div class="page-head"><h1>통계</h1></div>
 
-<div class="metric-grid">
-  <div class="metric-tile"><div class="metric-label">오늘 초특가</div><div class="metric-value">{{ stats.strong }}</div></div>
-  <div class="metric-tile"><div class="metric-label">오늘 핫딜+</div><div class="metric-value">{{ stats.today_hot }}</div></div>
-  <div class="metric-tile"><div class="metric-label">전체 딜</div><div class="metric-value">{{ "{:,}".format(stats.deals) }}</div></div>
-  <div class="metric-tile"><div class="metric-label">전체 게시글</div><div class="metric-value">{{ "{:,}".format(stats.posts) }}</div></div>
-<div class="metric-grid" style="margin-top:12px">
-  <a class="metric-tile" href="/admin/coupang-links?status=failed"><div class="metric-label">Link failures</div><div class="metric-value">{{ "{:,}".format(stats.link_failures) }}</div></a>
-  <a class="metric-tile" href="/admin/reports"><div class="metric-label">Pending reports</div><div class="metric-value">{{ "{:,}".format(stats.reports_pending) }}</div></a>
-  <div class="metric-tile"><div class="metric-label">Missing buy links</div><div class="metric-value">{{ "{:,}".format(stats.missing_links) }}</div></div>
-  <a class="metric-tile" href="/admin/quality?kind=price"><div class="metric-label">Price review</div><div class="metric-value">{{ "{:,}".format(stats.price_review) }}</div></a></div>
-  <div class="metric-tile"><div class="metric-label">Quality review</div><div class="metric-value">{{ "{:,}".format(stats.quality_review) }}</div></div>
+<div class="adm-page-head">
+  <h1>대시보드</h1>
+  <span class="adm-page-meta">마지막 수집 {{ stats.last_collect_at | kst }}</span>
 </div>
-<p class="muted" style="margin-top:10px">마지막 수집 {{ stats.last_collect_at | kst }}</p>
 
-<h2 id="collect" style="margin-top:28px">수집관리</h2>
-<p class="muted">각 버튼은 해당 수집 파이프라인을 즉시 1회 실행합니다.</p>
-<div class="admin-collect-buttons">
-  <button type="button" class="btn-secondary" data-collect="/api/collect">전체 수집</button>
-  <button type="button" class="btn-secondary" data-collect="/api/family/collect">패밀리세일 수집</button>
-  <button type="button" class="btn-secondary" data-collect="/api/ppomppu/enrich-malls">구매링크 보강</button>
-  <button type="button" class="btn-secondary" data-collect="/api/coupang/collect">쿠팡특가 수집</button>
-  <button type="button" class="btn-secondary" data-collect="/api/amazon-jp/collect">일마존 수집</button>
-  {% if email_digest_enabled %}<button type="button" class="btn-secondary" data-collect="/api/admin/digest/send">이메일 다이제스트 발송</button>{% endif %}
+{# ── 긴급 알림 배너 ── #}
+{% if stats.link_failures > 0 or stats.reports_pending > 0 %}
+<div class="adm-alert {% if stats.link_failures > 5 or stats.reports_pending > 3 %}danger{% else %}warn{% endif %}">
+  <svg viewBox="0 0 20 20" fill="currentColor" style="width:16px;height:16px;flex-shrink:0"><path fill-rule="evenodd" d="M8.485 2.495a1.75 1.75 0 0 1 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 6a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 10 6zm0 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/></svg>
+  처리 필요:
+  {% if stats.link_failures > 0 %}<a href="/admin/coupang-links?status=failed">링크 실패 {{ stats.link_failures }}건</a>{% endif %}
+  {% if stats.link_failures > 0 and stats.reports_pending > 0 %} · {% endif %}
+  {% if stats.reports_pending > 0 %}<a href="/admin/reports">미처리 신고 {{ stats.reports_pending }}건</a>{% endif %}
 </div>
-<p class="muted" id="admin-collect-status" style="margin-top:8px"></p>
+{% endif %}
+
+{# ── 지표 카드 ── #}
+<div class="adm-stat-grid">
+  <div class="adm-stat">
+    <div class="adm-stat-label">오늘 초특가</div>
+    <div class="adm-stat-val blue">{{ stats.strong }}</div>
+    <div class="adm-stat-delta">초특가 등급 딜</div>
+  </div>
+  <div class="adm-stat">
+    <div class="adm-stat-label">전체 딜</div>
+    <div class="adm-stat-val">{{ "{:,}".format(stats.deals) }}</div>
+    <div class="adm-stat-delta">DB 누적</div>
+  </div>
+  <a class="adm-stat" href="/admin/coupang-links?status=failed">
+    <div class="adm-stat-label">링크 실패</div>
+    <div class="adm-stat-val {% if stats.link_failures > 0 %}red{% endif %}">{{ "{:,}".format(stats.link_failures) }}</div>
+    <div class="adm-stat-delta">쿠팡 링크 오류</div>
+  </a>
+  <a class="adm-stat" href="/admin/reports">
+    <div class="adm-stat-label">미처리 신고</div>
+    <div class="adm-stat-val {% if stats.reports_pending > 0 %}red{% endif %}">{{ "{:,}".format(stats.reports_pending) }}</div>
+    <div class="adm-stat-delta">접수·확인 중</div>
+  </a>
+  <div class="adm-stat">
+    <div class="adm-stat-label">전체 게시글</div>
+    <div class="adm-stat-val">{{ "{:,}".format(stats.posts) }}</div>
+    <div class="adm-stat-delta">커뮤니티 원문</div>
+  </div>
+  <a class="adm-stat" href="/admin/quality?kind=price">
+    <div class="adm-stat-label">가격 검수 대기</div>
+    <div class="adm-stat-val {% if stats.price_review > 0 %}red{% endif %}">{{ "{:,}".format(stats.price_review) }}</div>
+    <div class="adm-stat-delta">비정상 가격 의심</div>
+  </a>
+  <a class="adm-stat" href="/admin/quality">
+    <div class="adm-stat-label">품질 검수 대기</div>
+    <div class="adm-stat-val {% if stats.quality_review > 0 %}red{% endif %}">{{ "{:,}".format(stats.quality_review) }}</div>
+    <div class="adm-stat-delta">상태·링크 이상</div>
+  </a>
+  <div class="adm-stat">
+    <div class="adm-stat-label">구매링크 없음</div>
+    <div class="adm-stat-val {% if stats.missing_links > 50 %}red{% endif %}">{{ "{:,}".format(stats.missing_links) }}</div>
+    <div class="adm-stat-delta">mall_url 미확인</div>
+  </div>
+</div>
+
+{# ── 수집관리 퀵 액션 ── #}
+<div class="adm-panel" id="collect" style="margin-bottom:20px">
+  <div class="adm-panel-head">
+    <span class="adm-panel-title">수집관리</span>
+    <span style="font-size:12px;color:var(--ink-faint,#9aa1ab)">각 버튼은 해당 파이프라인을 즉시 1회 실행합니다</span>
+  </div>
+  <div style="padding:16px 18px">
+    <div class="adm-qa-grid">
+      <button type="button" class="adm-qa-btn" data-collect="/api/collect">
+        <div class="adm-qa-icon">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" width="16" height="16"><path d="M10 4v12m-6-6l6-6 6 6"/></svg>
+        </div>
+        <div>
+          <div class="adm-qa-title">전체 수집</div>
+          <div class="adm-qa-desc">모든 소스 1회 실행</div>
+        </div>
+      </button>
+      <button type="button" class="adm-qa-btn" data-collect="/api/family/collect">
+        <div class="adm-qa-icon">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" width="16" height="16"><path d="M4 4h12v2l-6 6-6-6V4z"/><path d="M4 16h12"/></svg>
+        </div>
+        <div>
+          <div class="adm-qa-title">패밀리세일 수집</div>
+          <div class="adm-qa-desc">패밀리세일 소스만</div>
+        </div>
+      </button>
+      <button type="button" class="adm-qa-btn" data-collect="/api/ppomppu/enrich-malls">
+        <div class="adm-qa-icon">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" width="16" height="16"><path d="M8 12l-4-4 4-4m4 8l4-4-4-4"/></svg>
+        </div>
+        <div>
+          <div class="adm-qa-title">구매링크 보강</div>
+          <div class="adm-qa-desc">누락 링크 재처리</div>
+        </div>
+      </button>
+      <button type="button" class="adm-qa-btn" data-collect="/api/coupang/collect">
+        <div class="adm-qa-icon">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" width="16" height="16"><rect x="3" y="6" width="14" height="10" rx="2"/><path d="M7 6V5a3 3 0 0 1 6 0v1"/></svg>
+        </div>
+        <div>
+          <div class="adm-qa-title">쿠팡특가 수집</div>
+          <div class="adm-qa-desc">쿠팡 파트너스 딜</div>
+        </div>
+      </button>
+      <button type="button" class="adm-qa-btn" data-collect="/api/amazon-jp/collect">
+        <div class="adm-qa-icon">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" width="16" height="16"><circle cx="10" cy="10" r="7"/><path d="M10 6v4l3 2"/></svg>
+        </div>
+        <div>
+          <div class="adm-qa-title">일본 아마존 수집</div>
+          <div class="adm-qa-desc">아마존JP 딜</div>
+        </div>
+      </button>
+      {% if email_digest_enabled %}
+      <button type="button" class="adm-qa-btn" data-collect="/api/admin/digest/send">
+        <div class="adm-qa-icon">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" width="16" height="16"><path d="M3 4h14l-7 7-7-7z"/><rect x="3" y="4" width="14" height="12" rx="1"/></svg>
+        </div>
+        <div>
+          <div class="adm-qa-title">다이제스트 발송</div>
+          <div class="adm-qa-desc">이메일 뉴스레터</div>
+        </div>
+      </button>
+      {% endif %}
+    </div>
+    <p class="adm-collect-status" id="adm-collect-status"></p>
+  </div>
+</div>
+
+{# ── 2열 패널: 신고 + 품질검수 ── #}
+<div class="adm-panel-2col">
+  <div class="adm-panel">
+    <div class="adm-panel-head">
+      <span class="adm-panel-title">최근 신고</span>
+      <a class="adm-panel-link" href="/admin/reports">전체 보기 →</a>
+    </div>
+    {% if recent_reports %}
+      <div class="adm-table-wrap">
+        <table class="adm-table">
+          <thead><tr><th>딜</th><th>사유</th><th>상태</th></tr></thead>
+          <tbody>
+          {% for r in recent_reports %}
+            <tr>
+              <td style="max-width:180px"><a href="/deal/{{ r.deal_id }}">{{ (r.product_name or ("딜 #" ~ r.deal_id)) | truncate(28) }}</a></td>
+              <td>{{ r.reason }}</td>
+              <td>
+                {% if r.status == 'received' %}<span class="adm-badge red">미처리</span>
+                {% elif r.status == 'reviewing' %}<span class="adm-badge blue">확인 중</span>
+                {% elif r.status == 'resolved' %}<span class="adm-badge green">완료</span>
+                {% else %}<span class="adm-badge gray">{{ r.status }}</span>{% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="adm-empty">미처리 신고가 없습니다</div>
+    {% endif %}
+  </div>
+
+  <div class="adm-panel">
+    <div class="adm-panel-head">
+      <span class="adm-panel-title">품질검수 대기</span>
+      <a class="adm-panel-link" href="/admin/quality">전체 보기 →</a>
+    </div>
+    {% if recent_quality %}
+      <div class="adm-table-wrap">
+        <table class="adm-table">
+          <thead><tr><th>상품</th><th>가격</th><th>상태</th></tr></thead>
+          <tbody>
+          {% for r in recent_quality %}
+            <tr>
+              <td style="max-width:180px"><a href="/deal/{{ r.id }}">{{ r.product_name | truncate(28) }}</a></td>
+              <td>{{ "{:,}".format(r.price) if r.price else "미확인" }}</td>
+              <td><span class="adm-badge blue">검수필요</span></td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="adm-empty">검수 대기 항목이 없습니다</div>
+    {% endif %}
+  </div>
+</div>
+
 <script>
-document.querySelectorAll("[data-collect]").forEach((btn) => {
+document.querySelectorAll(".adm-qa-btn[data-collect]").forEach((btn) => {
   btn.addEventListener("click", async () => {
-    const status = document.getElementById("admin-collect-status");
-    btn.disabled = true;
-    status.textContent = "실행 중…";
+    const status = document.getElementById("adm-collect-status");
+    document.querySelectorAll(".adm-qa-btn").forEach(b => b.disabled = true);
+    status.textContent = btn.querySelector(".adm-qa-title").textContent + " 실행 중…";
     try {
       const res = await fetch(btn.dataset.collect, { method: "POST" });
       const data = await res.json().catch(() => ({}));
-      status.textContent = res.ok ? "완료: " + JSON.stringify(data) : (data.detail || "실패");
+      status.textContent = res.ok
+        ? "완료: " + (data.collected != null ? data.collected + "건 수집" : JSON.stringify(data))
+        : (data.detail || "실패");
     } catch (e) {
       status.textContent = "요청 실패";
     } finally {
-      btn.disabled = false;
+      document.querySelectorAll(".adm-qa-btn").forEach(b => b.disabled = false);
     }
   });
 });

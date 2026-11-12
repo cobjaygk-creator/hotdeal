@@ -2173,9 +2173,29 @@ async def admin_ad_stats(request: Request, days: int = 1, device: str | None = N
 async def admin_dashboard(request: Request):
     _require_admin(request)
     stats = await _stats()
+    conn = _db()
+    cur = await conn.execute(
+        "SELECT r.id, r.deal_id, r.reason, r.status, d.product_name "
+        "FROM deal_reports r LEFT JOIN deals d ON d.id=r.deal_id "
+        "WHERE r.status IN ('received','reviewing') ORDER BY r.id DESC LIMIT 5"
+    )
+    recent_reports = [dict(row) for row in await cur.fetchall()]
+    cur = await conn.execute(
+        "SELECT id, product_name, price FROM deals "
+        "WHERE status IN ('price_review','quality_review') OR price IS NULL OR price <= 0 "
+        "ORDER BY id DESC LIMIT 5"
+    )
+    recent_quality = [dict(row) for row in await cur.fetchall()]
     return TEMPLATES.TemplateResponse(
         "admin_dashboard.html",
-        {"request": request, "nav": "admin", "admin_section": "stats", "stats": stats},
+        {
+            "request": request,
+            "nav": "admin",
+            "admin_section": "stats",
+            "stats": stats,
+            "recent_reports": recent_reports,
+            "recent_quality": recent_quality,
+        },
     )
 
 

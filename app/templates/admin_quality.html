@@ -1,12 +1,112 @@
 {% extends "admin_base.html" %}
-{% block title %}상품 품질 검수 · 핫딜모음<h2 style="margin-top:28px">최근 변경 이력</h2><div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>시간</th><th>상품 ID</th><th>필드</th><th>이전 값</th><th>변경 값</th><th>복구</th></tr></thead><tbody>{% for c in changes %}<tr><td>{{ c.changed_at }}</td><td>{{ c.entity_id }}</td><td>{{ c.field }}</td><td>{{ c.old_value }}</td><td>{{ c.new_value }}</td><td><form method="post" action="/admin/quality/restore"><input type="hidden" name="log_id" value="{{ c.id }}"><button class="btn-secondary" type="submit">이전 값 복구</button></form></td></tr>{% else %}<tr><td colspan="7">변경 이력이 없습니다.</td></tr>{% endfor %}</tbody></table></div>
-{% endblock %}
+{% block title %}품질검수 · 핫딜이쥬 관리자{% endblock %}
 {% block admin_body %}
-<div class="page-head"><h1>상품 품질 검수</h1></div>
-<p class="muted">가격 누락·비정상 가격 또는 검수 상태 상품입니다. 상품을 열어 원문과 구매 링크를 확인하세요.</p>
-<form method="post" action="/admin/quality/cleanup-security" style="margin:12px 0"><button class="btn-secondary" type="submit">보안 안내 상품 일괄 차단</button></form>
-<p><a class="filter-chip {% if kind == "all" %}on{% endif %}" href="/admin/quality">전체</a> <a class="filter-chip {% if kind == "price" %}on{% endif %}" href="/admin/quality?kind=price">가격 검수</a> <a class="filter-chip {% if kind == "status" %}on{% endif %}" href="/admin/quality?kind=status">상태 검수</a> <a class="filter-chip {% if kind == "blocked" %}on{% endif %}" href="/admin/quality?kind=blocked">차단 목록</a></p>
-<div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>상품</th><th>판매처</th><th>가격</th><th>상태</th><th>차단 사유</th><th>구매 링크</th><th>수정</th></tr></thead><tbody>
-{% for r in rows %}<tr><td>{{ r.product_name }}</td><td>{{ r.seller or "-" }}</td><td>{{ "{:,}".format(r.price) if r.price else "미확인" }}</td><td>{{ r.status or "-" }}</td><td>{{ r.blocked_reason or "-" }}</td><td>{{ "있음" if r.mall_url else "없음" }}</td><td>{% if kind == "blocked" %}<form method="post" action="/admin/quality/unblock" style="display:inline"><input type="hidden" name="deal_id" value="{{ r.id }}"><button class="btn-secondary" type="submit">차단 해제</button></form>{% endif %}<form method="post" action="/admin/quality/update" style="display:grid;gap:4px;min-width:220px"><input type="hidden" name="deal_id" value="{{ r.id }}"><input name="price" value="{{ r.price or '' }}" placeholder="가격"><input name="status" value="{{ r.status or '' }}" placeholder="상태"><input name="mall_url" value="{{ r.mall_url or '' }}" placeholder="구매 링크"><button type="submit" class="btn-secondary">저장</button><a class="btn-secondary" href="/deal/{{ r.id }}">상품 보기</a></form></td></tr>{% else %}<tr><td colspan="7">검수 대상이 없습니다.</td></tr>{% endfor %}
-</tbody></table></div>
+
+<div class="adm-page-head">
+  <h1>품질검수</h1>
+  <span class="adm-page-meta">가격 누락·비정상 가격·상태 이상 상품</span>
+</div>
+
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+  <div class="adm-filter-row" style="margin:0">
+    <a class="adm-chip {% if kind == 'all' %}on{% endif %}" href="/admin/quality">전체</a>
+    <a class="adm-chip {% if kind == 'price' %}on{% endif %}" href="/admin/quality?kind=price">가격 검수</a>
+    <a class="adm-chip {% if kind == 'status' %}on{% endif %}" href="/admin/quality?kind=status">상태 검수</a>
+    <a class="adm-chip {% if kind == 'blocked' %}on{% endif %}" href="/admin/quality?kind=blocked">차단 목록</a>
+  </div>
+  <form method="post" action="/admin/quality/cleanup-security">
+    <button class="adm-btn danger" type="submit">보안 안내 상품 일괄 차단</button>
+  </form>
+</div>
+
+<div class="adm-panel">
+  <div class="adm-table-wrap">
+    <table class="adm-table">
+      <thead>
+        <tr>
+          <th style="width:28%">상품명</th>
+          <th>판매처</th>
+          <th>가격</th>
+          <th>상태</th>
+          <th>차단 사유</th>
+          <th>구매링크</th>
+          <th style="width:220px">수정</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td style="max-width:0"><a href="/deal/{{ r.id }}" target="_blank" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.product_name }}</a></td>
+          <td>{{ r.seller or "-" }}</td>
+          <td>{{ "{:,}".format(r.price) if r.price else "<span style='color:var(--discount,#ef3b4a)'>미확인</span>" | safe }}</td>
+          <td>
+            {% if r.status == 'blocked' %}<span class="adm-badge red">차단</span>
+            {% elif r.status %}<span class="adm-badge gray">{{ r.status }}</span>
+            {% else %}<span class="adm-badge blue">검수필요</span>{% endif %}
+          </td>
+          <td style="font-size:12px;color:var(--ink-muted)">{{ r.blocked_reason or "-" }}</td>
+          <td>
+            {% if r.mall_url %}<span class="adm-badge green">있음</span>{% else %}<span class="adm-badge gray">없음</span>{% endif %}
+          </td>
+          <td>
+            {% if kind == 'blocked' %}
+            <form method="post" action="/admin/quality/unblock" style="margin-bottom:6px">
+              <input type="hidden" name="deal_id" value="{{ r.id }}">
+              <button class="adm-btn" type="submit" style="font-size:12px;padding:4px 10px">차단 해제</button>
+            </form>
+            {% endif %}
+            <form method="post" action="/admin/quality/update" style="display:grid;gap:5px">
+              <input type="hidden" name="deal_id" value="{{ r.id }}">
+              <input class="adm-input" name="price" value="{{ r.price or '' }}" placeholder="가격">
+              <input class="adm-input" name="status" value="{{ r.status or '' }}" placeholder="상태">
+              <input class="adm-input" name="mall_url" value="{{ r.mall_url or '' }}" placeholder="구매 링크">
+              <div style="display:flex;gap:5px">
+                <button type="submit" class="adm-btn primary" style="flex:1;font-size:12px;padding:5px 0">저장</button>
+                <a class="adm-btn" href="/deal/{{ r.id }}" target="_blank" style="font-size:12px;padding:5px 10px">보기</a>
+              </div>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="adm-empty">검수 대상이 없습니다</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if changes %}
+<div class="adm-page-head" style="margin-top:28px">
+  <h1 style="font-size:16px">최근 변경 이력</h1>
+</div>
+<div class="adm-panel">
+  <div class="adm-table-wrap">
+    <table class="adm-table">
+      <thead>
+        <tr><th>시간</th><th>상품 ID</th><th>필드</th><th>이전 값</th><th>변경 값</th><th>복구</th></tr>
+      </thead>
+      <tbody>
+        {% for c in changes %}
+        <tr>
+          <td style="font-size:12px;white-space:nowrap">{{ c.changed_at }}</td>
+          <td>{{ c.entity_id }}</td>
+          <td>{{ c.field }}</td>
+          <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.old_value }}</td>
+          <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.new_value }}</td>
+          <td>
+            <form method="post" action="/admin/quality/restore">
+              <input type="hidden" name="log_id" value="{{ c.id }}">
+              <button class="adm-btn" type="submit" style="font-size:12px;padding:4px 10px">복구</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="adm-empty">변경 이력이 없습니다</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
 {% endblock %}

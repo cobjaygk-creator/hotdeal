@@ -1,37 +1,57 @@
 {% extends "admin_base.html" %}
-{% block title %}회원관리 · 핫딜모음{% endblock %}
+{% block title %}회원관리 · 핫딜이쥬 관리자{% endblock %}
 {% block admin_body %}
-<div class="page-head"><h1>회원관리</h1><div class="page-meta">{{ users|length }}명</div></div>
 
-<div class="table-card"><div class="table-scroll">
-<table class="admin-table">
-  <thead>
-    <tr><th>이름</th><th>로그인</th><th>가입일</th><th>최근 로그인</th><th>권한</th></tr>
-  </thead>
-  <tbody>
-    {% for u in users %}
-    <tr>
-      <td>{{ u.display_name or u.username or u.email or ("#" ~ u.id) }}</td>
-      <td>{{ u.providers or (u.username and "로컬") or "-" }}</td>
-      <td>{{ u.created_at | kst }}</td>
-      <td>{{ u.last_login_at | kst }}</td>
-      <td>
-        {% if u.id == me_id %}
-        <span class="muted">본인</span>
-        {% elif u.username == bootstrap_username %}
-        <span class="muted">기본 관리자</span>
-        {% else %}
-        <form method="post" action="/admin/users" style="display:inline">
-          <input type="hidden" name="action" value="set_role">
-          <select name="role"><option value="operator" {% if u.admin_role == "operator" %}selected{% endif %}>운영</option><option value="reviewer" {% if u.admin_role == "reviewer" %}selected{% endif %}>검수</option><option value="ads" {% if u.admin_role == "ads" %}selected{% endif %}>광고</option><option value="viewer" {% if u.admin_role == "viewer" %}selected{% endif %}>조회</option><option value="admin" {% if u.admin_role == "admin" %}selected{% endif %}>최고관리자</option></select>
-          <input type="hidden" name="user_id" value="{{ u.id }}">
-          <button type="submit" class="btn-secondary">역할 저장</button>
-        </form>
-        {% endif %}
-      </td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
-</div></div>
+<div class="adm-page-head">
+  <h1>회원관리</h1>
+  <span class="adm-page-meta">{{ users|length }}명</span>
+</div>
+
+<div class="adm-panel">
+  <div class="adm-table-wrap">
+    <table class="adm-table">
+      <thead>
+        <tr><th>이름</th><th>로그인 방식</th><th>가입일</th><th>최근 로그인</th><th style="width:260px">권한</th></tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td>
+            <div style="font-weight:600">{{ u.display_name or u.username or u.email or ("#" ~ u.id) }}</div>
+            {% if u.email %}<div style="font-size:12px;color:var(--ink-muted)">{{ u.email }}</div>{% endif %}
+          </td>
+          <td>
+            {% if u.providers %}<span class="adm-badge blue">{{ u.providers }}</span>
+            {% elif u.username %}<span class="adm-badge gray">로컬</span>
+            {% else %}<span style="color:var(--ink-faint)">-</span>{% endif %}
+          </td>
+          <td style="font-size:12.5px;color:var(--ink-muted);white-space:nowrap">{{ u.created_at | kst }}</td>
+          <td style="font-size:12.5px;color:var(--ink-muted);white-space:nowrap">{{ u.last_login_at | kst }}</td>
+          <td>
+            {% if u.id == me_id %}
+              <span class="adm-badge green">본인</span>
+            {% elif u.username == bootstrap_username %}
+              <span class="adm-badge gray">기본 관리자</span>
+            {% else %}
+            <form method="post" action="/admin/users" style="display:flex;gap:6px;align-items:center">
+              <input type="hidden" name="action" value="set_role">
+              <input type="hidden" name="user_id" value="{{ u.id }}">
+              <select name="role" class="adm-select" style="flex:1">
+                <option value="operator" {% if u.admin_role == 'operator' %}selected{% endif %}>운영자</option>
+                <option value="reviewer" {% if u.admin_role == 'reviewer' %}selected{% endif %}>검수</option>
+                <option value="ads" {% if u.admin_role == 'ads' %}selected{% endif %}>광고</option>
+                <option value="viewer" {% if u.admin_role == 'viewer' %}selected{% endif %}>조회</option>
+                <option value="admin" {% if u.admin_role == 'admin' %}selected{% endif %}>최고관리자</option>
+              </select>
+              <button type="submit" class="adm-btn primary" style="font-size:12px;padding:5px 10px;white-space:nowrap">저장</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
 {% endblock %}
