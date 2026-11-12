@@ -1,67 +1,338 @@
-<p class="muted">키워드는 계정에 저장됩니다. 메시지를 받으려면 본인 텔레그램 채팅 ID나 디스코드 웹훅을 넣으세요. 사이트 기본 채널로는 보내지 않습니다.</p>
+{# ── 채널 설정 (로그인 사용자) ── #}
+<style>
+.ap-section { margin-bottom: 28px; }
+.ap-section-head { font-size: 15px; font-weight: 700; margin: 0 0 12px; }
 
+/* 채널 카드 그리드 */
+.chan-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-bottom: 16px; }
+.chan-card {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 14px 10px; border-radius: 10px;
+  border: 2px solid var(--border); background: var(--surface);
+  cursor: pointer; transition: border-color .12s, background .12s;
+  text-align: center; user-select: none;
+}
+.chan-card:hover { border-color: var(--border-strong, #d8dbe0); }
+.chan-card.selected { border-color: var(--accent); background: var(--accent-soft, #eff6ff); }
+.chan-card input[type=radio] { display: none; }
+.chan-card-icon { font-size: 24px; }
+.chan-card-name { font-size: 13px; font-weight: 600; }
+.chan-card-desc { font-size: 11px; color: var(--muted, #6b7280); line-height: 1.4; }
+.chan-card-badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 999px; }
+.chan-card-badge.easy { background: #dcfce7; color: #166534; }
+.chan-card-badge.mid { background: #fef9c3; color: #92400e; }
+.chan-card-badge.hard { background: #fee2e2; color: #991b1b; }
+.chan-card-badge.ok { background: #dbeafe; color: #1d4ed8; }
+
+/* 채널 가이드 패널 */
+.chan-guide { display: none; }
+.chan-guide.active { display: block; }
+.chan-guide-box {
+  background: var(--bg, #f7f8fa); border: 1px solid var(--border);
+  border-radius: 10px; padding: 16px 18px; margin-bottom: 14px;
+}
+.chan-guide-box h4 { margin: 0 0 8px; font-size: 14px; font-weight: 700; }
+.chan-guide-steps { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.chan-guide-steps li { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; }
+.step-num { flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-top: 1px; }
+.chan-status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 6px; margin-bottom: 10px; }
+.chan-status.ok { background: #dcfce7; color: #166534; }
+.chan-status.off { background: var(--bg, #f3f4f6); color: var(--muted, #6b7280); }
+
+/* 웹 푸시 버튼 */
+#push-toggle { display: inline-flex; align-items: center; gap: 8px; }
+
+/* 키워드 목록 */
+.kw-list { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.kw-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px;
+  background: var(--surface);
+}
+.kw-item-name { flex: 1; font-size: 14px; font-weight: 600; }
+.kw-item-meta { font-size: 12px; color: var(--muted, #6b7280); }
+.kw-item-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.kw-btn { border: 1px solid var(--border); background: var(--surface); border-radius: 6px; padding: 4px 10px; font-size: 12px; cursor: pointer; }
+.kw-btn:hover { background: var(--bg); }
+.kw-btn.del { color: #ef4444; border-color: #fca5a5; }
+
+/* 키워드 추가 폼 */
+.kw-add-form { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.kw-add-form input[type=text] { flex: 1; min-width: 120px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; background: var(--surface); color: var(--ink); }
+.kw-add-form select { padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; background: var(--surface); color: var(--ink); }
+.kw-add-form button { padding: 8px 16px; border-radius: 8px; border: none; background: var(--accent); color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; }
+</style>
+
+{# ── 1. 이메일 다이제스트 ── #}
 {% if email_digest_enabled and user.email %}
-<form method="post" action="/alerts" class="admin-form" style="margin-bottom:12px">
-  <input type="hidden" name="action" value="user_digest">
-  <label style="flex-direction:row;align-items:center;gap:8px">
-    <input type="checkbox" name="digest" value="on" onchange="this.form.submit()" {% if user.digest_opt_in %}checked{% endif %}>
-    매일 아침 "오늘의 초특가" 메일 받기 ({{ user.email }})
-  </label>
-</form>
-{% endif %}
-<form method="post" action="/alerts" class="admin-form">
-  <input type="hidden" name="action" value="user_notify">
-  <label>채널
-    <select name="channel">
-      <option value="">저장만 (알림함에만 쌓임)</option>
-      {% if webpush_enabled %}<option value="webpush" {% if user.notify_channel == "webpush" %}selected{% endif %}>웹 푸시 (브라우저 알림)</option>{% endif %}
-      <option value="telegram" {% if user.notify_channel == "telegram" %}selected{% endif %}>텔레그램</option>
-      <option value="discord" {% if user.notify_channel == "discord" %}selected{% endif %}>디스코드</option>
-    </select>
-  </label>
-  <label>대상 (텔레그램/디스코드만)<input name="target" placeholder="채팅 ID 또는 웹훅 URL" value=""></label>
-  <p class="muted">{% if user.notify_target %}대상이 저장되어 있습니다. 바꾸려면 다시 입력하세요.{% else %}웹 푸시는 대상이 필요 없습니다.{% endif %}</p>
-  <button type="submit">알림 설정 저장</button>
-</form>
-{% if webpush_enabled %}
-<p style="margin:10px 0">
-  <button type="button" id="push-toggle" class="btn-secondary">이 기기에서 알림 받기</button>
-</p>
+<div class="ap-section">
+  <form method="post" action="/alerts">
+    <input type="hidden" name="action" value="user_digest">
+    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px">
+      <input type="checkbox" name="digest" value="on" onchange="this.form.submit()"
+             {% if user.digest_opt_in %}checked{% endif %} style="width:16px;height:16px">
+      매일 아침 "오늘의 초특가" 메일 받기
+      <span style="font-size:12px;color:var(--muted)">{{ user.email }}</span>
+    </label>
+  </form>
+</div>
 {% endif %}
 
-<form method="post" action="/alerts" class="admin-form" style="margin-top:12px">
-  <input type="hidden" name="action" value="user_keyword">
-  <label>키워드<input name="keyword" required placeholder="카누"></label>
-  <label>Exclude keywords<input name="exclude_keywords" placeholder="품절, 중고"></label>
-  <label style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" name="enabled" value="on" checked> 키워드 알림 사용</label>
-  <label>최소 등급
+{# ── 2. 알림 채널 선택 ── #}
+<div class="ap-section">
+  <div class="ap-section-head">알림 채널</div>
+
+  <div class="chan-cards" id="chan-cards">
+    <label class="chan-card {% if not user.notify_channel or user.notify_channel == '' %}selected{% endif %}" id="card-inbox">
+      <input type="radio" name="_chan" value="" {% if not user.notify_channel %}checked{% endif %}>
+      <span class="chan-card-icon">📬</span>
+      <span class="chan-card-name">사이트 인박스</span>
+      <span class="chan-card-desc">로그인 후 알림센터에서 확인</span>
+      <span class="chan-card-badge ok">자동</span>
+    </label>
+    {% if webpush_enabled %}
+    <label class="chan-card {% if user.notify_channel == 'webpush' %}selected{% endif %}" id="card-webpush">
+      <input type="radio" name="_chan" value="webpush" {% if user.notify_channel == 'webpush' %}checked{% endif %}>
+      <span class="chan-card-icon">🌐</span>
+      <span class="chan-card-name">웹 푸시</span>
+      <span class="chan-card-desc">브라우저 알림으로 바로 받기</span>
+      <span class="chan-card-badge easy">쉬움</span>
+    </label>
+    {% endif %}
+    <label class="chan-card {% if user.notify_channel == 'telegram' %}selected{% endif %}" id="card-telegram">
+      <input type="radio" name="_chan" value="telegram" {% if user.notify_channel == 'telegram' %}checked{% endif %}>
+      <span class="chan-card-icon">✈️</span>
+      <span class="chan-card-name">텔레그램</span>
+      <span class="chan-card-desc">채팅 ID로 개인 메시지 수신</span>
+      <span class="chan-card-badge mid">보통</span>
+    </label>
+    <label class="chan-card {% if user.notify_channel == 'discord' %}selected{% endif %}" id="card-discord">
+      <input type="radio" name="_chan" value="discord" {% if user.notify_channel == 'discord' %}checked{% endif %}>
+      <span class="chan-card-icon">🎮</span>
+      <span class="chan-card-name">디스코드</span>
+      <span class="chan-card-desc">서버 채널 웹훅으로 수신</span>
+      <span class="chan-card-badge hard">고급</span>
+    </label>
+  </div>
+
+  {# 인박스 가이드 #}
+  <div class="chan-guide {% if not user.notify_channel %}active{% endif %}" id="guide-inbox">
+    <div class="chan-guide-box">
+      <h4>📬 사이트 인박스</h4>
+      <p style="font-size:13px;color:var(--muted);margin:0">별도 설정 없이 알림이 사이트 인박스에 자동으로 쌓입니다. 헤더 🔔 아이콘을 클릭하면 확인할 수 있어요.</p>
+    </div>
+    <form method="post" action="/alerts">
+      <input type="hidden" name="action" value="user_notify">
+      <input type="hidden" name="channel" value="">
+      <input type="hidden" name="target" value="">
+      <button type="submit" class="btn">인박스로 설정 저장</button>
+    </form>
+  </div>
+
+  {# 웹 푸시 가이드 #}
+  {% if webpush_enabled %}
+  <div class="chan-guide {% if user.notify_channel == 'webpush' %}active{% endif %}" id="guide-webpush">
+    <div class="chan-guide-box">
+      <h4>🌐 웹 푸시 설정</h4>
+      {% if user.notify_channel == 'webpush' %}
+      <span class="chan-status ok">✓ 웹 푸시 채널 활성</span>
+      {% endif %}
+      <ul class="chan-guide-steps">
+        <li><span class="step-num">1</span><span>아래 버튼을 클릭하면 브라우저가 알림 허용 여부를 묻습니다.</span></li>
+        <li><span class="step-num">2</span><span>"허용"을 누르면 이 기기에서 바로 알림을 받을 수 있습니다.</span></li>
+        <li><span class="step-num">3</span><span>여러 기기에서 각각 등록하면 모든 기기로 알림이 옵니다.</span></li>
+      </ul>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <button type="button" id="push-toggle" class="btn">🔔 이 기기에서 알림 받기</button>
+      <form method="post" action="/alerts" style="margin:0">
+        <input type="hidden" name="action" value="user_notify">
+        <input type="hidden" name="channel" value="webpush">
+        <input type="hidden" name="target" value="">
+        <button type="submit" class="btn btn-secondary">채널을 웹 푸시로 저장</button>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+
+  {# 텔레그램 가이드 #}
+  <div class="chan-guide {% if user.notify_channel == 'telegram' %}active{% endif %}" id="guide-telegram">
+    <div class="chan-guide-box">
+      <h4>✈️ 텔레그램 연결 방법</h4>
+      {% if user.notify_channel == 'telegram' and user.notify_target %}
+      <span class="chan-status ok">✓ 텔레그램 연결됨</span>
+      {% endif %}
+      <ul class="chan-guide-steps">
+        <li><span class="step-num">1</span><span>텔레그램 앱에서 <strong>@userinfobot</strong> 을 검색하세요.</span></li>
+        <li><span class="step-num">2</span><span>봇에게 아무 메시지나 보내면 <code>Id: 123456789</code> 형식으로 채팅 ID가 옵니다.</span></li>
+        <li><span class="step-num">3</span><span>그 숫자를 아래 입력란에 붙여넣고 저장하세요.</span></li>
+        <li><span class="step-num">4</span><span><strong>@핫딜이쥬봇</strong> 을 먼저 시작(Start)해야 메시지를 받을 수 있습니다.</span></li>
+      </ul>
+    </div>
+    <form method="post" action="/alerts" style="display:flex;gap:8px;flex-wrap:wrap">
+      <input type="hidden" name="action" value="user_notify">
+      <input type="hidden" name="channel" value="telegram">
+      <input type="text" name="target" placeholder="채팅 ID (예: 123456789)"
+             style="flex:1;min-width:160px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:var(--surface);color:var(--ink)">
+      <button type="submit" class="btn">저장</button>
+    </form>
+  </div>
+
+  {# 디스코드 가이드 #}
+  <div class="chan-guide {% if user.notify_channel == 'discord' %}active{% endif %}" id="guide-discord">
+    <div class="chan-guide-box">
+      <h4>🎮 디스코드 웹훅 연결 방법</h4>
+      {% if user.notify_channel == 'discord' and user.notify_target %}
+      <span class="chan-status ok">✓ 디스코드 연결됨</span>
+      {% endif %}
+      <ul class="chan-guide-steps">
+        <li><span class="step-num">1</span><span>디스코드 서버에서 알림받을 채널의 <strong>채널 편집 → 연동 → 웹훅 → 새 웹훅</strong> 을 만드세요.</span></li>
+        <li><span class="step-num">2</span><span><strong>웹훅 URL 복사</strong>를 눌러 URL을 복사합니다. (<code>https://discord.com/api/webhooks/…</code> 형식)</span></li>
+        <li><span class="step-num">3</span><span>복사한 URL을 아래 입력란에 붙여넣고 저장하세요.</span></li>
+      </ul>
+      <p style="font-size:12px;color:var(--muted);margin-top:8px;margin-bottom:0">※ 서버 채널의 관리 권한이 있어야 웹훅을 만들 수 있습니다.</p>
+    </div>
+    <form method="post" action="/alerts" style="display:flex;gap:8px;flex-wrap:wrap">
+      <input type="hidden" name="action" value="user_notify">
+      <input type="hidden" name="channel" value="discord">
+      <input type="text" name="target" placeholder="https://discord.com/api/webhooks/…"
+             style="flex:1;min-width:200px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--surface);color:var(--ink)">
+      <button type="submit" class="btn">저장</button>
+    </form>
+  </div>
+</div>
+
+{# ── 3. 조용히 모드 ── #}
+<div class="ap-section">
+  <div class="ap-section-head">조용히 모드</div>
+  <div class="chan-guide-box" style="margin-bottom:12px">
+    <p style="font-size:13px;color:var(--muted);margin:0 0 10px">설정한 시간대에는 외부 채널(웹 푸시·텔레그램·디스코드) 발송을 건너뜁니다. 사이트 인박스에는 항상 쌓입니다.</p>
+    <form method="post" action="/alerts" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <input type="hidden" name="action" value="user_quiet">
+      <label style="font-size:13px;font-weight:600">시작
+        <select name="quiet_start" style="margin-left:6px;padding:6px 8px;border:1px solid var(--border);border-radius:7px;font-size:13px;background:var(--surface);color:var(--ink)">
+          <option value="">사용 안함</option>
+          {% for h in range(24) %}<option value="{{ h }}" {% if user.quiet_start == h %}selected{% endif %}>{{ "%02d"|format(h) }}:00</option>{% endfor %}
+        </select>
+      </label>
+      <label style="font-size:13px;font-weight:600">종료
+        <select name="quiet_end" style="margin-left:6px;padding:6px 8px;border:1px solid var(--border);border-radius:7px;font-size:13px;background:var(--surface);color:var(--ink)">
+          <option value="">사용 안함</option>
+          {% for h in range(24) %}<option value="{{ h }}" {% if user.quiet_end == h %}selected{% endif %}>{{ "%02d"|format(h) }}:00</option>{% endfor %}
+        </select>
+      </label>
+      <button type="submit" class="btn" style="padding:7px 14px;font-size:13px">저장</button>
+      {% if user.quiet_start is defined and user.quiet_start is not none and user.quiet_end is not none %}
+      <span style="font-size:12px;color:var(--muted)">현재: {{ "%02d"|format(user.quiet_start) }}:00 ~ {{ "%02d"|format(user.quiet_end) }}:00 무음</span>
+      {% endif %}
+    </form>
+  </div>
+</div>
+
+{# ── 4. 알림 통계 ── #}
+{% if notif_stats and notif_stats.total %}
+<div class="ap-section">
+  <div class="ap-section-head">알림 수신 현황</div>
+  <div style="display:flex;gap:20px;flex-wrap:wrap">
+    <div style="text-align:center;padding:14px 20px;background:var(--bg);border-radius:10px;border:1px solid var(--border)">
+      <div style="font-size:28px;font-weight:800;color:var(--accent)">{{ notif_stats.total }}</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px">총 수신 알림</div>
+    </div>
+    {% if notif_stats.last_at %}
+    <div style="text-align:center;padding:14px 20px;background:var(--bg);border-radius:10px;border:1px solid var(--border)">
+      <div style="font-size:14px;font-weight:600;color:var(--ink)">{{ notif_stats.last_at[:10] }}</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px">마지막 알림</div>
+    </div>
+    {% endif %}
+    <div style="display:flex;align-items:center">
+      <a href="/notifications" style="font-size:13px;color:var(--accent);font-weight:600">알림센터 전체보기 →</a>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{# ── 5. 카테고리 구독 ── #}
+{% if deal_categories %}
+<div class="ap-section">
+  <div class="ap-section-head">카테고리 구독 <span style="font-size:13px;font-weight:400;color:var(--muted)">탭으로 1-클릭 등록</span></div>
+  <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:4px">
+    {% for cat in deal_categories %}
+    {% set is_on = cat in user_kw_names %}
+    <form method="post" action="/alerts" style="margin:0">
+      <input type="hidden" name="action" value="{{ 'user_keyword_delete_by_name' if is_on else 'user_keyword' }}">
+      {% if is_on %}
+      {% for kw in user_keywords if kw.keyword == cat %}
+      <input type="hidden" name="keyword_id" value="{{ kw.id }}">
+      {% endfor %}
+      {% else %}
+      <input type="hidden" name="keyword" value="{{ cat }}">
+      <input type="hidden" name="min_grade" value="핫딜">
+      {% endif %}
+      <button type="submit" class="filter-chip {% if is_on %}on{% endif %}" style="border:none;cursor:pointer">
+        {{ cat }}{% if is_on %} ✓{% endif %}
+      </button>
+    </form>
+    {% endfor %}
+  </div>
+  <p style="font-size:12px;color:var(--muted);margin:4px 0 0">선택한 카테고리의 핫딜 이상 등급 딜이 올라오면 알림을 받습니다.</p>
+</div>
+{% endif %}
+
+{# ── 6. 키워드 목록 ── #}
+<div class="ap-section">
+  <div class="ap-section-head">키워드 알림 <span style="font-size:13px;font-weight:400;color:var(--muted)">{{ user_keywords|default([])|length }}개</span></div>
+
+  <div class="kw-list" id="kw-list">
+    {% for s in user_keywords|default([]) %}
+    <div class="kw-item" id="kwi-{{ s.id }}">
+      <span class="kw-item-name">{{ s.keyword }}</span>
+      <span class="kw-item-meta">{{ s.min_grade }} 이상{% if s.exclude_keywords %} · 제외: {{ s.exclude_keywords }}{% endif %}{% if not s.enabled %} · 일시중지{% endif %}</span>
+      <div class="kw-item-actions">
+        <form method="post" action="/alerts" style="margin:0">
+          <input type="hidden" name="action" value="user_keyword_toggle">
+          <input type="hidden" name="keyword_id" value="{{ s.id }}">
+          <button type="submit" class="kw-btn">{{ "일시중지" if s.enabled else "재개" }}</button>
+        </form>
+        <form method="post" action="/alerts" style="margin:0">
+          <input type="hidden" name="action" value="user_keyword_delete">
+          <input type="hidden" name="keyword_id" value="{{ s.id }}">
+          <button type="submit" class="kw-btn del">삭제</button>
+        </form>
+      </div>
+    </div>
+    {% else %}
+    <p class="muted" style="font-size:13px">아직 키워드가 없습니다. 아래에서 추가하세요.</p>
+    {% endfor %}
+  </div>
+
+  <form method="post" action="/alerts" class="kw-add-form">
+    <input type="hidden" name="action" value="user_keyword">
+    <input type="text" name="keyword" placeholder="키워드 (예: 카누, 에어팟)" required>
     <select name="min_grade">
       <option selected>핫딜</option>
       <option>특가</option>
       <option>초특가</option>
       <option>관심</option>
     </select>
-  </label>
-  <button type="submit">키워드 저장</button>
-</form>
+    <button type="submit">+ 추가</button>
+  </form>
+</div>
 
-<ul class="sale-list">
-  {% for s in user_keywords|default([]) %}
-  <li>
-    <strong>{{ s.keyword }}</strong>
-    <div class="muted" style="margin-top:4px;font-size:12px">{{ s.min_grade }} 이상{% if s.exclude_keywords %} · 제외: {{ s.exclude_keywords }}{% endif %}{% if not s.enabled %} · 일시중지{% endif %}</div>
-    <form method="post" action="/alerts" style="margin-top:8px">
-      <input type="hidden" name="action" value="user_keyword_toggle">
-      <input type="hidden" name="keyword_id" value="{{ s.id }}">
-      <button type="submit" class="btn-secondary">{{ "일시중지" if s.enabled else "다시 사용" }}</button>
-    </form>
-    <form method="post" action="/alerts" style="margin-top:8px">
-      <input type="hidden" name="action" value="user_keyword_delete">
-      <input type="hidden" name="keyword_id" value="{{ s.id }}">
-      <button type="submit" class="btn-secondary">삭제</button>
-    </form>
-  </li>
-  {% else %}
-  <li class="muted">저장한 키워드가 없습니다.</li>
-  {% endfor %}
-</ul>
+<script>
+(function () {
+  const cards = document.querySelectorAll('#chan-cards .chan-card');
+  const guides = document.querySelectorAll('.chan-guide');
+
+  cards.forEach(card => {
+    card.addEventListener('click', () => {
+      const val = card.querySelector('input[type=radio]').value;
+      cards.forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      guides.forEach(g => {
+        const id = 'guide-' + (val === '' ? 'inbox' : val);
+        g.classList.toggle('active', g.id === id);
+      });
+    });
+  });
+})();
+</script>

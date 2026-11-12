@@ -867,6 +867,20 @@ async def alerts_page(request: Request):
     subs = await list_subs(_db()) if _is_admin(request) else []
     user = getattr(request.state, "user", None)
     user_keywords = await user_auth.list_keywords(_db(), user["id"]) if user else []
+    # 알림 통계: 최근 30일 발송 카운트
+    notif_stats: dict = {}
+    if user:
+        cur = await _db().execute(
+            """SELECT COUNT(*) AS cnt, MAX(s.sent_at) AS last_at
+               FROM alert_sent s JOIN alert_subs sub ON sub.id=s.sub_id
+               WHERE sub.user_id=?""",
+            (int(user["id"]),),
+        )
+        row = await cur.fetchone()
+        notif_stats = {"total": row["cnt"] or 0, "last_at": row["last_at"]}
+    from app.engine.category import CATEGORIES as DEAL_CATEGORIES
+    # 사용자 키워드 중 카테고리와 일치하는 것 추출
+    user_kw_names = {k["keyword"] for k in user_keywords}
     return TEMPLATES.TemplateResponse(
         "alerts.html",
         {
@@ -876,6 +890,9 @@ async def alerts_page(request: Request):
             "subs": [_public_sub(s) for s in subs],
             "ready": channels_ready(),
             "user_keywords": user_keywords,
+            "notif_stats": notif_stats,
+            "deal_categories": DEAL_CATEGORIES,
+            "user_kw_names": user_kw_names,
             "error": request.query_params.get("error"),
         },
     )
@@ -938,11 +955,38 @@ async def alerts_post(
             await user_auth.sync_user_alert_subs(_db(), user or {})
             await _db().commit()
         return RedirectResponse("/alerts", status_code=303)
+    if action == "user_keyword_delete_by_name" and user and keyword_id:
+        await user_auth.delete_keyword(_db(), user["id"], keyword_id)
+        user = await user_auth.get_user(_db(), user["id"])
+        await user_auth.sync_user_alert_subs(_db(), user or {})
+        await _db().commit()
+        return RedirectResponse("/alerts", status_code=303)
     if action == "user_keyword_delete" and user and keyword_id:
         await user_auth.delete_keyword(_db(), user["id"], keyword_id)
         user = await user_auth.get_user(_db(), user["id"])
         await user_auth.sync_user_alert_subs(_db(), user or {})
         await _db().commit()
+        return RedirectResponse("/alerts", status_code=303)
+    if action == "user_quiet" and user:
+        body = await request.form()
+        q_start = body.get("quiet_start", "")
+        q_end = body.get("quiet_end", "")
+        try:
+            qs = int(q_start) if q_start != "" else None
+            qe = int(q_end) if q_end != "" else None
+            if qs is not None and qe is not None:
+                await _db().execute(
+                    "UPDATE users SET quiet_start=?, quiet_end=? WHERE id=?",
+                    (qs, qe, int(user["id"])),
+                )
+            else:
+                await _db().execute(
+                    "UPDATE users SET quiet_start=NULL, quiet_end=NULL WHERE id=?",
+                    (int(user["id"]),),
+                )
+            await _db().commit()
+        except Exception:
+            log.exception("user_quiet failed")
         return RedirectResponse("/alerts", status_code=303)
     if not _is_admin(request):
         return RedirectResponse("/alerts", status_code=303)

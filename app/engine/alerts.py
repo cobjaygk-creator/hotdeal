@@ -249,6 +249,10 @@ async def dispatch_alerts(conn, client, deals: list[dict]) -> dict:
             if not sub.get("channel"):
                 summary["sent"] += 1
                 continue
+            # 조용히 모드: 사용자 quiet_start~quiet_end 범위면 외부 발송 스킵
+            if user_id and await _is_quiet_hour(conn, int(user_id)):
+                summary["skipped"] += 1
+                continue
             try:
                 await _deliver(conn, client, sub, deal)
                 summary["sent"] += 1
@@ -376,3 +380,19 @@ async def dispatch_family_d1_alerts(conn, client) -> int:
 
     return sent
 
+
+async def _is_quiet_hour(conn, user_id: int) -> bool:
+    """사용자의 조용히 모드(quiet_start~quiet_end)가 현재 KST 시각에 활성 중이면 True."""
+    from datetime import datetime, timezone, timedelta
+    cur = await conn.execute(
+        "SELECT quiet_start, quiet_end FROM users WHERE id=?", (user_id,)
+    )
+    row = await cur.fetchone()
+    if not row or row["quiet_start"] is None or row["quiet_end"] is None:
+        return False
+    kst_hour = datetime.now(tz=timezone(timedelta(hours=9))).hour
+    s, e = int(row["quiet_start"]), int(row["quiet_end"])
+    if s <= e:
+        return s <= kst_hour < e
+    # 자정을 넘는 경우 (예: 23~7)
+    return kst_hour >= s or kst_hour < e

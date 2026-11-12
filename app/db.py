@@ -671,6 +671,15 @@ async def _ensure_auth_tables(conn: aiosqlite.Connection) -> None:
         """
     )
     await conn.execute("CREATE INDEX IF NOT EXISTS idx_family_wishes_user ON family_sale_wishes(user_id)")
+    # Phase E: 조용히 모드 (quiet hours) 컬럼 추가
+    cur = await conn.execute("PRAGMA table_info(users)")
+    user_cols2 = {row[1] for row in await cur.fetchall()}
+    for col_name, col_decl in (
+        ("quiet_start", "INTEGER"),  # 무음 시작 시 (0-23), NULL=비활성
+        ("quiet_end", "INTEGER"),    # 무음 종료 시 (0-23)
+    ):
+        if col_name not in user_cols2:
+            await conn.execute(f"ALTER TABLE users ADD COLUMN {col_name} {col_decl}")
     await conn.execute("CREATE INDEX IF NOT EXISTS idx_family_wishes_client ON family_sale_wishes(client_key)")
     try:
         from app.engine.auth import ensure_local_admin
