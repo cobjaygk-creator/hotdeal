@@ -690,6 +690,17 @@ async def family_index(
             return (s.get("collected_at") or "")[:10] >= stale_before
         return False
 
+    today = datetime.utcnow().date()
+
+    def _dday(s: dict) -> int | None:
+        end = s.get("end_date")
+        if not end:
+            return None
+        try:
+            return (datetime.fromisoformat(end[:10]).date() - today).days
+        except ValueError:
+            return None
+
     live = sorted(
         (s for s in sales if _visible(s)),
         key=lambda s: (
@@ -698,6 +709,12 @@ async def family_index(
             s.get("start_date") or "9999",
         ),
     )
+    for s in live:
+        s["dday"] = _dday(s)
+
+    urgent = [s for s in live if s["status"] == "진행중" and s.get("dday") is not None and s["dday"] <= 7]
+    urgent.sort(key=lambda s: s["dday"])
+
     last = await get_meta(_db(), "last_family_collect_at")
     stats = {
         "live": sum(1 for s in live if s["status"] == "진행중"),
@@ -711,6 +728,7 @@ async def family_index(
             "request": request,
             "nav": "family",
             "sales": live,
+            "urgent": urgent,
             "cats": cats,
             "all_cats": CATEGORIES,
             "entry_only": entry_only,
