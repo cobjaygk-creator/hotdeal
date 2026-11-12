@@ -596,6 +596,12 @@ details:not([open]) > .account-dropdown { display: none; }
   white-space: nowrap;
 }
 .deal-tag-sep { opacity: .5; }
+.deal-tag-mall {
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 12px;
+}
 
 /* 理쒖?媛 諭껋? */
 .deal-tag-lowest {
