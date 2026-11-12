@@ -1137,9 +1137,9 @@
   grid-template-rows: auto 1fr;
   gap: 0 24px;
   align-items: start;
-  max-width: 980px;
+  max-width: 1180px;
   margin: 0 auto;
-  padding: 24px 0 48px;
+  padding: 24px 16px 48px;
 }
 .mp-mobile-tabs { display: none; }
 
