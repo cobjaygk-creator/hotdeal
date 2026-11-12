@@ -84,18 +84,32 @@ class FetchResult:
     encoding: str | None = None
 
 
+# Sentinel: caller did not pass a proxy kwarg → use PoliteClient's global default.
+# Callers that pass proxy=None explicitly get a direct (no-proxy) connection.
+_PROXY_UNSET = object()
+
+
 class PoliteClient:
     def __init__(self) -> None:
-        # When HTTP_PROXY_URL is set, route all requests through it by default.
-        # Per-call `proxy=` overrides this (per-source proxies take priority).
+        # When HTTP_PROXY_URL is set, requests that don't specify a proxy use it.
+        # Passing proxy=None explicitly bypasses even the global default.
         self._default_proxy: str | None = HTTP_PROXY_URL or None
-        init_proxy = self._default_proxy
+        # Always-direct client — used when proxy=None is passed explicitly.
         self._client = httpx.AsyncClient(
             headers=BROWSER_HEADERS,
             timeout=HTTP_TIMEOUT_SEC,
             follow_redirects=True,
-            **({"proxy": init_proxy} if init_proxy else {}),
         )
+        # Client for the global default proxy path.
+        if self._default_proxy:
+            self._default_client: httpx.AsyncClient = httpx.AsyncClient(
+                headers=BROWSER_HEADERS,
+                timeout=HTTP_TIMEOUT_SEC,
+                follow_redirects=True,
+                proxy=self._default_proxy,
+            )
+        else:
+            self._default_client = self._client
         self._proxy_clients: dict[str, httpx.AsyncClient] = {}
         self._impersonate_sessions: dict[str, object] = {}
         self._locks: dict[str, asyncio.Lock] = {}
@@ -109,6 +123,7 @@ class PoliteClient:
         return self._locks[host]
 
     def _client_for(self, proxy: str | None) -> httpx.AsyncClient:
+        # proxy=None → direct, no proxy at all; proxy=<url> → specific proxy client.
         if not proxy:
             return self._client
         if proxy not in self._proxy_clients:
@@ -122,6 +137,8 @@ class PoliteClient:
 
     async def aclose(self) -> None:
         await self._client.aclose()
+        if self._default_client is not self._client:
+            await self._default_client.aclose()
         for client in self._proxy_clients.values():
             await client.aclose()
         self._proxy_clients.clear()
@@ -145,16 +162,23 @@ class PoliteClient:
         *,
         curl_fallback: bool = True,
         max_retries: int | None = None,
-        proxy: str | None = None,
+        proxy: str | None | object = _PROXY_UNSET,
     ) -> FetchResult:
-        # Per-call proxy overrides default; fall back to global HTTP_PROXY_URL.
-        effective_proxy = proxy or self._default_proxy
+        # _PROXY_UNSET: caller didn't specify → use global default proxy.
+        # proxy=None explicitly: bypass even the global proxy (direct connection).
+        # proxy=<url>: use that specific proxy.
+        if proxy is _PROXY_UNSET:
+            effective_proxy = self._default_proxy
+            http = self._default_client
+        elif proxy is None:
+            effective_proxy = None
+            http = self._client  # direct, no proxy
+        else:
+            effective_proxy = str(proxy)
+            http = self._client_for(effective_proxy)
         host = httpx.URL(url).host or "default"
         req_timeout = timeout if timeout is not None else HTTP_TIMEOUT_SEC
         retries = MAX_RETRIES if max_retries is None else max(1, max_retries)
-        # When using the global default proxy, the default _client already has
-        # the proxy baked in; pass None to _client_for so we reuse it.
-        http = self._client_for(proxy if proxy else None)
         extra: dict[str, str] = {}
         # Auto-Referer: set the origin as referer so community sites (ppomppu
         # etc.) that check the header don't return a plain 403.

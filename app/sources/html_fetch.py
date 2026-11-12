@@ -57,11 +57,14 @@ async def fetch_parsed(
     reason = None
     last_exc: Exception | None = None
     for proxy in proxy_tries:
+        # Shorter timeout when going via proxy so a dead proxy fails fast and
+        # the loop moves on to the direct fallback.
+        effective_timeout = timeout or (10.0 if proxy else None)
         try:
             result = await client.get(
                 url,
                 encoding=encoding,
-                timeout=timeout or (20.0 if proxy else None),
+                timeout=effective_timeout,
                 max_retries=max_retries,
                 curl_fallback=curl_fallback,
                 proxy=proxy,
@@ -79,7 +82,7 @@ async def fetch_parsed(
             result = await client.get(
                 url,
                 encoding=encoding,
-                timeout=timeout or (20.0 if proxy else None),
+                timeout=effective_timeout,
                 proxy=proxy,
             )
             if result.not_modified:
