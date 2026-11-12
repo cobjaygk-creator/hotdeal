@@ -1,28 +1,82 @@
 {% extends "admin_base.html" %}
-{% block title %}신고관리 · 핫딜모음{% endblock %}
+{% block title %}신고관리 · 관리자{% endblock %}
 {% block admin_body %}
-<div class="page-head">
-  <h1>신고관리</h1>
-  <div class="page-meta">최근 {{ reports|length }}건 · <a href="/admin/reports/history">처리 이력</a></div>
+<div class="admin-page-top">
+  <div>
+    <h1>신고관리</h1>
+    <div class="admin-page-sub">최근 {{ reports|length }}건 · <a href="/admin/reports/history" style="color:var(--accent)">처리 이력</a></div>
+  </div>
 </div>
+
 {% if reports %}
-<div class="table-card"><div class="table-scroll">
-<table class="admin-table">
-  <thead>
-    <tr><th>시각</th><th>딜</th><th>사유</th><th>내용</th><th>상태</th></tr>
-  </thead>
-  <tbody>
-    {% for r in reports %}
-    <tr>
-      <td>{{ r.created_at }}</td>
-      <td><a href="/deal/{{ r.deal_id }}">{{ r.product_name or r.deal_id }}</a></td>
-      <td>{{ r.reason }}</td>
-      <td>{{ r.detail or "" }}</td><td><form method="post" action="/admin/reports/status"><input type="hidden" name="report_id" value="{{ r.id }}"><select name="status"><option value="received" {% if r.status == "received" %}selected{% endif %}>접수</option><option value="reviewing" {% if r.status == "reviewing" %}selected{% endif %}>확인 중</option><option value="resolved" {% if r.status == "resolved" %}selected{% endif %}>수정 완료</option><option value="dismissed" {% if r.status == "dismissed" %}selected{% endif %}>반영하지 않음</option></select><button class="btn-secondary" type="submit">저장</button></form></td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
-</div></div>
+<div class="table-card">
+  <div class="table-scroll">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>시각</th>
+          <th>딜</th>
+          <th>사유</th>
+          <th>내용</th>
+          <th>상태</th>
+          <th>처리</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in reports %}
+        <tr>
+          <td style="white-space:nowrap;font-size:12px;color:var(--ink-muted)">{{ r.created_at }}</td>
+          <td>
+            <a href="/deal/{{ r.deal_id }}" target="_blank" rel="noopener" style="font-weight:600">
+              {{ r.product_name or r.deal_id }}
+            </a>
+          </td>
+          <td>{{ r.reason }}</td>
+          <td style="max-width:200px;font-size:12.5px;color:var(--ink-muted)">{{ r.detail or "" }}</td>
+          <td>
+            {% if r.status == 'received' %}
+              <span class="status-badge muted">접수</span>
+            {% elif r.status == 'reviewing' %}
+              <span class="status-badge warn">확인 중</span>
+            {% elif r.status == 'resolved' %}
+              <span class="status-badge ok">수정 완료</span>
+            {% elif r.status == 'dismissed' %}
+              <span class="status-badge muted">반영 안 함</span>
+            {% else %}
+              <span class="status-badge muted">{{ r.status }}</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="action-btn-row">
+              {% if r.status != 'reviewing' %}
+              <form method="post" action="/admin/reports/status">
+                <input type="hidden" name="report_id" value="{{ r.id }}">
+                <input type="hidden" name="status" value="reviewing">
+                <button class="action-btn" type="submit">확인 중</button>
+              </form>
+              {% endif %}
+              {% if r.status != 'resolved' %}
+              <form method="post" action="/admin/reports/status">
+                <input type="hidden" name="report_id" value="{{ r.id }}">
+                <input type="hidden" name="status" value="resolved">
+                <button class="action-btn" type="submit">수정 완료</button>
+              </form>
+              {% endif %}
+              {% if r.status != 'dismissed' %}
+              <form method="post" action="/admin/reports/status">
+                <input type="hidden" name="report_id" value="{{ r.id }}">
+                <input type="hidden" name="status" value="dismissed">
+                <button class="action-btn danger" type="submit">반영 안 함</button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
 {% else %}
 <p class="muted">아직 신고가 없습니다.</p>
 {% endif %}

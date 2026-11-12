@@ -1,45 +1,126 @@
 {% extends "admin_base.html" %}
-{% block title %}관리자 · 핫딜모음{% endblock %}
+{% block title %}대시보드 · 관리자{% endblock %}
 {% block admin_body %}
-<div class="page-head"><h1>통계</h1></div>
-
-<div class="metric-grid">
-  <div class="metric-tile"><div class="metric-label">오늘 초특가</div><div class="metric-value">{{ stats.strong }}</div></div>
-  <div class="metric-tile"><div class="metric-label">오늘 핫딜+</div><div class="metric-value">{{ stats.today_hot }}</div></div>
-  <div class="metric-tile"><div class="metric-label">전체 딜</div><div class="metric-value">{{ "{:,}".format(stats.deals) }}</div></div>
-  <div class="metric-tile"><div class="metric-label">전체 게시글</div><div class="metric-value">{{ "{:,}".format(stats.posts) }}</div></div>
-<div class="metric-grid" style="margin-top:12px">
-  <a class="metric-tile" href="/admin/coupang-links?status=failed"><div class="metric-label">Link failures</div><div class="metric-value">{{ "{:,}".format(stats.link_failures) }}</div></a>
-  <a class="metric-tile" href="/admin/reports"><div class="metric-label">Pending reports</div><div class="metric-value">{{ "{:,}".format(stats.reports_pending) }}</div></a>
-  <div class="metric-tile"><div class="metric-label">Missing buy links</div><div class="metric-value">{{ "{:,}".format(stats.missing_links) }}</div></div>
-  <a class="metric-tile" href="/admin/quality?kind=price"><div class="metric-label">Price review</div><div class="metric-value">{{ "{:,}".format(stats.price_review) }}</div></a></div>
-  <div class="metric-tile"><div class="metric-label">Quality review</div><div class="metric-value">{{ "{:,}".format(stats.quality_review) }}</div></div>
+<div class="admin-page-top">
+  <div>
+    <h1>대시보드</h1>
+    <div class="admin-page-sub">
+      마지막 수집
+      {% if stats.last_collect_at %}{{ stats.last_collect_at | kst }}{% else %}–{% endif %}
+    </div>
+  </div>
+  {% if stats.collect_by_source %}
+    {% set has_error = stats.collect_by_source.values() | selectattr('error') | list | length > 0 %}
+    {% if has_error %}
+      <span class="status-badge warn">⚠ 일부 오류</span>
+    {% else %}
+      <span class="status-badge ok">● 수집 정상</span>
+    {% endif %}
+  {% endif %}
 </div>
-<p class="muted" style="margin-top:10px">마지막 수집 {{ stats.last_collect_at | kst }}</p>
 
-<h2 id="collect" style="margin-top:28px">수집관리</h2>
-<p class="muted">각 버튼은 해당 수집 파이프라인을 즉시 1회 실행합니다.</p>
+{# 메트릭 #}
+<div class="metric-grid-v2">
+  <div class="metric-tile-v2">
+    <div class="m-label">오늘 초특가</div>
+    <div class="m-val accent">{{ stats.strong }}</div>
+  </div>
+  <div class="metric-tile-v2">
+    <div class="m-label">오늘 핫딜+</div>
+    <div class="m-val">{{ stats.today_hot }}</div>
+  </div>
+  <div class="metric-tile-v2">
+    <div class="m-label">전체 딜</div>
+    <div class="m-val">{{ "{:,}".format(stats.deals) }}</div>
+  </div>
+  <div class="metric-tile-v2">
+    <div class="m-label">전체 게시글</div>
+    <div class="m-val">{{ "{:,}".format(stats.posts) }}</div>
+  </div>
+  <a class="metric-tile-v2" href="/admin/reports">
+    <div class="m-label">미처리 신고</div>
+    <div class="m-val {% if stats.reports_pending > 0 %}warn{% endif %}">{{ stats.reports_pending }}</div>
+  </a>
+  <a class="metric-tile-v2" href="/admin/quality?kind=price">
+    <div class="m-label">품질검수</div>
+    <div class="m-val {% if stats.quality_review > 0 %}warn{% endif %}">{{ "{:,}".format(stats.quality_review) }}</div>
+  </a>
+  <a class="metric-tile-v2" href="/admin/coupang-links?status=failed">
+    <div class="m-label">링크 실패</div>
+    <div class="m-val {% if stats.link_failures > 0 %}danger{% endif %}">{{ "{:,}".format(stats.link_failures) }}</div>
+  </a>
+  <div class="metric-tile-v2">
+    <div class="m-label">구매링크 미확보</div>
+    <div class="m-val {% if stats.missing_links > 5000 %}warn{% endif %}">{{ "{:,}".format(stats.missing_links) }}</div>
+  </div>
+</div>
+
+{# 소스별 수집 현황 #}
+{% if stats.collect_by_source %}
+<div class="h2-label">소스 수집 현황</div>
+<div class="source-status-grid">
+  {% for src, info in stats.collect_by_source.items() %}
+  <div class="source-status-card">
+    <span class="source-dot {% if info.error %}err{% else %}ok{% endif %}"></span>
+    <span class="source-name">{{ src }}</span>
+    <span class="source-detail">
+      {% if info.error %}
+        실패
+      {% elif info.at %}
+        {{ info.at | kst_short if info.at else '–' }}
+      {% endif %}
+    </span>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{# 수집관리 바로가기 (operator 이상) #}
+{% if user.admin_role in ["admin", "operator"] %}
+<div class="h2-label" style="margin-top:8px">수동 수집</div>
 <div class="admin-collect-buttons">
-  <button type="button" class="btn-secondary" data-collect="/api/collect">전체 수집</button>
-  <button type="button" class="btn-secondary" data-collect="/api/family/collect">패밀리세일 수집</button>
-  <button type="button" class="btn-secondary" data-collect="/api/ppomppu/enrich-malls">구매링크 보강</button>
-  <button type="button" class="btn-secondary" data-collect="/api/coupang/collect">쿠팡특가 수집</button>
-  <button type="button" class="btn-secondary" data-collect="/api/amazon-jp/collect">일마존 수집</button>
-  {% if email_digest_enabled %}<button type="button" class="btn-secondary" data-collect="/api/admin/digest/send">이메일 다이제스트 발송</button>{% endif %}
+  <button type="button" class="btn-secondary" data-collect="/api/collect">🔄 전체 수집</button>
+  <button type="button" class="btn-secondary" data-collect="/api/family/collect">🏬 패밀리세일</button>
+  <button type="button" class="btn-secondary" data-collect="/api/ppomppu/enrich-malls">🔗 구매링크 보강</button>
+  <button type="button" class="btn-secondary" data-collect="/api/coupang/collect">🛒 쿠팡특가</button>
+  <button type="button" class="btn-secondary" data-collect="/api/amazon-jp/collect">🗾 일마존</button>
+  {% if email_digest_enabled %}<button type="button" class="btn-secondary" data-collect="/api/admin/digest/send">📧 다이제스트 발송</button>{% endif %}
 </div>
 <p class="muted" id="admin-collect-status" style="margin-top:8px"></p>
+{% endif %}
+
+<style>
+.h2-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-muted, #6b7280);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.h2-label::before {
+  content: '';
+  display: inline-block;
+  width: 3px; height: 12px;
+  background: var(--accent, #2e63f6);
+  border-radius: 2px;
+}
+</style>
 <script>
 document.querySelectorAll("[data-collect]").forEach((btn) => {
   btn.addEventListener("click", async () => {
     const status = document.getElementById("admin-collect-status");
     btn.disabled = true;
-    status.textContent = "실행 중…";
+    if (status) status.textContent = "실행 중…";
     try {
       const res = await fetch(btn.dataset.collect, { method: "POST" });
       const data = await res.json().catch(() => ({}));
-      status.textContent = res.ok ? "완료: " + JSON.stringify(data) : (data.detail || "실패");
+      if (status) status.textContent = res.ok ? "완료: " + JSON.stringify(data) : (data.detail || "실패");
     } catch (e) {
-      status.textContent = "요청 실패";
+      if (status) status.textContent = "요청 실패";
     } finally {
       btn.disabled = false;
     }

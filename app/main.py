@@ -2099,7 +2099,8 @@ async def admin_settings_page(request: Request):
     conn = _db()
     cur = await conn.execute("SELECT key, updated_at FROM app_settings ORDER BY key")
     saved = {row["key"]: row["updated_at"] for row in await cur.fetchall()}
-    return TEMPLATES.TemplateResponse("admin_settings.html", {"request": request, "nav": "admin", "admin_section": "settings", "setting_keys": SETTING_KEYS, "saved": saved, "oauth_ready": user_auth.providers_ready()})
+    nav = await _nav_counts()
+    return TEMPLATES.TemplateResponse("admin_settings.html", {"request": request, "nav": "admin", "admin_section": "settings", "setting_keys": SETTING_KEYS, "saved": saved, "oauth_ready": user_auth.providers_ready(), **nav})
 
 @app.post("/api/admin/settings")
 async def admin_settings_save(request: Request):
@@ -2147,13 +2148,27 @@ async def api_ad_event(request: Request):
 @app.get("/admin/revenue", response_class=HTMLResponse)
 async def admin_revenue(request: Request, days: int = 30, device: str | None = None):
     _require_role(request, {"operator", "ads", "viewer"})
-    cur = await _db().execute("SELECT event_type, COUNT(*) AS count FROM ad_events GROUP BY event_type")
+    days = max(1, min(365, days))
+    device = device if device in ("pc", "mobile") else None
+    cutoff = f"-{days} days"
+    where = "created_at >= datetime('now', ?)"
+    params: list = [cutoff]
+    if device:
+        where += " AND device=?"
+        params.append(device)
+    cur = await _db().execute(f"SELECT event_type, COUNT(*) AS count FROM ad_events WHERE {where} GROUP BY event_type", params)
     ad = {row["event_type"]: row["count"] for row in await cur.fetchall()}
-    cur = await _db().execute("SELECT COUNT(*) AS count FROM affiliate_clicks WHERE created_at >= ?", (cutoff,))
+    cur = await _db().execute(f"SELECT COUNT(*) AS count FROM affiliate_clicks WHERE {where}", params)
     clicks = (await cur.fetchone())["count"]
+    cur = await _db().execute(
+        f"SELECT date(created_at,'localtime') AS date, COUNT(*) AS clicks FROM affiliate_clicks WHERE {where} GROUP BY date(created_at,'localtime') ORDER BY date",
+        params,
+    )
+    daily_clicks = [{"date": row["date"], "clicks": row["clicks"]} for row in await cur.fetchall()]
     import app.config as revenue_config
     estimated = ad.get("click", 0) * float(getattr(revenue_config, "ADSENSE_ESTIMATED_CPC", 0)) + clicks * float(getattr(revenue_config, "COUPANG_ESTIMATED_EPC", 0))
-    return TEMPLATES.TemplateResponse("admin_revenue.html", {"request": request, "nav": "admin", "admin_section": "settings", "ad": ad, "affiliate_clicks": clicks, "days": days, "device": device, "estimated_revenue": estimated})
+    nav = await _nav_counts()
+    return TEMPLATES.TemplateResponse("admin_revenue.html", {"request": request, "nav": "admin", "admin_section": "revenue", "ad": ad, "affiliate_clicks": clicks, "days": days, "device": device, "estimated_revenue": estimated, "daily_clicks": daily_clicks, **nav})
 
 @app.get("/admin/ad-stats", response_class=HTMLResponse)
 async def admin_ad_stats(request: Request, days: int = 1, device: str | None = None):
@@ -2175,7 +2190,21 @@ async def admin_dashboard(request: Request):
     stats = await _stats()
     return TEMPLATES.TemplateResponse(
         "admin_dashboard.html",
-        {"request": request, "nav": "admin", "admin_section": "stats", "stats": stats},
+        {"request": request, "nav": "admin", "admin_section": "stats", "stats": stats,
+         "nav_reports_pending": stats.get("reports_pending", 0),
+         "nav_quality_pending": stats.get("quality_review", 0)},
+    )
+
+
+@app.get("/admin/collect", response_class=HTMLResponse)
+async def admin_collect(request: Request):
+    _require_role(request, {"admin", "operator"})
+    stats = await _stats()
+    return TEMPLATES.TemplateResponse(
+        "admin_collect.html",
+        {"request": request, "nav": "admin", "admin_section": "collect", "stats": stats,
+         "nav_reports_pending": stats.get("reports_pending", 0),
+         "nav_quality_pending": stats.get("quality_review", 0)},
     )
 
 
@@ -2255,7 +2284,8 @@ async def admin_quality(request: Request, kind: str = "all"):
     rows = [dict(r) for r in await cur.fetchall()]
     cur = await _db().execute("SELECT * FROM admin_change_log WHERE entity='deal' ORDER BY id DESC LIMIT 50")
     changes = [dict(r) for r in await cur.fetchall()]
-    return TEMPLATES.TemplateResponse("admin_quality.html", {"request": request, "nav": "admin", "admin_section": "quality", "rows": rows, "kind": kind, "changes": changes})
+    nav = await _nav_counts()
+    return TEMPLATES.TemplateResponse("admin_quality.html", {"request": request, "nav": "admin", "admin_section": "quality", "rows": rows, "kind": kind, "changes": changes, **nav})
 
 
 @app.post("/admin/toss-links/status")
@@ -2284,7 +2314,8 @@ async def admin_toss_links(request: Request, status: str | None = None):
         where += " AND toss_review_status=?"; params.append(status)
     cur = await _db().execute("SELECT id, product_name, seller, mall_url, deal_url, toss_review_status, toss_review_reason, last_seen_at FROM deals WHERE " + where + " ORDER BY last_seen_at DESC LIMIT 300", params)
     rows = [dict(r) for r in await cur.fetchall()]
-    return TEMPLATES.TemplateResponse("admin_toss_links.html", {"request": request, "nav": "admin", "admin_section": "toss_links", "rows": rows, "status": status})
+    nav = await _nav_counts()
+    return TEMPLATES.TemplateResponse("admin_toss_links.html", {"request": request, "nav": "admin", "admin_section": "toss_links", "rows": rows, "status": status, **nav})
 
 
 @app.get("/admin/coupang-links", response_class=HTMLResponse)
@@ -2297,7 +2328,8 @@ async def admin_coupang_links(request: Request, status: str | None = None):
         params.append(status)
     cur = await _db().execute(f"SELECT * FROM coupang_deals WHERE {where} ORDER BY last_seen_at DESC LIMIT 300", params)
     rows = [dict(row) for row in await cur.fetchall()]
-    return TEMPLATES.TemplateResponse("admin_coupang_links.html", {"request": request, "nav": "admin", "admin_section": "coupang_links", "rows": rows, "status": status})
+    nav = await _nav_counts()
+    return TEMPLATES.TemplateResponse("admin_coupang_links.html", {"request": request, "nav": "admin", "admin_section": "coupang_links", "rows": rows, "status": status, **nav})
 
 @app.post("/api/admin/coupang-links/validate-all")
 async def admin_coupang_links_validate_all(request: Request, status: str = "failed"):
@@ -2406,9 +2438,10 @@ async def admin_report_history(request: Request):
 async def admin_reports(request: Request):
     _require_role(request, {"operator", "reviewer", "viewer"})
     rows = await deal_comments.list_reports(_db())
+    nav = await _nav_counts()
     return TEMPLATES.TemplateResponse(
         "admin_reports.html",
-        {"request": request, "nav": "admin", "admin_section": "reports", "reports": rows},
+        {"request": request, "nav": "admin", "admin_section": "reports", "reports": rows, **nav},
     )
 
 
@@ -2416,6 +2449,7 @@ async def admin_reports(request: Request):
 async def admin_users(request: Request):
     me = _require_admin(request)
     users = await user_auth.list_users(_db())
+    nav = await _nav_counts()
     return TEMPLATES.TemplateResponse(
         "admin_users.html",
         {
@@ -2425,6 +2459,7 @@ async def admin_users(request: Request):
             "users": users,
             "me_id": int(me["id"]),
             "bootstrap_username": ADMIN_USERNAME,
+            **nav,
         },
     )
 
@@ -2720,6 +2755,15 @@ async def _debug_resolve_outbound(client, page_url: str, hrefs: list[str]) -> li
         if len(out) >= 3:
             break
     return out
+
+
+async def _nav_counts() -> dict:
+    db = _db()
+    cur = await db.execute("SELECT COUNT(*) AS c FROM deal_reports")
+    reports = (await cur.fetchone())["c"]
+    cur = await db.execute("SELECT COUNT(*) AS c FROM deals WHERE status='needs_review' OR price IS NULL OR price < 1000")
+    quality = (await cur.fetchone())["c"]
+    return {"nav_reports_pending": reports, "nav_quality_pending": quality}
 
 
 async def _stats() -> dict:

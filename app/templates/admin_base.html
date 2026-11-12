@@ -1,18 +1,56 @@
 {% extends "base.html" %}
 {% block extra_head %}<meta name="robots" content="noindex">{% endblock %}
 {% block body %}
-<div class="admin-layout">
-  <nav class="admin-side" aria-label="관리자 메뉴">
-    <a href="/admin" class="{% if admin_section == 'stats' %}on{% endif %}">통계</a>
-    <a href="/admin/users" class="{% if admin_section == 'users' %}on{% endif %}">회원관리</a>
-    <a href="/admin/reports" class="{% if admin_section == 'reports' %}on{% endif %}">신고관리</a>
-    <a href="/admin/quality" class="{% if admin_section == 'quality' %}on{% endif %}">품질검수</a>
-    <a href="/admin/toss-links" class="{% if admin_section == "toss_links" %}on{% endif %}">토스 검수</a>
-    <a href="/admin/coupang-links" class="{% if admin_section == 'coupang_links' %}on{% endif %}">쿠팡 링크</a>
-    {% if user.admin_role in ["admin", "operator"] %}<a href="/admin/settings" class="{% if admin_section == 'settings' %}on{% endif %}">외부 서비스 설정</a>
-    <a href="/admin#collect" class="{% if admin_section == 'collect' %}on{% endif %}">수집관리</a>{% endif %}
+<div class="admin-layout-v2">
+  <nav class="admin-nav" aria-label="관리자 메뉴">
+    <a href="/admin" class="admin-nav-logo">
+      <span class="admin-nav-logo-mark">⚡</span>
+      핫딜 관리자
+    </a>
+
+    <span class="admin-nav-section">운영</span>
+    <a href="/admin" class="admin-nav-item {% if admin_section == 'stats' %}on{% endif %}">
+      <span class="admin-nav-icon">📊</span>대시보드
+    </a>
+    {% if user.admin_role in ["admin", "operator"] %}
+    <a href="/admin/collect" class="admin-nav-item {% if admin_section == 'collect' %}on{% endif %}">
+      <span class="admin-nav-icon">🔄</span>수집관리
+    </a>
+    {% endif %}
+
+    <span class="admin-nav-section">콘텐츠</span>
+    <a href="/admin/reports" class="admin-nav-item {% if admin_section == 'reports' %}on{% endif %}">
+      <span class="admin-nav-icon">🚩</span>신고관리
+      {% if nav_reports_pending and nav_reports_pending > 0 %}<span class="admin-nav-badge">{{ nav_reports_pending }}</span>{% endif %}
+    </a>
+    <a href="/admin/quality" class="admin-nav-item {% if admin_section == 'quality' %}on{% endif %}">
+      <span class="admin-nav-icon">🔍</span>품질검수
+      {% if nav_quality_pending and nav_quality_pending > 0 %}<span class="admin-nav-badge">{{ nav_quality_pending }}</span>{% endif %}
+    </a>
+    <a href="/admin/coupang-links" class="admin-nav-item {% if admin_section == 'coupang_links' %}on{% endif %}">
+      <span class="admin-nav-icon">🔗</span>쿠팡 링크
+    </a>
+    <a href="/admin/toss-links" class="admin-nav-item {% if admin_section == 'toss_links' %}on{% endif %}">
+      <span class="admin-nav-icon">💳</span>토스 검수
+    </a>
+
+    <span class="admin-nav-section">수익화</span>
+    <a href="/admin/revenue" class="admin-nav-item {% if admin_section == 'revenue' %}on{% endif %}">
+      <span class="admin-nav-icon">💰</span>수익 대시보드
+    </a>
+
+    <span class="admin-nav-section">시스템</span>
+    <a href="/admin/users" class="admin-nav-item {% if admin_section == 'users' %}on{% endif %}">
+      <span class="admin-nav-icon">👥</span>회원관리
+    </a>
+    {% if user.admin_role in ["admin", "operator"] %}
+    <a href="/admin/settings" class="admin-nav-item {% if admin_section == 'settings' %}on{% endif %}">
+      <span class="admin-nav-icon">⚙️</span>외부 서비스 설정
+    </a>
+    {% endif %}
   </nav>
-  <div class="admin-content">
+
+  <div class="admin-body">
     {% block admin_body %}{% endblock %}
   </div>
 </div>
