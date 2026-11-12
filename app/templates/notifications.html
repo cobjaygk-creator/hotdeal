@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}알림센터 · 핫딜이쥬{% endblock %}
+{% block extra_head %}<meta name="robots" content="noindex">
+<style>
+.notif-page { max-width: 720px; margin: 0 auto; padding: 0 0 60px; }
+.notif-section-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 0 10px;
+  border-bottom: 2px solid var(--border);
+  margin-bottom: 4px;
+}
+.notif-section-head h2 { margin: 0; font-size: 16px; font-weight: 700; }
+.notif-count { font-size: 13px; color: var(--muted); font-weight: 400; margin-left: 6px; }
+.notif-row {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 12px 4px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background .1s;
+  border-radius: 6px;
+}
+.notif-row:hover { background: var(--surface-alt, #f9fafb); }
+.notif-row.unread { background: var(--accent-soft, #eff6ff); }
+.notif-icon {
+  width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 18px;
+}
+.notif-icon.deal { background: #fce7f3; }
+.notif-icon.family { background: #dbeafe; }
+.notif-body { flex: 1; min-width: 0; }
+.notif-title { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+.notif-title a { color: inherit; text-decoration: none; }
+.notif-title a:hover { text-decoration: underline; }
+.notif-meta { font-size: 12px; color: var(--muted); display: flex; gap: 8px; flex-wrap: wrap; }
+.notif-time { font-size: 11px; color: var(--muted-faint, #9ca3af); flex-shrink: 0; margin-top: 2px; }
+.notif-grade {
+  font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px;
+  background: #fee2e2; color: #ef4444;
+}
+.notif-grade.okay { background: #fef3c7; color: #b45309; }
+.notif-empty { color: var(--muted); font-size: 14px; padding: 24px 0; text-align: center; }
+.fam-sub-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 4px; border-bottom: 1px solid var(--border);
+}
+.fam-sub-thumb {
+  width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0;
+  background: linear-gradient(135deg, #1e3a5f, #2563eb);
+  display: flex; align-items: center; justify-content: center; font-size: 18px;
+}
+.fam-sub-info { flex: 1; min-width: 0; }
+.fam-sub-title { font-size: 14px; font-weight: 600; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fam-sub-title a { color: inherit; text-decoration: none; }
+.fam-sub-meta { font-size: 12px; color: var(--muted); }
+.fam-sub-tags { display: flex; gap: 4px; flex-shrink: 0; }
+.notif-tag {
+  font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 4px;
+  background: #dcfce7; color: #166534;
+}
+.unread-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex-shrink: 0; margin-top: 6px; }
+.page-head-actions { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
+.page-head-actions a { font-size: 13px; color: var(--accent); font-weight: 600; }
+</style>{% endblock %}
+
+{% block body %}
+<div class="page-head">
+  <h1>알림센터</h1>
+  <div class="page-head-actions">
+    <a href="/alerts">알림 설정 →</a>
+  </div>
+</div>
+
+<div class="notif-page">
+
+  {# ── 패밀리세일 알림 구독 중 ── #}
+  <div class="notif-section-head">
+    <h2>패밀리세일 알림 구독 <span class="notif-count">{{ family_subs|length }}건</span></h2>
+    {% if family_subs %}
+    <a href="/family?wish=1" style="font-size:13px;color:var(--accent);font-weight:600">찜 보기 →</a>
+    {% endif %}
+  </div>
+
+  {% if family_subs %}
+  <div class="notif-family-list">
+    {% for s in family_subs %}
+    <div class="fam-sub-row">
+      <div class="fam-sub-thumb">🏷️</div>
+      <div class="fam-sub-info">
+        <div class="fam-sub-title"><a href="/family/{{ s.id }}">{{ s.title }}</a></div>
+        <div class="fam-sub-meta">
+          {% if s.start_date %}{{ s.start_date[:10] }}{% if s.end_date %} ~ {{ s.end_date[:10] }}{% endif %}{% endif %}
+        </div>
+      </div>
+      <div class="fam-sub-tags">
+        {% if s.notif_d1 %}<span class="notif-tag">D-1 알림</span>{% endif %}
+        {% if s.notif_d0 %}<span class="notif-tag" style="background:#dbeafe;color:#1d4ed8">D-0 알림</span>{% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="notif-empty">패밀리세일 카드의 🔔를 눌러 알림을 구독하세요.</p>
+  {% endif %}
+
+  {# ── 딜 키워드 알림 수신 내역 ── #}
+  <div class="notif-section-head" style="margin-top:28px">
+    <h2>딜 알림 수신 내역 <span class="notif-count">{{ deal_notifs|length }}건</span></h2>
+  </div>
+
+  {% if deal_notifs %}
+  <div class="notif-deal-list">
+    {% for n in deal_notifs %}
+    <div class="notif-row {% if not n.read_at %}unread{% endif %}" onclick="location.href='/deal/{{ n.deal_id }}'">
+      <div class="notif-icon deal">🛍️</div>
+      <div class="notif-body">
+        <div class="notif-title">
+          <a href="/deal/{{ n.deal_id }}">{{ n.product_name }}</a>
+        </div>
+        <div class="notif-meta">
+          <span>키워드 &ldquo;{{ n.keyword }}&rdquo;</span>
+          {% if n.price %}<span>{{ "{:,}".format(n.price) }}원</span>{% endif %}
+          {% if n.grade %}
+          <span class="notif-grade {% if n.grade not in ('핫딜', '불꽃') %}okay{% endif %}">{{ n.grade }}</span>
+          {% endif %}
+        </div>
+      </div>
+      <div>
+        <div class="notif-time">{{ n.sent_at[:16] | replace('T', ' ') }}</div>
+        {% if not n.read_at %}<div class="unread-dot" style="margin-top:4px;margin-left:auto"></div>{% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="notif-empty">
+    아직 받은 딜 알림이 없습니다.<br>
+    <a href="/alerts" style="color:var(--accent);font-weight:600">키워드 등록하기 →</a>
+  </p>
+  {% endif %}
+
+</div>
+{% endblock %}

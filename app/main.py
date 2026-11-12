@@ -698,12 +698,20 @@ async def family_index(
     view: str | None = None,
     year: int | None = None,
     month: int | None = None,
+    wish: str | None = None,
 ):
     cats = parse_cats(cat or [])
     entry_only = code == "1"
     sort = sort if sort in SORT_OPTIONS else "dday"
     min_disc = disc if disc in DISC_OPTIONS else None
     cal_view = view == "calendar"
+    wish_only = wish == "1"
+
+    # 찜 필터용 wish_ids 로드 (로그인 사용자만)
+    wish_ids: set[int] = set()
+    current_user = getattr(request.state, "user", None)
+    if current_user:
+        wish_ids = set(await user_auth.list_family_wish_ids(_db(), user_id=current_user["id"]))
 
     sales = await list_sales(
         _db(),
@@ -726,6 +734,8 @@ async def family_index(
         return False
 
     live = [s for s in sales if _visible(s)]
+    if wish_only and wish_ids:
+        live = [s for s in live if s["id"] in wish_ids]
 
     # 정렬
     if sort == "dday":
@@ -787,6 +797,8 @@ async def family_index(
             "next_year": next_year,
             "next_month": next_month,
             "stats": stats,
+            "wish_only": wish_only,
+            "wish_ids": list(wish_ids),
         },
     )
 
@@ -1373,6 +1385,92 @@ async def api_me_bookmarks_put(request: Request, payload: BookmarkIn):
     return {"ids": ids}
 
 
+# ── 패밀리세일 찜 API ──────────────────────────────────────────────────────────
+
+@app.get("/api/me/family-wishes")
+async def api_family_wishes_list(request: Request):
+    user = _require_user(request)
+    ids = await user_auth.list_family_wish_ids(_db(), user_id=user["id"])
+    return {"ids": ids}
+
+
+@app.post("/api/me/family-wishes/{sale_id}")
+async def api_family_wish_add(request: Request, sale_id: int):
+    user = _require_user(request)
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    await user_auth.add_family_wish(
+        _db(),
+        sale_id,
+        user_id=user["id"],
+        notif_d1=bool(body.get("notif_d1", True)),
+        notif_d0=bool(body.get("notif_d0", False)),
+    )
+    return {"ok": True}
+
+
+@app.delete("/api/me/family-wishes/{sale_id}")
+async def api_family_wish_remove(request: Request, sale_id: int):
+    user = _require_user(request)
+    await user_auth.remove_family_wish(_db(), sale_id, user_id=user["id"])
+    return {"ok": True}
+
+
+@app.patch("/api/me/family-wishes/{sale_id}")
+async def api_family_wish_patch(request: Request, sale_id: int):
+    """찜 유지한 채로 알림 설정(notif_d1/notif_d0)만 변경."""
+    user = _require_user(request)
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    await user_auth.add_family_wish(
+        _db(),
+        sale_id,
+        user_id=user["id"],
+        notif_d1=bool(body.get("notif_d1", True)),
+        notif_d0=bool(body.get("notif_d0", False)),
+    )
+    return {"ok": True}
+
+
+@app.post("/api/me/keywords/quick")
+async def api_quick_keyword(request: Request):
+    """딜 카드 🔔 1-탭 키워드 등록."""
+    user = _require_user(request)
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    keyword = " ".join((body.get("keyword") or "").split())
+    if not keyword:
+        raise HTTPException(400, "keyword required")
+    try:
+        await user_auth.add_keyword(_db(), user["id"], keyword, "핫딜")
+        user_obj = await user_auth.get_user(_db(), user["id"])
+        await user_auth.sync_user_alert_subs(_db(), user_obj or {})
+        await _db().commit()
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return {"ok": True, "keyword": keyword}
+
+
+@app.post("/api/me/family-wishes/merge")
+async def api_family_wishes_merge(request: Request):
+    """로그인 직후 localStorage 찜 목록을 DB로 병합."""
+    user = _require_user(request)
+    try:
+        body = await request.json()
+        sale_ids = [int(x) for x in (body.get("ids") or [])]
+    except Exception:
+        sale_ids = []
+    await user_auth.merge_family_wishes(_db(), user["id"], sale_ids)
+    ids = await user_auth.list_family_wish_ids(_db(), user_id=user["id"])
+    return {"ids": ids}
+
+
 @app.get("/mypage", response_class=HTMLResponse)
 async def mypage(request: Request, nickname_error: str | None = None):
     user = _require_user(request)
@@ -1383,12 +1481,14 @@ async def mypage(request: Request, nickname_error: str | None = None):
     cards.sort(key=lambda d: order.get(d["id"], 1_000_000))
     await _attach_user_comments(cards)
     providers = await user_auth.list_user_providers(db, int(user["id"]))
+    family_wishes = await user_auth.list_family_wishes_detail(db, user["id"])
     return TEMPLATES.TemplateResponse(
         "mypage.html",
         {
             "request": request,
             "nav": "mypage",
             "bookmarks": cards,
+            "family_wishes": family_wishes,
             "user_keywords": await user_auth.list_keywords(db, user["id"]),
             "comments": await deal_comments.list_user_comments(db, user["id"]),
             "providers": providers,
@@ -1528,6 +1628,60 @@ async def api_me_notifications_read(request: Request):
     )
     await _db().commit()
     return {"ok": True}
+
+
+@app.get("/notifications", response_class=HTMLResponse)
+async def notifications_page(request: Request):
+    user = _require_user(request)
+    db = _db()
+    # 딜 알림
+    cur = await db.execute(
+        """
+        SELECT s.deal_id, s.sent_at, s.read_at, sub.keyword,
+               d.product_name, d.price, d.grade, d.discount_rate
+        FROM alert_sent s
+        JOIN alert_subs sub ON sub.id = s.sub_id
+        JOIN deals d ON d.id = s.deal_id
+        WHERE sub.user_id = ?
+        ORDER BY s.sent_at DESC
+        LIMIT 50
+        """,
+        (int(user["id"]),),
+    )
+    deal_notifs = [dict(r) for r in await cur.fetchall()]
+    # 패밀리세일 찜 목록 (알림 구독 중인 것)
+    cur = await db.execute(
+        """
+        SELECT fs.id, fs.title, fs.start_date, fs.end_date, fs.brand_names,
+               fw.notif_d1, fw.notif_d0, fw.created_at AS wish_at
+        FROM family_sale_wishes fw
+        JOIN family_sales fs ON fs.id = fw.sale_id
+        WHERE fw.user_id = ? AND (fw.notif_d1 = 1 OR fw.notif_d0 = 1)
+        ORDER BY fs.start_date ASC
+        """,
+        (int(user["id"]),),
+    )
+    family_subs = [dict(r) for r in await cur.fetchall()]
+    # 미읽음 모두 읽음 처리
+    await db.execute(
+        """
+        UPDATE alert_sent SET read_at = ?
+        WHERE read_at IS NULL AND sub_id IN (
+            SELECT id FROM alert_subs WHERE user_id = ?
+        )
+        """,
+        (utcnow_iso(), int(user["id"])),
+    )
+    await db.commit()
+    return TEMPLATES.TemplateResponse(
+        "notifications.html",
+        {
+            "request": request,
+            "nav": "notifications",
+            "deal_notifs": deal_notifs,
+            "family_subs": family_subs,
+        },
+    )
 
 
 @app.get("/deal/{deal_id}", response_class=HTMLResponse)

@@ -81,16 +81,10 @@
     </div>
     <div class="topbar-right">
       {% if user %}
-      <details class="account-menu inbox-menu" id="inbox-menu">
-        <summary class="icon-btn" aria-label="알림함">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M4 6.5a4 4 0 0 1 8 0c0 3 1 4 1 4H3s1-1 1-4Z"></path><path d="M6.6 13a1.6 1.6 0 0 0 2.8 0"></path></svg>
-          <span class="inbox-badge" hidden></span>
-        </summary>
-        <div class="account-dropdown inbox-dropdown" role="menu">
-          <div class="inbox-head">알림함 <a href="/alerts">설정</a></div>
-          <div class="inbox-list"></div>
-        </div>
-      </details>
+      <a class="icon-btn inbox-icon-btn" href="/notifications" aria-label="알림센터" id="inbox-menu" title="알림센터">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M4 6.5a4 4 0 0 1 8 0c0 3 1 4 1 4H3s1-1 1-4Z"></path><path d="M6.6 13a1.6 1.6 0 0 0 2.8 0"></path></svg>
+        <span class="inbox-badge" hidden></span>
+      </a>
       {% else %}
       <a class="icon-btn" href="/alerts" aria-label="키워드 알림" title="키워드 알림">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M4 6.5a4 4 0 0 1 8 0c0 3 1 4 1 4H3s1-1 1-4Z"></path><path d="M6.6 13a1.6 1.6 0 0 0 2.8 0"></path></svg>
@@ -235,6 +229,54 @@
   {% if user %}
   {% if webpush_enabled %}<span id="push-config" data-key="{{ webpush_public_key }}" hidden></span>{% endif %}
   <script src="/static/push.js?v={{ asset_v }}" defer></script>
+  <script>
+  // 비로그인 localStorage 찜 목록을 로그인 직후 한 번 DB로 병합
+  (function mergeFamWish() {
+    const KEY = 'famWishMerged_{{ user.id }}';
+    try { if (localStorage.getItem(KEY)) return; } catch { return; }
+    let wished;
+    try { wished = JSON.parse(localStorage.getItem('famWish') || '{}'); } catch { return; }
+    const ids = Object.keys(wished).map(Number).filter(Boolean);
+    if (!ids.length) { try { localStorage.setItem(KEY, '1'); } catch {} return; }
+    fetch('/api/me/family-wishes/merge', {
+      method: 'POST', credentials: 'same-origin',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ids}),
+    }).then(() => { try { localStorage.setItem(KEY, '1'); } catch {} });
+  })();
+  </script>
   {% endif %}
-<script src="/static/ad-track.js?v={{ asset_v }}" defer></script></body>
+<script src="/static/ad-track.js?v={{ asset_v }}" defer></script>
+{% if user %}
+<script>
+async function dealQuickNotif(btn) {
+  const keyword = btn.dataset.keyword;
+  if (!keyword) return;
+  btn.disabled = true;
+  try {
+    const r = await fetch('/api/me/keywords/quick', {
+      method: 'POST', credentials: 'same-origin',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({keyword}),
+    });
+    const data = await r.json();
+    _showQuickToast(data.ok
+      ? `🔔 "${keyword}" 알림이 등록됐어요`
+      : (data.detail || '알림 등록 실패'));
+  } catch {
+    _showQuickToast('알림 등록 중 오류가 발생했습니다');
+  }
+  btn.disabled = false;
+}
+function _showQuickToast(msg) {
+  const t = document.createElement('div');
+  t.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9999;background:#1f2937;color:#fff;border-radius:8px;padding:10px 18px;font-size:13px;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,.2)';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2800);
+}
+</script>
+<style>.deal-quick-notif-btn{border:none;background:none;cursor:pointer;font-size:13px;padding:3px 6px;border-radius:5px;opacity:.55}.deal-quick-notif-btn:hover{opacity:1;background:var(--surface-alt,#f3f4f6)}</style>
+{% endif %}
+</body>
 </html>

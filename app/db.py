@@ -146,6 +146,20 @@ CREATE TABLE IF NOT EXISTS family_notif_sent (
     PRIMARY KEY (sale_id, notif_type)
 );
 
+CREATE TABLE IF NOT EXISTS family_sale_wishes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sale_id INTEGER NOT NULL,
+    user_id INTEGER,
+    client_key TEXT,
+    notif_d1 INTEGER NOT NULL DEFAULT 1,
+    notif_d0 INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL,
+    UNIQUE(sale_id, user_id),
+    UNIQUE(sale_id, client_key)
+);
+CREATE INDEX IF NOT EXISTS idx_family_wishes_user ON family_sale_wishes(user_id);
+CREATE INDEX IF NOT EXISTS idx_family_wishes_client ON family_sale_wishes(client_key);
+
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     display_name TEXT NOT NULL,
@@ -641,6 +655,23 @@ async def _ensure_auth_tables(conn: aiosqlite.Connection) -> None:
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_users_nickname "
         "ON users(nickname) WHERE nickname IS NOT NULL AND TRIM(nickname) != ''"
     )
+    await conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS family_sale_wishes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sale_id INTEGER NOT NULL,
+            user_id INTEGER,
+            client_key TEXT,
+            notif_d1 INTEGER NOT NULL DEFAULT 1,
+            notif_d0 INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL,
+            UNIQUE(sale_id, user_id),
+            UNIQUE(sale_id, client_key)
+        )
+        """
+    )
+    await conn.execute("CREATE INDEX IF NOT EXISTS idx_family_wishes_user ON family_sale_wishes(user_id)")
+    await conn.execute("CREATE INDEX IF NOT EXISTS idx_family_wishes_client ON family_sale_wishes(client_key)")
     try:
         from app.engine.auth import ensure_local_admin
 

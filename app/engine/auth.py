@@ -424,6 +424,116 @@ async def replace_bookmarks(conn, user_id: int, ids: list[int]) -> list[int]:
     return clean
 
 
+MAX_FAMILY_WISHES = 100
+
+
+async def add_family_wish(
+    conn,
+    sale_id: int,
+    *,
+    user_id: int | None = None,
+    client_key: str | None = None,
+    notif_d1: bool = True,
+    notif_d0: bool = False,
+) -> None:
+    if not user_id and not client_key:
+        raise ValueError("user_id or client_key required")
+    now = utcnow_iso()
+    if user_id:
+        await conn.execute(
+            """INSERT INTO family_sale_wishes(sale_id, user_id, notif_d1, notif_d0, created_at)
+               VALUES(?,?,?,?,?)
+               ON CONFLICT(sale_id, user_id) DO UPDATE SET notif_d1=excluded.notif_d1, notif_d0=excluded.notif_d0""",
+            (sale_id, user_id, 1 if notif_d1 else 0, 1 if notif_d0 else 0, now),
+        )
+    else:
+        await conn.execute(
+            """INSERT INTO family_sale_wishes(sale_id, client_key, notif_d1, notif_d0, created_at)
+               VALUES(?,?,?,?,?)
+               ON CONFLICT(sale_id, client_key) DO UPDATE SET notif_d1=excluded.notif_d1, notif_d0=excluded.notif_d0""",
+            (sale_id, client_key, 1 if notif_d1 else 0, 1 if notif_d0 else 0, now),
+        )
+    await conn.commit()
+
+
+async def remove_family_wish(
+    conn,
+    sale_id: int,
+    *,
+    user_id: int | None = None,
+    client_key: str | None = None,
+) -> None:
+    if user_id:
+        await conn.execute(
+            "DELETE FROM family_sale_wishes WHERE sale_id=? AND user_id=?",
+            (sale_id, user_id),
+        )
+    elif client_key:
+        await conn.execute(
+            "DELETE FROM family_sale_wishes WHERE sale_id=? AND client_key=?",
+            (sale_id, client_key),
+        )
+    await conn.commit()
+
+
+async def list_family_wish_ids(
+    conn,
+    *,
+    user_id: int | None = None,
+    client_key: str | None = None,
+) -> list[int]:
+    if user_id:
+        cur = await conn.execute(
+            "SELECT sale_id FROM family_sale_wishes WHERE user_id=? ORDER BY created_at DESC",
+            (user_id,),
+        )
+    elif client_key:
+        cur = await conn.execute(
+            "SELECT sale_id FROM family_sale_wishes WHERE client_key=? ORDER BY created_at DESC",
+            (client_key,),
+        )
+    else:
+        return []
+    return [int(r["sale_id"]) for r in await cur.fetchall()]
+
+
+async def merge_family_wishes(conn, user_id: int, sale_ids: list[int]) -> None:
+    """로그인 후 localStorage 찜 목록을 DB로 병합."""
+    now = utcnow_iso()
+    for sale_id in sale_ids[:MAX_FAMILY_WISHES]:
+        await conn.execute(
+            """INSERT OR IGNORE INTO family_sale_wishes(sale_id, user_id, notif_d1, notif_d0, created_at)
+               VALUES(?,?,1,0,?)""",
+            (sale_id, user_id, now),
+        )
+    await conn.commit()
+
+
+async def list_family_wishes_detail(conn, user_id: int) -> list[dict]:
+    """찜한 패밀리세일의 상세 정보를 반환 (dday 포함)."""
+    from datetime import date as _date
+
+    cur = await conn.execute(
+        """
+        SELECT fs.*, fw.notif_d1, fw.notif_d0, fw.created_at AS wish_at
+        FROM family_sale_wishes fw
+        JOIN family_sales fs ON fs.id = fw.sale_id
+        WHERE fw.user_id = ?
+        ORDER BY fw.created_at DESC
+        """,
+        (user_id,),
+    )
+    rows = [dict(r) for r in await cur.fetchall()]
+    today = _date.today()
+    for r in rows:
+        try:
+            target = _date.fromisoformat((r.get("start_date") or "")[:10])
+            r["dday"] = (target - today).days
+        except (ValueError, TypeError):
+            r["dday"] = None
+    return rows
+
+
 async def list_keywords(conn, user_id: int) -> list[dict]:
     cur = await conn.execute(
         "SELECT * FROM user_keywords WHERE user_id=? ORDER BY id DESC",
@@ -486,6 +596,7 @@ async def delete_account(conn, user_id: int) -> None:
     await delete_user_subs(conn, user_id)
     await conn.execute("UPDATE deal_comments SET user_id=NULL WHERE user_id=?", (user_id,))
     await conn.execute("DELETE FROM user_bookmarks WHERE user_id=?", (user_id,))
+    await conn.execute("DELETE FROM family_sale_wishes WHERE user_id=?", (user_id,))
     await conn.execute("DELETE FROM user_keywords WHERE user_id=?", (user_id,))
     await conn.execute("DELETE FROM push_subscriptions WHERE user_id=?", (user_id,))
     await conn.execute("DELETE FROM oauth_identities WHERE user_id=?", (user_id,))

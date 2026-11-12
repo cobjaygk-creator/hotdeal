@@ -65,6 +65,10 @@
   {%- for p in base_params %}{% if not p.startswith('code=') %}{%- set _ = cp2.append(p) %}{%- endif %}{%- endfor -%}
   {%- set _ = cp2.append('code=1') -%}
   <a class="filter-chip {% if entry_only %}on{% endif %}" href="/family?{{ cp2 | join('&') }}">🏷️ 입장코드</a>
+  {% if request.state.user %}
+  {%- set cwish = base_params + ['wish=1'] -%}
+  <a class="filter-chip {% if wish_only %}on{% endif %}" href="/family?{{ cwish | join('&') }}">❤️ 내 찜</a>
+  {% endif %}
 </div>
 
 {# ── 정렬 + 할인율 필터 + 뷰 토글 + 브랜드 검색 ── #}
@@ -231,6 +235,13 @@
             <a class="fam-action-detail" href="/family/{{ s.id }}">자세히</a>
           </div>
           <div class="fam-actions-right">
+            {# 알림 버튼 (로그인 사용자만) #}
+            {% if request.state.user %}
+            <button class="fam-notif-btn" type="button"
+                    data-sale-id="{{ s.id }}"
+                    aria-label="알림 설정"
+                    onclick="famOpenNotifModal(this)">🔔</button>
+            {% endif %}
             {# 찜 버튼 #}
             <button class="fam-wish-btn" type="button"
                     data-sale-id="{{ s.id }}"
@@ -285,22 +296,63 @@ function famCopyCode(btn) {
   });
 }
 
-// ── 찜 버튼 (localStorage) ──
+// ── 찜 버튼 (로그인: DB / 비로그인: localStorage) ──
+const FAM_LOGGED_IN = {{ 'true' if request.state.user else 'false' }};
+// 서버에서 내려온 찜 목록 (로그인 사용자만)
+const FAM_WISH_IDS = new Set({{ wish_ids | tojson }});
+
 (function initWish() {
-  let wished;
-  try { wished = JSON.parse(localStorage.getItem('famWish') || '{}'); } catch { wished = {}; }
-  document.querySelectorAll('.fam-wish-btn').forEach(btn => {
-    if (wished[btn.dataset.saleId]) btn.classList.add('on');
-  });
+  if (FAM_LOGGED_IN) {
+    document.querySelectorAll('.fam-wish-btn').forEach(btn => {
+      if (FAM_WISH_IDS.has(Number(btn.dataset.saleId))) btn.classList.add('on');
+    });
+  } else {
+    let wished;
+    try { wished = JSON.parse(localStorage.getItem('famWish') || '{}'); } catch { wished = {}; }
+    document.querySelectorAll('.fam-wish-btn').forEach(btn => {
+      if (wished[btn.dataset.saleId]) btn.classList.add('on');
+    });
+    // 로그인 유도 배너
+    if (Object.keys(wished).length > 0) _showLoginBanner();
+  }
 })();
 
-function famToggleWish(btn) {
-  const id = btn.dataset.saleId;
-  let wished;
-  try { wished = JSON.parse(localStorage.getItem('famWish') || '{}'); } catch { wished = {}; }
-  if (wished[id]) { delete wished[id]; btn.classList.remove('on'); }
-  else { wished[id] = 1; btn.classList.add('on'); }
-  try { localStorage.setItem('famWish', JSON.stringify(wished)); } catch {}
+async function famToggleWish(btn) {
+  const id = Number(btn.dataset.saleId);
+  if (FAM_LOGGED_IN) {
+    const inWish = FAM_WISH_IDS.has(id);
+    try {
+      if (inWish) {
+        await fetch(`/api/me/family-wishes/${id}`, {method: 'DELETE'});
+        FAM_WISH_IDS.delete(id);
+        btn.classList.remove('on');
+      } else {
+        await fetch(`/api/me/family-wishes/${id}`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({notif_d1: true, notif_d0: false}),
+        });
+        FAM_WISH_IDS.add(id);
+        btn.classList.add('on');
+      }
+    } catch { /* 네트워크 오류 무시 */ }
+  } else {
+    let wished;
+    try { wished = JSON.parse(localStorage.getItem('famWish') || '{}'); } catch { wished = {}; }
+    if (wished[id]) { delete wished[id]; btn.classList.remove('on'); }
+    else { wished[id] = 1; btn.classList.add('on'); _showLoginBanner(); }
+    try { localStorage.setItem('famWish', JSON.stringify(wished)); } catch {}
+  }
+}
+
+function _showLoginBanner() {
+  if (document.getElementById('fam-login-banner')) return;
+  const b = document.createElement('div');
+  b.id = 'fam-login-banner';
+  b.style.cssText = 'position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:200;background:#fef9c3;border:1px solid #fde047;border-radius:10px;padding:10px 16px;font-size:13px;color:#713f12;display:flex;gap:12px;align-items:center;box-shadow:0 4px 16px rgba(0,0,0,.12)';
+  b.innerHTML = '📱 로그인하면 찜 목록이 저장돼요 <a href="/login" style="color:#1d4ed8;font-weight:700">로그인</a> <button onclick="this.parentNode.remove()" style="border:none;background:none;cursor:pointer;color:#9ca3af;font-size:16px">×</button>';
+  document.body.appendChild(b);
+  setTimeout(() => b.remove(), 5000);
 }
 
 // ── 브랜드 검색 (클라이언트 필터) ──
@@ -357,5 +409,77 @@ document.getElementById("family-collect")?.addEventListener("click", async () =>
     allWraps.forEach(w => row.insertBefore(w, row.querySelector('.filter-chip:last-of-type') || null));
   });
 })();
+
+// ── 🔔 알림 미니모달 ──
+let _notifModal = null;
+
+function famOpenNotifModal(btn) {
+  const id = Number(btn.dataset.saleId);
+  if (_notifModal) { _notifModal.remove(); _notifModal = null; return; }
+  _buildNotifModal(id, btn, true, false);
+}
+
+function _buildNotifModal(id, anchorBtn, d1, d0) {
+  const m = document.createElement('div');
+  m.id = 'fam-notif-modal';
+  m.className = 'fam-notif-modal';
+  m.innerHTML = `
+    <div class="fam-notif-modal-head">🔔 알림 설정</div>
+    <label class="fam-notif-row"><input type="checkbox" id="fnm-d1" ${d1?'checked':''}> <span>D-1 (하루 전)</span></label>
+    <label class="fam-notif-row"><input type="checkbox" id="fnm-d0" ${d0?'checked':''}> <span>D-0 (당일)</span></label>
+    <div class="fam-notif-actions">
+      <button class="fam-notif-cancel" onclick="document.getElementById('fam-notif-modal').remove()">취소</button>
+      <button class="fam-notif-save" onclick="_saveNotif(${id})">저장</button>
+    </div>`;
+
+  // 앵커 위치 아래 배치
+  const rect = anchorBtn.getBoundingClientRect();
+  m.style.cssText = `position:fixed;z-index:300;top:${rect.bottom+6+window.scrollY}px;left:${Math.min(rect.left, window.innerWidth-200)}px`;
+  document.body.appendChild(m);
+  _notifModal = m;
+
+  // 외부 클릭 닫기
+  setTimeout(() => document.addEventListener('click', _notifOutside, {once: true}), 50);
+}
+
+function _notifOutside(e) {
+  if (_notifModal && !_notifModal.contains(e.target)) _notifModal.remove();
+}
+
+async function _saveNotif(id) {
+  const d1 = document.getElementById('fnm-d1')?.checked ?? true;
+  const d0 = document.getElementById('fnm-d0')?.checked ?? false;
+  try {
+    await fetch(`/api/me/family-wishes/${id}`, {
+      method: 'PATCH',
+      credentials: 'same-origin',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({notif_d1: d1, notif_d0: d0}),
+    });
+    // 찜이 아직 없으면 찜도 함께 추가
+    if (!FAM_WISH_IDS.has(id)) {
+      await fetch(`/api/me/family-wishes/${id}`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({notif_d1: d1, notif_d0: d0}),
+      });
+      FAM_WISH_IDS.add(id);
+      document.querySelectorAll(`.fam-wish-btn[data-sale-id="${id}"]`).forEach(b => b.classList.add('on'));
+    }
+  } catch {}
+  if (_notifModal) _notifModal.remove();
+}
 </script>
+<style>
+.fam-notif-btn { border: none; background: none; cursor: pointer; font-size: 15px; padding: 4px 6px; border-radius: 6px; opacity: .6; }
+.fam-notif-btn:hover { opacity: 1; background: var(--surface-alt, #f3f4f6); }
+.fam-notif-modal { background: var(--surface, #fff); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; box-shadow: 0 8px 24px rgba(0,0,0,.12); min-width: 180px; }
+.fam-notif-modal-head { font-size: 13px; font-weight: 700; margin-bottom: 10px; }
+.fam-notif-row { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 4px 0; cursor: pointer; }
+.fam-notif-actions { display: flex; gap: 8px; margin-top: 12px; }
+.fam-notif-cancel, .fam-notif-save { flex: 1; border: none; border-radius: 6px; padding: 6px 0; font-size: 12px; font-weight: 600; cursor: pointer; }
+.fam-notif-cancel { background: var(--surface-alt, #f3f4f6); color: var(--ink); }
+.fam-notif-save { background: var(--accent, #3182F6); color: #fff; }
+</style>
 {% endblock %}
