@@ -67,7 +67,7 @@
       {% if info.error %}
         실패
       {% elif info.at %}
-        {{ info.at | kst_short if info.at else '–' }}
+        {{ info.at | kst if info.at else '–' }}
       {% endif %}
     </span>
   </div>
