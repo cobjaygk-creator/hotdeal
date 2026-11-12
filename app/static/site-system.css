@@ -735,6 +735,19 @@
   flex-direction: column;
   gap: 16px;
 }
+.panel {
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e7e9ec);
+  border-radius: 14px;
+  padding: 20px;
+}
+.panel h2 {
+  font-family: var(--font-display, 'Space Grotesk', sans-serif);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink, #15181d);
+  margin-bottom: 14px;
+}
 .down {
   background: var(--discount-soft, #fdecee);
   color: var(--discount, #ef3b4a);
