@@ -14,14 +14,29 @@ def parse_cats(values: list[str] | None) -> list[str]:
     return [v for v in values if v in CATEGORIES]
 
 
-async def list_sales(db, categories: list[str] | None = None, entry_only: bool = False, include_ended: bool = False):
+SORT_OPTIONS = ["dday", "discount", "new"]
+DISC_OPTIONS = [30, 50, 70]
+
+
+async def list_sales(
+    db,
+    categories: list[str] | None = None,
+    entry_only: bool = False,
+    include_ended: bool = False,
+    sort: str = "dday",
+    min_disc: int | None = None,
+):
     sql = "SELECT * FROM family_sales WHERE 1=1"
     params: list = []
     if entry_only:
         sql += " AND has_entry_code=1"
     if not include_ended:
         sql += " AND (end_date IS NULL OR end_date >= date('now', '+9 hours'))"
-    sql += " ORDER BY has_entry_code DESC, COALESCE(start_date, '9999') ASC, id DESC"
+    if min_disc:
+        sql += " AND discount_max >= ?"
+        params.append(min_disc)
+    # DB-level pre-sort; Python layer re-sorts after status/dday calculation
+    sql += " ORDER BY id DESC"
     cur = await db.execute(sql, params)
     rows = [decode_sale_row(dict(r)) for r in await cur.fetchall()]
     today = date.today()
@@ -31,6 +46,11 @@ async def list_sales(db, categories: list[str] | None = None, entry_only: bool =
         r["status"] = sale_status(r.get("start_date"), r.get("end_date"), today)
         r["brands_label"] = " / ".join(r.get("brand_names") or []) or "-"
         r["cats_label"] = ", ".join(r.get("categories") or [])
+        end = r.get("end_date")
+        try:
+            r["dday"] = (date.fromisoformat(end[:10]) - today).days if end else None
+        except ValueError:
+            r["dday"] = None
         if categories:
             if not set(r.get("categories") or []) & set(categories):
                 continue

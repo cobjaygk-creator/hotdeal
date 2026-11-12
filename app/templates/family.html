@@ -49,23 +49,56 @@
 </section>
 {% endif %}
 
-{# ── 필터 칩 ── #}
+{# ── 필터 칩 (카테고리) ── #}
+{% macro fam_url(extra='') %}{% set base = '/family' %}{% set parts = [] %}{% if cats %}{% for c in cats %}{% set _ = parts.append('cat=' ~ c) %}{% endfor %}{% endif %}{% if entry_only %}{% set _ = parts.append('code=1') %}{% endif %}{% if extra %}{% set _ = parts.append(extra) %}{% endif %}{{ base }}{% if parts %}?{{ parts | join('&') }}{% endif %}{% endmacro %}
+
 <div class="chip-row" id="family-cats" role="tablist" aria-label="패밀리세일 분류">
-  <a class="filter-chip {% if not cats %}on{% endif %}" href="/family">전체 <span class="count">{{ stats.live + stats.upcoming }}</span></a>
-  {% for c in all_cats %}<a class="filter-chip {% if c in cats %}on{% endif %}" href="/family?cat={{ c }}">{{ c }}</a>{% endfor %}
-  <a class="filter-chip {% if entry_only %}on{% endif %}" href="/family?code=1">🏷️ 입장코드</a>
+  {%- set base_params = [] -%}
+  {%- if entry_only %}{%- set _ = base_params.append('code=1') %}{%- endif -%}
+  {%- if sort and sort != 'dday' %}{%- set _ = base_params.append('sort=' ~ sort) %}{%- endif -%}
+  {%- if disc %}{%- set _ = base_params.append('disc=' ~ disc) %}{%- endif -%}
+  <a class="filter-chip {% if not cats %}on{% endif %}" href="/family{% if base_params %}?{{ base_params | join('&') }}{% endif %}">전체 <span class="count">{{ stats.live + stats.upcoming }}</span></a>
+  {% for c in all_cats %}
+    {%- set cp = base_params + ['cat=' ~ c] -%}
+    <a class="filter-chip {% if c in cats %}on{% endif %}" href="/family?{{ cp | join('&') }}">{{ c }}</a>
+  {% endfor %}
+  {%- set cp2 = [] -%}
+  {%- for p in base_params %}{% if not p.startswith('code=') %}{%- set _ = cp2.append(p) %}{%- endif %}{%- endfor -%}
+  {%- set _ = cp2.append('code=1') -%}
+  <a class="filter-chip {% if entry_only %}on{% endif %}" href="/family?{{ cp2 | join('&') }}">🏷️ 입장코드</a>
 </div>
-<div class="chip-row sort-row family-sort-row">
-  <span class="sort-label">상태</span>
-  <div class="sort-pills">
-    <button type="button" class="sort-pill on">진행중 {{ stats.live }}</button>
-    <button type="button" class="sort-pill">예정 {{ stats.upcoming }}</button>
-    <button type="button" class="sort-pill">입장코드 {{ stats.codes }}</button>
-    {% if is_admin %}
-    <button type="button" id="family-collect" class="sort-pill">지금 수집</button>
-    <a class="sort-pill" href="/family/admin">수동 등록</a>
-    {% endif %}
+
+{# ── 정렬 + 할인율 필터 ── #}
+<div class="fam-sort-bar">
+  <div class="fam-sort-group">
+    <span class="fam-sort-label">정렬</span>
+    {%- set sp = [] -%}
+    {%- for c in cats %}{%- set _ = sp.append('cat=' ~ c) %}{%- endfor -%}
+    {%- if entry_only %}{%- set _ = sp.append('code=1') %}{%- endif -%}
+    {%- if disc %}{%- set _ = sp.append('disc=' ~ disc) %}{%- endif -%}
+    {%- for s_opt, s_label in [('dday','D-day 임박순'), ('discount','할인율 높은순'), ('new','최신 등록순')] -%}
+    {%- set scp = sp + ['sort=' ~ s_opt] -%}
+    <a class="fam-sort-pill {% if sort == s_opt %}on{% endif %}" href="/family?{{ scp | join('&') }}">{{ s_label }}</a>
+    {%- endfor -%}
   </div>
+  <div class="fam-sort-group">
+    <span class="fam-sort-label">할인율</span>
+    {%- set dp = [] -%}
+    {%- for c in cats %}{%- set _ = dp.append('cat=' ~ c) %}{%- endfor -%}
+    {%- if entry_only %}{%- set _ = dp.append('code=1') %}{%- endif -%}
+    {%- if sort and sort != 'dday' %}{%- set _ = dp.append('sort=' ~ sort) %}{%- endif -%}
+    <a class="fam-sort-pill {% if not disc %}on{% endif %}" href="/family{% if dp %}?{{ dp | join('&') }}{% endif %}">전체</a>
+    {%- for d_opt in disc_options -%}
+    {%- set dcp = dp + ['disc=' ~ d_opt] -%}
+    <a class="fam-sort-pill {% if disc == d_opt %}on{% endif %}" href="/family?{{ dcp | join('&') }}">{{ d_opt }}%+</a>
+    {%- endfor -%}
+  </div>
+  {% if is_admin %}
+  <div class="fam-sort-group">
+    <button type="button" id="family-collect" class="fam-sort-pill">지금 수집</button>
+    <a class="fam-sort-pill" href="/family/admin">수동 등록</a>
+  </div>
+  {% endif %}
 </div>
 
 {# ── 카드 그리드 ── #}

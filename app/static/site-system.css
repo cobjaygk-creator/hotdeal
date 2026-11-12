@@ -312,6 +312,55 @@
   box-shadow: 0 0 0 3px rgba(74,222,128,.25);
 }
 
+/* ── 정렬·할인율 필터 바 ── */
+.fam-sort-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+  margin-bottom: 14px;
+  padding: 10px 0 2px;
+  border-bottom: 1px solid var(--border, #e7e9ec);
+}
+.fam-sort-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.fam-sort-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-faint, #9aa1ab);
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  margin-right: 2px;
+  white-space: nowrap;
+}
+.fam-sort-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-muted, #5a6075);
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e7e9ec);
+  text-decoration: none;
+  cursor: pointer;
+  font-family: var(--font);
+  white-space: nowrap;
+  transition: background .12s, color .12s, border-color .12s;
+}
+.fam-sort-pill:hover { background: var(--surface-2, #f5f6fa); }
+.fam-sort-pill.on {
+  background: var(--ink, #15181d);
+  color: var(--surface, #fff);
+  border-color: var(--ink, #15181d);
+  font-weight: 600;
+}
+
 /* ── D-day 임박 타임라인 ── */
 .fam-urgent {
   margin-bottom: 16px;

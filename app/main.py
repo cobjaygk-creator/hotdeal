@@ -71,7 +71,7 @@ from app.engine import points
 from app.engine.ppomppu_enrich import enrich_missing_ppomppu_malls
 from app.family.parse import parse_discount
 from app.family.pipeline import collect_family_sales
-from app.family.query import CATEGORIES, get_sale, list_sales, parse_cats
+from app.family.query import CATEGORIES, DISC_OPTIONS, SORT_OPTIONS, get_sale, list_sales, parse_cats
 from app.events import EventHub
 from app.http_client import PoliteClient
 from app.pipeline import collect_and_process
@@ -674,10 +674,23 @@ async def family_index(
     request: Request,
     cat: list[str] | None = Query(None),
     code: str | None = None,
+    sort: str | None = None,
+    disc: int | None = None,
 ):
     cats = parse_cats(cat or [])
     entry_only = code == "1"
-    sales = await list_sales(_db(), categories=cats, entry_only=entry_only, include_ended=False)
+    sort = sort if sort in SORT_OPTIONS else "dday"
+    min_disc = disc if disc in DISC_OPTIONS else None
+
+    sales = await list_sales(
+        _db(),
+        categories=cats,
+        entry_only=entry_only,
+        include_ended=False,
+        sort=sort,
+        min_disc=min_disc,
+    )
+
     status_order = {"진행중": 0, "예정": 1, "확인필요": 2}
     stale_before = (datetime.utcnow() - timedelta(days=21)).strftime("%Y-%m-%d")
 
@@ -685,32 +698,28 @@ async def family_index(
         st = s["status"]
         if st in ("진행중", "예정"):
             return True
-        # 날짜 파싱이 안 된 세일도 최근 수집분이면 노출(뒤로), 오래되면 자동 숨김
         if st == "확인필요":
             return (s.get("collected_at") or "")[:10] >= stale_before
         return False
 
-    today = datetime.utcnow().date()
+    live = [s for s in sales if _visible(s)]
 
-    def _dday(s: dict) -> int | None:
-        end = s.get("end_date")
-        if not end:
-            return None
-        try:
-            return (datetime.fromisoformat(end[:10]).date() - today).days
-        except ValueError:
-            return None
-
-    live = sorted(
-        (s for s in sales if _visible(s)),
-        key=lambda s: (
+    # 정렬
+    if sort == "dday":
+        live.sort(key=lambda s: (
             status_order.get(s["status"], 9),
-            not s.get("has_entry_code"),
-            s.get("start_date") or "9999",
-        ),
-    )
-    for s in live:
-        s["dday"] = _dday(s)
+            s["dday"] if s.get("dday") is not None else 9999,
+        ))
+    elif sort == "discount":
+        live.sort(key=lambda s: (
+            status_order.get(s["status"], 9),
+            -(s.get("discount_max") or 0),
+        ))
+    else:  # new
+        live.sort(key=lambda s: (
+            status_order.get(s["status"], 9),
+            -(s.get("id") or 0),
+        ))
 
     urgent = [s for s in live if s["status"] == "진행중" and s.get("dday") is not None and s["dday"] <= 7]
     urgent.sort(key=lambda s: s["dday"])
@@ -732,6 +741,9 @@ async def family_index(
             "cats": cats,
             "all_cats": CATEGORIES,
             "entry_only": entry_only,
+            "sort": sort,
+            "disc": min_disc,
+            "disc_options": DISC_OPTIONS,
             "stats": stats,
         },
     )
