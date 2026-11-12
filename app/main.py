@@ -1700,6 +1700,15 @@ async def notifications_page(request: Request):
     user = getattr(request.state, "user", None)
     if not user:
         return RedirectResponse("/alerts", status_code=303)
+    try:
+        return await _do_notifications_page(request, user)
+    except Exception as exc:
+        import traceback
+        log.exception("notifications_page failed")
+        return HTMLResponse(f"<pre>{traceback.format_exc()}</pre>", status_code=500)
+
+
+async def _do_notifications_page(request: Request, user: dict):
     db = _db()
     uid = int(user["id"])
 
@@ -1707,7 +1716,7 @@ async def notifications_page(request: Request):
     cur = await db.execute(
         """
         SELECT s.deal_id, s.sent_at, s.read_at, sub.keyword,
-               d.product_name, d.price, d.grade, d.discount_rate, d.source
+               d.product_name, d.price, d.grade, d.discount_rate
         FROM alert_sent s
         JOIN alert_subs sub ON sub.id = s.sub_id
         JOIN deals d ON d.id = s.deal_id
@@ -1763,7 +1772,7 @@ async def notifications_page(request: Request):
             "subtitle": f"키워드 \"{n['keyword']}\" 매칭 · {'{:,}'.format(int(n['price'] or 0))}원" if n.get("price") else f"키워드 \"{n['keyword']}\" 매칭",
             "action_url": f"/deal/{n['deal_id']}",
             "action_label": "딜 보러 가기",
-            "meta": n.get("source") or "",
+            "meta": "",
         })
     for f in family_rows:
         ntype = "d1" if f["notif_type"] == d1_key else "d0"
