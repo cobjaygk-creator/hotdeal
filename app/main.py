@@ -125,7 +125,7 @@ def adsense_active_now():
     except ValueError:
         return False
 
-TEMPLATES.env.globals["asset_v"] = str(int(time.time()))
+TEMPLATES.env.globals["asset_v"] = str(int(time.time()))  # noqa
 TEMPLATES.env.globals["adsense_active_now"] = adsense_active_now
 TEMPLATES.env.globals["website_jsonld"] = {
     "@context": "https://schema.org",
