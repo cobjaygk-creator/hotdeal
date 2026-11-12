@@ -1,168 +1,277 @@
 {% extends "base.html" %}
-{% block title %}마이페이지 · 핫딜모음{% endblock %}
-{% block extra_head %}<meta name="robots" content="noindex">
-<style>
-.mp-family-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
-.mp-family-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border, #e5e7eb); border-radius: 8px; }
-.mp-family-thumb { width: 40px; height: 40px; border-radius: 8px; background: linear-gradient(135deg, #1e3a5f, #2563eb); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
-.mp-family-info { flex: 1; min-width: 0; }
-.mp-family-title { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.mp-family-title a { color: inherit; text-decoration: none; }
-.mp-family-title a:hover { text-decoration: underline; }
-.mp-family-meta { font-size: 12px; margin-top: 2px; }
-.mp-family-remove { border: none; background: none; cursor: pointer; font-size: 18px; color: var(--muted, #9ca3af); padding: 4px; flex-shrink: 0; }
-.wish-dday { font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-left: 4px; }
-.wish-dday.red { background: #fee2e2; color: #ef4444; }
-.wish-dday.orange { background: #fef3c7; color: #b45309; }
-.btn-sm { font-size: 13px; padding: 6px 14px; }
-</style>{% endblock %}
+{% block title %}마이페이지 · 핫딜이쥬{% endblock %}
+{% block extra_head %}<meta name="robots" content="noindex">{% endblock %}
 {% block body %}
-<div class="page-head">
-  <h1>마이페이지</h1>
-</div>
 
-<div class="mp">
+<div class="mp-layout">
 
-  <section class="mp-card">
-    <div class="mp-profile">
-      <span class="mp-avatar" aria-hidden="true">{{ (user.nickname or user.display_name)[:1] if user.display_name else "U" }}</span>
-      <div class="mp-profile-body">
+  {# ── 사이드바 ──────────────────────────────── #}
+  <aside class="mp-sidebar">
+    <div class="mp-sidebar-profile">
+      <span class="mp-avatar" aria-hidden="true">{{ (user.nickname or user.display_name or "U")[:1] }}</span>
+      <div>
         <span class="mp-profile-name">{{ user.nickname or user.display_name }}</span>
-        <span class="mp-profile-meta">
-          {%- if providers %}{{ providers }} 로그인{% endif -%}
-          {%- if providers and user.email %} · {% endif -%}
-          {%- if user.email %}{{ user.email }}{% endif -%}
-          · <a href="/points">포인트 {{ "{:,}".format(point_balance) }}P</a>
-        </span>
+        <span class="mp-profile-meta">일반 회원</span>
       </div>
-      <form method="post" action="/mypage" onsubmit="return confirm('정말 탈퇴하시겠습니까? 찜목록과 키워드 알림이 삭제됩니다. (댓글은 익명으로 남습니다)')">
-        <input type="hidden" name="action" value="delete_account">
-        <button type="submit" class="mp-leave">회원탈퇴</button>
-      </form>
     </div>
-    <form method="post" action="/mypage" class="admin-form" style="margin-top:12px">
-      <input type="hidden" name="action" value="set_nickname">
-      <label>닉네임 변경 (30일에 한 번)
-        <input type="text" name="nickname" minlength="2" maxlength="20" placeholder="{{ user.nickname or '닉네임 미설정' }}">
-      </label>
-      {% if nickname_error %}<p class="auth-error">{{ nickname_error }}</p>{% endif %}
-      <button type="submit">변경</button>
-    </form>
-  </section>
+    <nav class="mp-nav">
+      <a class="mp-nav-item" href="#info" data-section="info">📋 내 정보</a>
+      <a class="mp-nav-item" href="#wishes" data-section="wishes">❤️ 찜목록</a>
+      <a class="mp-nav-item" href="#alerts" data-section="alerts">🔔 알림 설정</a>
+      <a class="mp-nav-item" href="#comments" data-section="comments">💬 내 댓글</a>
+    </nav>
+  </aside>
 
-  <section class="mp-card">
-    <h2>찜한 딜 <span class="muted">{{ bookmarks|length }}건</span></h2>
-    {% if bookmarks %}
-    <ul class="deal-cards" id="mypage-bookmarks">
-      {% for d in bookmarks %}{% include "_deal_card.html" %}{% endfor %}
-    </ul>
-    <p class="muted" id="mypage-bookmarks-empty" hidden>찜을 모두 해제했습니다.</p>
-    <script>
-    (function () {
-      var list = document.getElementById("mypage-bookmarks");
-      if (!list) return;
-      list.addEventListener("click", function (e) {
-        var btn = e.target.closest(".bookmark-btn[data-deal-id]");
-        if (!btn) return;
-        e.preventDefault();
-        var card = btn.closest(".deal-card");
-        var removeId = Number(btn.dataset.dealId);
-        var ids = [...list.querySelectorAll(".deal-card[data-id]")]
-          .map(function (c) { return Number(c.dataset.id); })
-          .filter(function (n) { return n && n !== removeId; });
-        fetch("/api/me/bookmarks", {
-          method: "PUT",
-          credentials: "same-origin",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ids: ids }),
-        }).catch(function () {});
-        try {
-          localStorage.setItem("hotdeal.bookmarks", JSON.stringify(ids));
-        } catch (err) {}
-        if (card) card.remove();
-        if (!list.querySelector(".deal-card")) {
-          list.hidden = true;
-          var empty = document.getElementById("mypage-bookmarks-empty");
-          if (empty) empty.hidden = false;
-        }
-      });
-    })();
-    </script>
-    {% else %}
-    <p class="muted">아직 찜한 딜이 없습니다. 딜 카드의 하트를 눌러 저장하세요.</p>
-    {% endif %}
-  </section>
+  {# ── 모바일 탭 ────────────────────────────── #}
+  <div class="mp-mobile-tabs">
+    <button class="mp-tab-btn" data-section="info">내 정보</button>
+    <button class="mp-tab-btn" data-section="wishes">찜목록</button>
+    <button class="mp-tab-btn" data-section="alerts">알림</button>
+    <button class="mp-tab-btn" data-section="comments">댓글</button>
+  </div>
 
-  <section class="mp-card" id="mp-family-wishes">
-    <h2>찜한 패밀리세일 <span class="muted">{{ family_wishes|length }}건</span></h2>
-    {% if family_wishes %}
-    <ul class="mp-family-list" id="mp-family-list">
-      {% for s in family_wishes %}
-      <li class="mp-family-item" data-sale-id="{{ s.id }}">
-        <div class="mp-family-thumb" aria-hidden="true">🏷️</div>
-        <div class="mp-family-info">
-          <div class="mp-family-title">
-            <a href="/family/{{ s.id }}">{{ s.title }}</a>
+  {# ── 메인 콘텐츠 ──────────────────────────── #}
+  <div class="mp-content">
+
+    {# ── 내 정보 ── #}
+    <section class="mp-section" id="info">
+      <h2 class="mp-section-title">내 정보</h2>
+      <div class="mp-card">
+        <div class="mp-profile">
+          <span class="mp-avatar mp-avatar-lg" aria-hidden="true">{{ (user.nickname or user.display_name or "U")[:1] }}</span>
+          <div class="mp-profile-body">
+            <span class="mp-profile-name">{{ user.nickname or user.display_name }}</span>
+            <span class="mp-profile-meta">
+              {%- if providers %}{{ providers }} 로그인{% endif -%}
+              {%- if providers and user.email %} · {% endif -%}
+              {%- if user.email %}{{ user.email }}{% endif -%}
+              · <a href="/points">포인트 {{ "{:,}".format(point_balance) }}P</a>
+            </span>
           </div>
-          <div class="mp-family-meta muted">
-            {% if s.start_date %}{{ s.start_date[:10] }}{% if s.end_date %} ~ {{ s.end_date[:10] }}{% endif %}{% endif %}
-            {% if s.dday is not none %}
-              <span class="wish-dday {% if s.dday <= 1 %}red{% elif s.dday <= 3 %}orange{% endif %}">D-{{ s.dday }}</span>
-            {% endif %}
-          </div>
+          <form method="post" action="/mypage" onsubmit="return confirm('정말 탈퇴하시겠습니까? 찜목록과 키워드 알림이 삭제됩니다. (댓글은 익명으로 남습니다)')">
+            <input type="hidden" name="action" value="delete_account">
+            <button type="submit" class="mp-leave">회원탈퇴</button>
+          </form>
         </div>
-        <button class="mp-family-remove" type="button"
-                data-sale-id="{{ s.id }}"
-                aria-label="찜 해제"
-                onclick="famWishRemove(this)">×</button>
-      </li>
-      {% endfor %}
-    </ul>
-    <p class="muted" id="mp-family-empty" hidden>찜한 패밀리세일이 없습니다.</p>
-    <div style="margin-top:10px">
-      <a class="btn btn-sm" href="/family?wish=1">찜 필터로 보기 →</a>
-    </div>
-    <script>
-    async function famWishRemove(btn) {
-      const id = Number(btn.dataset.saleId);
-      try {
-        await fetch('/api/me/family-wishes/' + id, {method: 'DELETE', credentials: 'same-origin'});
-      } catch {}
-      const item = btn.closest('.mp-family-item');
-      if (item) item.remove();
-      const list = document.getElementById('mp-family-list');
-      if (list && !list.querySelector('.mp-family-item')) {
-        list.hidden = true;
-        const empty = document.getElementById('mp-family-empty');
-        if (empty) empty.hidden = false;
-      }
-    }
-    </script>
-    {% else %}
-    <p class="muted">아직 찜한 패밀리세일이 없습니다. 패밀리세일 카드의 ♡를 눌러 저장하세요.</p>
-    <div style="margin-top:8px"><a class="btn btn-sm" href="/family">패밀리세일 보러가기 →</a></div>
-    {% endif %}
-  </section>
+        <form method="post" action="/mypage" class="admin-form" style="margin-top:16px">
+          <input type="hidden" name="action" value="set_nickname">
+          <label>닉네임 변경 (30일에 한 번)
+            <input type="text" name="nickname" minlength="2" maxlength="20" placeholder="{{ user.nickname or '닉네임 미설정' }}">
+          </label>
+          {% if nickname_error %}<p class="auth-error">{{ nickname_error }}</p>{% endif %}
+          <button type="submit">변경</button>
+        </form>
+      </div>
+    </section>
 
-  <section class="mp-card">
-    <h2>키워드 알림</h2>
-    {% include "_alert_prefs.html" %}
-  </section>
+    {# ── 찜목록 ── #}
+    <section class="mp-section" id="wishes">
+      <h2 class="mp-section-title">내 찜목록</h2>
+      <div class="mp-card">
+        {# 탭 헤더 #}
+        {% set total_cnt = (bookmarks|length) + (family_wishes|length) %}
+        <div class="mp-wish-tabs">
+          <button class="mp-wish-tab active" data-tab="all">전체 {{ total_cnt }}</button>
+          <button class="mp-wish-tab" data-tab="family">패밀리세일 {{ family_wishes|length }}</button>
+          <button class="mp-wish-tab" data-tab="deal">딜 {{ bookmarks|length }}</button>
+        </div>
 
-  <section class="mp-card">
-    <h2>내가 쓴 댓글 <span class="muted">{{ comments|length }}건</span></h2>
-    <ul class="mp-comments">
-      {% for c in comments %}
-      <li>
-        <a href="/deal/{{ c.deal_id }}">{{ c.body }}</a>
-        <div class="mp-comment-meta">{{ c.product_name }} · {{ c.created_at | reltime }}</div>
-      </li>
-      {% else %}
-      <li class="muted">작성한 댓글이 없습니다.</li>
-      {% endfor %}
-    </ul>
-  </section>
+        {# 패밀리세일 찜 #}
+        <div class="mp-wish-panel" id="wish-panel-family">
+          {% if family_wishes %}
+          <ul class="mp-family-list" id="mp-family-list">
+            {% for s in family_wishes %}
+            <li class="mp-family-card" data-sale-id="{{ s.id }}">
+              <div class="mp-family-thumb" aria-hidden="true">🏷️</div>
+              <div class="mp-family-info">
+                <div class="mp-family-title">
+                  <a href="/family/{{ s.id }}">{{ s.title }}</a>
+                </div>
+                <div class="mp-family-meta">
+                  {% if s.start_date %}{{ s.start_date[:10] }}{% if s.end_date %} ~ {{ s.end_date[:10] }}{% endif %}{% endif %}
+                  {% if s.sale_type %}· {{ s.sale_type }}{% endif %}
+                </div>
+              </div>
+              <div class="mp-family-right">
+                {% if s.dday is not none %}
+                <span class="family-dday {% if s.dday == 0 %}dday-red{% elif s.dday == 1 %}dday-orange{% elif s.dday <= 3 %}dday-yellow{% else %}dday-grey{% endif %}">D-{{ s.dday }}</span>
+                {% endif %}
+                <span class="mp-family-status">{{ "진행중" if s.dday is not none and s.dday >= 0 else "예정" }}</span>
+              </div>
+              <button class="mp-remove-btn" type="button" data-sale-id="{{ s.id }}" aria-label="찜 해제" onclick="famWishRemove(this)">×</button>
+            </li>
+            {% endfor %}
+          </ul>
+          <p class="muted mp-wish-empty" id="mp-family-empty" hidden>찜한 패밀리세일이 없습니다.</p>
+          {% else %}
+          <p class="muted mp-wish-empty">아직 찜한 패밀리세일이 없습니다. <a href="/family">패밀리세일 보러가기 →</a></p>
+          {% endif %}
+        </div>
 
-</div>
+        {# 딜 찜 #}
+        <div class="mp-wish-panel" id="wish-panel-deal">
+          {% if bookmarks %}
+          <ul class="mp-deal-list" id="mypage-bookmarks">
+            {% for d in bookmarks %}
+            <li class="mp-deal-card" data-id="{{ d.id }}">
+              <div class="mp-deal-thumb">
+                {% if d.image_url %}<img src="{{ d.image_url }}" alt="" loading="lazy">{% else %}<span class="mp-deal-thumb-placeholder">📦</span>{% endif %}
+                <button class="mp-deal-heart active" data-deal-id="{{ d.id }}" aria-label="찜 해제" title="찜 해제">♥</button>
+              </div>
+              <div class="mp-deal-info">
+                <div class="mp-deal-meta">
+                  <span class="muted">{{ d.source_label or d.source or "" }}</span>
+                  {% if d.category %}<span class="muted">· {{ d.category }}</span>{% endif %}
+                  {% if d.grade and d.grade != "핫딜" %}<span class="deal-grade-chip">{{ d.grade }}</span>{% endif %}
+                </div>
+                <div class="mp-deal-title">{{ d.product_name }}</div>
+                <div class="mp-deal-price">
+                  {% if d.price %}{{ "{:,}".format(d.price|int) }}원{% endif %}
+                  {% if d.free_shipping %}<span class="free-ship">무료배송</span>{% endif %}
+                </div>
+              </div>
+              <div class="mp-deal-actions">
+                {% if d.mall_url or d.deal_url %}<a class="btn btn-sm mp-buy-btn" href="/out/{{ d.id }}" target="_blank" rel="noopener">구매↗</a>{% endif %}
+                <button class="mp-remove-btn" type="button" data-deal-id="{{ d.id }}" aria-label="찜 해제" onclick="dealWishRemove(this)">×</button>
+              </div>
+            </li>
+            {% endfor %}
+          </ul>
+          <p class="muted mp-wish-empty" id="mypage-bookmarks-empty" hidden>찜을 모두 해제했습니다.</p>
+          {% else %}
+          <p class="muted mp-wish-empty">아직 찜한 딜이 없습니다. 딜 카드의 하트를 눌러 저장하세요.</p>
+          {% endif %}
+        </div>
+
+      </div>{# .mp-card #}
+    </section>
+
+    {# ── 알림 설정 ── #}
+    <section class="mp-section" id="alerts">
+      <h2 class="mp-section-title">알림 설정</h2>
+      <div class="mp-card">
+        {% include "_alert_prefs.html" %}
+      </div>
+    </section>
+
+    {# ── 내 댓글 ── #}
+    <section class="mp-section" id="comments">
+      <h2 class="mp-section-title">내 댓글 <span class="muted" style="font-weight:400;font-size:14px">{{ comments|length }}건</span></h2>
+      <div class="mp-card">
+        <ul class="mp-comments">
+          {% for c in comments %}
+          <li>
+            <a href="/deal/{{ c.deal_id }}">{{ c.body }}</a>
+            <div class="mp-comment-meta">{{ c.product_name }} · {{ c.created_at | reltime }}</div>
+          </li>
+          {% else %}
+          <li class="muted">작성한 댓글이 없습니다.</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </section>
+
+  </div>{# .mp-content #}
+</div>{# .mp-layout #}
+
 {% include "_deal_modal_bundle.html" %}
+
+<script>
+// ── 사이드바 & 모바일 탭 네비게이션 ──────────────────────
+(function () {
+  const sections = ['info','wishes','alerts','comments'];
+  function activate(id) {
+    // 사이드바
+    document.querySelectorAll('.mp-nav-item').forEach(a => {
+      a.classList.toggle('active', a.dataset.section === id);
+    });
+    // 모바일 탭
+    document.querySelectorAll('.mp-tab-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.section === id);
+    });
+    // 섹션
+    document.querySelectorAll('.mp-section').forEach(s => {
+      s.hidden = s.id !== id;
+    });
+    history.replaceState(null, '', '#' + id);
+  }
+  document.querySelectorAll('.mp-nav-item, .mp-tab-btn').forEach(el => {
+    el.addEventListener('click', e => {
+      e.preventDefault();
+      activate(el.dataset.section);
+    });
+  });
+  // 초기 섹션: URL hash 또는 기본 'info'
+  const hash = location.hash.replace('#','');
+  activate(sections.includes(hash) ? hash : 'info');
+})();
+
+// ── 찜목록 탭 ───────────────────────────────────────────
+(function () {
+  const tabs = document.querySelectorAll('.mp-wish-tab');
+  const panels = { family: document.getElementById('wish-panel-family'), deal: document.getElementById('wish-panel-deal') };
+  function showTab(tab) {
+    tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+    if (tab === 'all') {
+      if (panels.family) panels.family.hidden = false;
+      if (panels.deal) panels.deal.hidden = false;
+    } else {
+      Object.entries(panels).forEach(([k, el]) => { if (el) el.hidden = k !== tab; });
+    }
+  }
+  tabs.forEach(t => t.addEventListener('click', () => showTab(t.dataset.tab)));
+  showTab('all');
+})();
+
+// ── 패밀리세일 찜 해제 ──────────────────────────────────
+async function famWishRemove(btn) {
+  const id = Number(btn.dataset.saleId);
+  try { await fetch('/api/me/family-wishes/' + id, {method: 'DELETE', credentials: 'same-origin'}); } catch {}
+  const item = btn.closest('.mp-family-card');
+  if (item) item.remove();
+  const list = document.getElementById('mp-family-list');
+  if (list && !list.querySelector('.mp-family-card')) {
+    list.hidden = true;
+    const empty = document.getElementById('mp-family-empty');
+    if (empty) empty.hidden = false;
+  }
+  _updateWishCount();
+}
+
+// ── 딜 찜 해제 ──────────────────────────────────────────
+function dealWishRemove(btn) {
+  const removeId = Number(btn.dataset.dealId);
+  const list = document.getElementById('mypage-bookmarks');
+  if (!list) return;
+  const ids = [...list.querySelectorAll('.mp-deal-card[data-id]')]
+    .map(c => Number(c.dataset.id))
+    .filter(n => n && n !== removeId);
+  fetch('/api/me/bookmarks', {
+    method: 'PUT', credentials: 'same-origin',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ids}),
+  }).catch(() => {});
+  try { localStorage.setItem('hotdeal.bookmarks', JSON.stringify(ids)); } catch {}
+  const card = btn.closest('.mp-deal-card');
+  if (card) card.remove();
+  if (!list.querySelector('.mp-deal-card')) {
+    list.hidden = true;
+    const empty = document.getElementById('mypage-bookmarks-empty');
+    if (empty) empty.hidden = false;
+  }
+  _updateWishCount();
+}
+
+// 탭 카운트 업데이트
+function _updateWishCount() {
+  const fc = document.getElementById('mp-family-list') ? document.getElementById('mp-family-list').querySelectorAll('.mp-family-card').length : 0;
+  const dc = document.getElementById('mypage-bookmarks') ? document.getElementById('mypage-bookmarks').querySelectorAll('.mp-deal-card').length : 0;
+  const tabs = document.querySelectorAll('.mp-wish-tab');
+  tabs.forEach(t => {
+    if (t.dataset.tab === 'all') t.textContent = '전체 ' + (fc + dc);
+    if (t.dataset.tab === 'family') t.textContent = '패밀리세일 ' + fc;
+    if (t.dataset.tab === 'deal') t.textContent = '딜 ' + dc;
+  });
+}
+</script>
 {% endblock %}

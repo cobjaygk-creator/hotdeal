@@ -1129,6 +1129,175 @@
 }
 
 /* ──────────────────────────────────────────
+   마이페이지 — 사이드바 레이아웃 (신규)
+   ────────────────────────────────────────── */
+.mp-layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  grid-template-rows: auto 1fr;
+  gap: 0 24px;
+  align-items: start;
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 24px 0 48px;
+}
+.mp-mobile-tabs { display: none; }
+
+/* 사이드바 */
+.mp-sidebar {
+  grid-row: 1 / 3;
+  position: sticky;
+  top: 72px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e7e9ec);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.mp-sidebar-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 16px 14px;
+  border-bottom: 1px solid var(--border, #e7e9ec);
+}
+.mp-sidebar-profile .mp-avatar {
+  width: 40px; height: 40px; font-size: 16px; flex-shrink: 0;
+}
+.mp-sidebar-profile .mp-profile-name { font-size: 14px; font-weight: 600; display: block; }
+.mp-sidebar-profile .mp-profile-meta { font-size: 12px; color: var(--ink-faint,#9aa1ab); display: block; }
+.mp-nav { padding: 8px 0; }
+.mp-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink-muted, #6b7280);
+  text-decoration: none;
+  border-left: 3px solid transparent;
+  transition: background .12s, color .12s;
+}
+.mp-nav-item:hover { background: var(--bg, #f5f6f8); color: var(--ink, #15181d); }
+.mp-nav-item.active { border-left-color: var(--accent,#2e63f6); background: var(--accent-soft,#eaf0ff); color: var(--accent,#2e63f6); font-weight: 600; }
+
+/* 콘텐츠 영역 */
+.mp-content { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.mp-section-title {
+  font-family: var(--font-display,'Space Grotesk',sans-serif);
+  font-size: 17px; font-weight: 700; color: var(--ink,#15181d);
+  margin-bottom: 12px;
+}
+.mp-avatar-lg { width: 52px; height: 52px; font-size: 22px; }
+
+/* 찜목록 탭 */
+.mp-wish-tabs {
+  display: flex; gap: 4px; margin-bottom: 16px;
+  border-bottom: 1px solid var(--border,#e7e9ec);
+  padding-bottom: 0;
+}
+.mp-wish-tab {
+  background: none; border: none; border-bottom: 2px solid transparent;
+  padding: 8px 14px; font-size: 13.5px; font-weight: 500;
+  color: var(--ink-faint,#9aa1ab); cursor: pointer; margin-bottom: -1px;
+  font-family: var(--font); border-radius: 0;
+}
+.mp-wish-tab.active { color: var(--accent,#2e63f6); border-bottom-color: var(--accent,#2e63f6); font-weight: 700; }
+
+/* 패밀리세일 찜 카드 */
+.mp-family-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.mp-family-card {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px; border: 1px solid var(--border,#e7e9ec); border-radius: 10px;
+  background: var(--bg,#f5f6f8);
+}
+.mp-family-thumb {
+  width: 44px; height: 44px; border-radius: 10px;
+  background: linear-gradient(135deg,#1e3a5f,#2563eb);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; flex-shrink: 0;
+}
+.mp-family-info { flex: 1; min-width: 0; }
+.mp-family-title { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mp-family-title a { color: inherit; text-decoration: none; }
+.mp-family-title a:hover { text-decoration: underline; }
+.mp-family-meta { font-size: 12px; color: var(--ink-faint,#9aa1ab); margin-top: 2px; }
+.mp-family-right { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; }
+.family-dday { font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 5px; }
+.dday-red   { background: #fee2e2; color: #ef4444; }
+.dday-orange{ background: #fef3c7; color: #b45309; }
+.dday-yellow{ background: #fefce8; color: #a16207; }
+.dday-grey  { background: var(--bg,#f5f6f8); color: var(--ink-faint,#9aa1ab); }
+.mp-family-status { font-size: 11px; color: var(--ink-faint,#9aa1ab); }
+
+/* 딜 찜 카드 */
+.mp-deal-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.mp-deal-card {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 0; border-bottom: 1px solid var(--border,#e7e9ec);
+}
+.mp-deal-card:last-child { border-bottom: none; }
+.mp-deal-thumb {
+  position: relative; width: 60px; height: 60px; flex-shrink: 0;
+  border-radius: 10px; overflow: hidden; background: var(--bg,#f5f6f8);
+  display: flex; align-items: center; justify-content: center;
+}
+.mp-deal-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.mp-deal-thumb-placeholder { font-size: 26px; }
+.mp-deal-heart {
+  position: absolute; bottom: 2px; left: 2px;
+  background: rgba(255,255,255,.85); border: none; border-radius: 50%;
+  width: 20px; height: 20px; font-size: 11px; cursor: pointer; padding: 0;
+  display: flex; align-items: center; justify-content: center; color: var(--accent,#2e63f6);
+}
+.mp-deal-info { flex: 1; min-width: 0; }
+.mp-deal-meta { font-size: 11.5px; color: var(--ink-faint,#9aa1ab); margin-bottom: 3px; }
+.deal-grade-chip { font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 4px; background: var(--accent-soft,#eaf0ff); color: var(--accent,#2e63f6); margin-left: 4px; }
+.mp-deal-title { font-size: 14px; font-weight: 500; color: var(--ink,#15181d); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mp-deal-price { font-size: 14px; font-weight: 700; color: var(--ink,#15181d); margin-top: 2px; }
+.mp-deal-price .free-ship { font-size: 11px; font-weight: 500; color: var(--accent,#2e63f6); background: var(--accent-soft,#eaf0ff); padding: 1px 6px; border-radius: 4px; margin-left: 6px; }
+.mp-deal-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
+.mp-buy-btn { font-size: 12.5px; padding: 6px 12px; white-space: nowrap; }
+
+/* 공용 × 삭제 버튼 */
+.mp-remove-btn {
+  background: none; border: none; cursor: pointer;
+  font-size: 18px; color: var(--ink-faint,#9aa1ab); padding: 4px;
+  line-height: 1; flex-shrink: 0;
+}
+.mp-remove-btn:hover { color: var(--discount,#ef3b4a); }
+
+/* 빈 상태 */
+.mp-wish-empty { margin: 24px 0; }
+
+/* 모바일 */
+@media (max-width: 720px) {
+  .mp-layout {
+    grid-template-columns: 1fr;
+    padding: 0 0 48px;
+  }
+  .mp-sidebar { display: none; }
+  .mp-mobile-tabs {
+    display: flex; gap: 0;
+    border-bottom: 1px solid var(--border,#e7e9ec);
+    background: var(--surface,#fff);
+    position: sticky; top: 56px; z-index: 10;
+    overflow-x: auto; scrollbar-width: none;
+  }
+  .mp-mobile-tabs::-webkit-scrollbar { display: none; }
+  .mp-tab-btn {
+    flex: 1; min-width: 64px; background: none; border: none;
+    border-bottom: 2px solid transparent; padding: 11px 8px;
+    font-size: 13px; font-weight: 500; color: var(--ink-faint,#9aa1ab);
+    cursor: pointer; white-space: nowrap; font-family: var(--font);
+  }
+  .mp-tab-btn.active { color: var(--accent,#2e63f6); border-bottom-color: var(--accent,#2e63f6); font-weight: 700; }
+  .mp-section-title { font-size: 15px; padding: 16px 16px 0; margin-bottom: 10px; }
+  .mp-card { border-radius: 0; border-left: none; border-right: none; }
+  .mp-layout > .mp-content { gap: 0; }
+}
+
+/* ──────────────────────────────────────────
    알림 페이지
    ────────────────────────────────────────── */
 .summary-chips {

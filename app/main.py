@@ -1536,7 +1536,9 @@ async def api_family_wishes_merge(request: Request):
 
 @app.get("/mypage", response_class=HTMLResponse)
 async def mypage(request: Request, nickname_error: str | None = None):
-    user = _require_user(request)
+    user = getattr(request.state, "user", None)
+    if not user:
+        return RedirectResponse("/alerts", status_code=303)
     db = _db()
     bookmark_ids = await user_auth.list_bookmark_ids(db, user["id"])
     cards = await _list_deals(ids=bookmark_ids, limit=user_auth.MAX_BOOKMARKS)
@@ -1695,7 +1697,9 @@ async def api_me_notifications_read(request: Request):
 
 @app.get("/notifications", response_class=HTMLResponse)
 async def notifications_page(request: Request):
-    user = _require_user(request)
+    user = getattr(request.state, "user", None)
+    if not user:
+        return RedirectResponse("/alerts", status_code=303)
     db = _db()
     # 딜 알림
     cur = await db.execute(
