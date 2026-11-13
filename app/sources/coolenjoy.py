@@ -23,7 +23,7 @@ class CoolenjoySource:
         # reads better than httpx. Try KR proxy first (Korean ISP), then direct.
         for proxy in ([PPOMPPU_PROXY_URL, None] if PPOMPPU_PROXY_URL else [None]):
             try:
-                result = await client._curl_get(RSS_URL, timeout=50.0, proxy=proxy)
+                result = await client._curl_get(RSS_URL, None, timeout=50.0, proxy=proxy)
                 posts = parse_rss(result.text)
                 if posts:
                     return posts

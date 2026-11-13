@@ -121,6 +121,16 @@ QUASARZONE_PROXY_URL = (
 # Example: http://user:pass@host:port  or  socks5://host:port
 PPOMPPU_PROXY_URL = (os.environ.get("PPOMPPU_PROXY_URL") or HTTP_PROXY_URL).strip()
 
+# Proxy for the arca.live headless browser. Chromium treats a proxy port of
+# 443 as TLS and resets the connection, so this must point at a non-443 port
+# (e.g. the same alt port used for FMKOREA_PROXY_URL/QUASARZONE_PROXY_URL).
+# Falls back to FMKOREA_PROXY_URL, then PPOMPPU_PROXY_URL/HTTP_PROXY_URL.
+ARCA_PROXY_URL = (
+    os.environ.get("ARCA_PROXY_URL")
+    or os.environ.get("FMKOREA_PROXY_URL")
+    or PPOMPPU_PROXY_URL
+).strip()
+
 # FMKorea fronts /hotdeal with an Akamai + WASM proof-of-work gate that plain
 # HTTP clients cannot pass. When enabled, a headless Chromium (Playwright)
 # solves the gate and keeps the cleared cookies warm for the process.

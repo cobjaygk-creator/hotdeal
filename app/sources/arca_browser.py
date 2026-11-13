@@ -12,11 +12,9 @@ import asyncio
 import logging
 import time
 
-from app.config import HTTP_PROXY_URL, PPOMPPU_PROXY_URL, USER_AGENT
+from app.config import ARCA_PROXY_URL, USER_AGENT
 
-# Use the most specific available proxy (env PPOMPPU_PROXY_URL already falls
-# back to HTTP_PROXY_URL in config, so this covers both env-var patterns).
-_PROXY_URL = PPOMPPU_PROXY_URL or HTTP_PROXY_URL
+_PROXY_URL = ARCA_PROXY_URL
 
 log = logging.getLogger(__name__)
 
