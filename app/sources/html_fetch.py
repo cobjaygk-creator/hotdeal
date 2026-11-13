@@ -19,6 +19,7 @@ PROXY_FIRST_HOSTS = (
     "fmkorea.com",
     "www.clien.net",
     "www.dealbada.com",
+    "coolenjoy.net",
 )
 
 
