@@ -597,14 +597,88 @@ details:not([open]) > .account-dropdown { display: none; }
 }
 .deal-tag-sep { opacity: .5; }
 .deal-tag-mall {
-  background: var(--accent);
-  color: #fff;
+  background: #f0f1f3;
+  color: #444;
   border-radius: 20px;
   padding: 2px 8px;
   font-size: 11.5px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: -.01em;
+  white-space: nowrap;
 }
+/* 쇼핑몰별 테마 색상 (라이트) */
+.deal-tag-mall[data-mall="coupang"]   { background:#fff0eb; color:#c73800; }
+.deal-tag-mall[data-mall="naver"]     { background:#e6f9ec; color:#017f38; }
+.deal-tag-mall[data-mall="gmarket"]   { background:#e8f5e9; color:#1b6e28; }
+.deal-tag-mall[data-mall="11st"]      { background:#fff0f0; color:#cc0000; }
+.deal-tag-mall[data-mall="kakao"]     { background:#fffae0; color:#8a6a00; }
+.deal-tag-mall[data-mall="auction"]   { background:#fff2e8; color:#c44000; }
+.deal-tag-mall[data-mall="ssg"]       { background:#fff0f5; color:#b0003a; }
+.deal-tag-mall[data-mall="lotteon"]   { background:#fff0f0; color:#cc0000; }
+.deal-tag-mall[data-mall="lotte"]     { background:#fff0f0; color:#cc0000; }
+.deal-tag-mall[data-mall="oliveyoung"]{ background:#e8f5e9; color:#1b6e28; }
+.deal-tag-mall[data-mall="kurly"]     { background:#f4e8fd; color:#6a1b9a; }
+.deal-tag-mall[data-mall="musinsa"]   { background:#ebebeb; color:#111; }
+.deal-tag-mall[data-mall="himart"]    { background:#e8f0ff; color:#1a3ba0; }
+.deal-tag-mall[data-mall="samsung"]   { background:#e8f0ff; color:#1428a0; }
+.deal-tag-mall[data-mall="hmall"]     { background:#e8f0ff; color:#003087; }
+.deal-tag-mall[data-mall="gsshop"]    { background:#f0ebff; color:#5b1fa2; }
+.deal-tag-mall[data-mall="cjmall"]    { background:#fff0f5; color:#a0004a; }
+.deal-tag-mall[data-mall="homeplus"]  { background:#e8f4ff; color:#005598; }
+.deal-tag-mall[data-mall="ohouse"]    { background:#e8f5f2; color:#00806e; }
+.deal-tag-mall[data-mall="toss"]      { background:#e8f0ff; color:#0046e0; }
+.deal-tag-mall[data-mall="steam"]     { background:#e8edf5; color:#2a475e; }
+.deal-tag-mall[data-mall="temu"]      { background:#fff4e8; color:#bf5000; }
+.deal-tag-mall[data-mall="ali"]       { background:#fff2e8; color:#c43900; }
+.deal-tag-mall[data-mall="amazon"]    { background:#fff4e8; color:#c45000; }
+.deal-tag-mall[data-mall="iherb"]     { background:#e8f5e9; color:#2a7a2a; }
+.deal-tag-mall[data-mall="compuzone"] { background:#e8f0ff; color:#1a3ba0; }
+.deal-tag-mall[data-mall="danawa"]    { background:#e8f0ff; color:#1a3ba0; }
+.deal-tag-mall[data-mall="yes24"]     { background:#fff4e8; color:#b05000; }
+.deal-tag-mall[data-mall="kyobo"]     { background:#e8f0ff; color:#004090; }
+.deal-tag-mall[data-mall="ably"]      { background:#fff0f5; color:#c0006a; }
+.deal-tag-mall[data-mall="myrealtrip"]{ background:#e8f0ff; color:#005bda; }
+.deal-tag-mall[data-mall="yanolja"]   { background:#fff0f5; color:#c20062; }
+.deal-tag-mall[data-mall="yeogi"]     { background:#fff0f5; color:#c20062; }
+.deal-tag-mall[data-mall="agoda"]     { background:#e8f0ff; color:#1a3ba0; }
+
+/* 다크모드 오버라이드 */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .deal-tag-mall { background:#2a2d38; color:#c8cad4; }
+  :root:not([data-theme="light"]) .deal-tag-mall[data-mall="coupang"]   { background:#3a1a0e; color:#ff8c5a; }
+  :root:not([data-theme="light"]) .deal-tag-mall[data-mall="naver"]     { background:#0a2e14; color:#3dda72; }
+  :root:not([data-theme="light"]) .deal-tag-mall[data-mall="gmarket"]   { background:#0c2810; color:#5dcf6a; }
+  :root:not([data-theme="light"]) .deal-tag-mall[data-mall="11st"]      { background:#2e0a0a; color:#ff6666; }
+  :root:not([data-theme="light"]) .deal-tag-mall[data-mall="kakao"]     { background:#2e2600; color:#ffd84d; }
+  :root:not([data-theme="light"]) .deal-tag-mall[data-mall="auction"]   { background:#2e1600; color:#ff9050; }
+  :root:not([data-theme="light"]) .deal-tag-mall[data-mall="ssg"]       { background:#2e0a1a; color:#ff6699; }
+  :root:not([data-theme="light"]) .deal-tag-mall[data-mall="lotteon"]   { background:#2e0a0a; color:#ff6666; }
+  :root:not([data-theme="light"]) .deal-tag-mall[data-mall="oliveyoung"]{ background:#0c2810; color:#5dcf6a; }
+  :root:not([data-theme="light"]) .deal-tag-mall[data-mall="kurly"]     { background:#200a2e; color:#c56eff; }
+  :root:not([data-theme="light"]) .deal-tag-mall[data-mall="himart"]    { background:#0a1430; color:#7aa0ff; }
+  :root:not([data-theme="light"]) .deal-tag-mall[data-mall="samsung"]   { background:#0a1430; color:#7aa0ff; }
+  :root:not([data-theme="light"]) .deal-tag-mall[data-mall="ohouse"]    { background:#0a2420; color:#50d0be; }
+  :root:not([data-theme="light"]) .deal-tag-mall[data-mall="toss"]      { background:#0a1430; color:#7aa0ff; }
+  :root:not([data-theme="light"]) .deal-tag-mall[data-mall="temu"]      { background:#2e1800; color:#ff9a40; }
+  :root:not([data-theme="light"]) .deal-tag-mall[data-mall="ali"]       { background:#2e1200; color:#ff8050; }
+}
+:root[data-theme="dark"] .deal-tag-mall { background:#2a2d38; color:#c8cad4; }
+:root[data-theme="dark"] .deal-tag-mall[data-mall="coupang"]   { background:#3a1a0e; color:#ff8c5a; }
+:root[data-theme="dark"] .deal-tag-mall[data-mall="naver"]     { background:#0a2e14; color:#3dda72; }
+:root[data-theme="dark"] .deal-tag-mall[data-mall="gmarket"]   { background:#0c2810; color:#5dcf6a; }
+:root[data-theme="dark"] .deal-tag-mall[data-mall="11st"]      { background:#2e0a0a; color:#ff6666; }
+:root[data-theme="dark"] .deal-tag-mall[data-mall="kakao"]     { background:#2e2600; color:#ffd84d; }
+:root[data-theme="dark"] .deal-tag-mall[data-mall="auction"]   { background:#2e1600; color:#ff9050; }
+:root[data-theme="dark"] .deal-tag-mall[data-mall="ssg"]       { background:#2e0a1a; color:#ff6699; }
+:root[data-theme="dark"] .deal-tag-mall[data-mall="lotteon"]   { background:#2e0a0a; color:#ff6666; }
+:root[data-theme="dark"] .deal-tag-mall[data-mall="oliveyoung"]{ background:#0c2810; color:#5dcf6a; }
+:root[data-theme="dark"] .deal-tag-mall[data-mall="kurly"]     { background:#200a2e; color:#c56eff; }
+:root[data-theme="dark"] .deal-tag-mall[data-mall="himart"]    { background:#0a1430; color:#7aa0ff; }
+:root[data-theme="dark"] .deal-tag-mall[data-mall="samsung"]   { background:#0a1430; color:#7aa0ff; }
+:root[data-theme="dark"] .deal-tag-mall[data-mall="ohouse"]    { background:#0a2420; color:#50d0be; }
+:root[data-theme="dark"] .deal-tag-mall[data-mall="toss"]      { background:#0a1430; color:#7aa0ff; }
+:root[data-theme="dark"] .deal-tag-mall[data-mall="temu"]      { background:#2e1800; color:#ff9a40; }
+:root[data-theme="dark"] .deal-tag-mall[data-mall="ali"]       { background:#2e1200; color:#ff8050; }
 
 /* 理쒖?媛 諭껋? */
 .deal-tag-lowest {
