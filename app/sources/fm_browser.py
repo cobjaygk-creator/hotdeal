@@ -229,8 +229,9 @@ async def fetch_html(
             await page.goto(url, wait_until="domcontentloaded", timeout=int(timeout * 1000))
             html = await page.content()
             # Hard IP ban (help@fmkorea.com / try_unblock): rotate the proxy
-            # session, back off 5 min, but keep the browser context alive —
-            # the WASM-cleared cookies may still work once the ban expires.
+            # session and hard-reset so the NEXT attempt opens a fresh context
+            # with the new session's exit IP. WASM cookies don't help on a
+            # banned IP anyway — the ban check happens before the WASM gate.
             if any(m in (html or "")[:8000] for m in _HARD_BLOCK_MARKERS):
                 log.warning(
                     "fmkorea browser hit IP ban page; rotating proxy session, "
@@ -238,6 +239,7 @@ async def fetch_html(
                 )
                 _ip_ban_until = time.time() + _IP_BAN_COOLDOWN_SEC
                 _rotate_session()
+                await _hard_reset()
                 return None
             if _looks_captcha(html):
                 log.warning(
@@ -274,6 +276,7 @@ async def fetch_html(
                 )
                 _ip_ban_until = time.time() + _IP_BAN_COOLDOWN_SEC
                 _rotate_session()
+                await _hard_reset()
                 return None
             if _looks_captcha(html):
                 log.warning("fmkorea browser escalated to Turnstile mid-solve")
