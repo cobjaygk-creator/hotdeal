@@ -28,13 +28,15 @@ class ArcaSource:
                 raise
             from app.sources import arca_browser
 
-            # More rounds and longer settle time give CF's challenge JS enough
-            # time to complete and set cookies before we check the page content.
+            # Longer settle time gives CF challenge JS time to redirect.
+            # 60s total timeout with 5s settle per round ≈ 3–4 usable rounds
+            # within the 120s collection budget.
             html = await arca_browser.fetch_html(
                 LIST_URL,
                 want_selector="div.vrow.hybrid",
                 max_rounds=6,
-                settle_ms=3000,
+                settle_ms=5000,
+                timeout=60.0,
             )
             if not html:
                 raise
