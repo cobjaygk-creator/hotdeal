@@ -6,7 +6,6 @@ from xml.etree import ElementTree as ET
 
 from app.http_client import PoliteClient
 from app.sources import RawPost
-from app.sources.html_fetch import fetch_parsed
 
 # The board HTML repeatedly ReadTimeout'd from the cloud host; the RSS feed is
 # small, fast, and carries the post body (with images) inline.
@@ -20,10 +19,14 @@ class CoolenjoySource:
     name = "coolenjoy"
 
     async def fetch_latest(self, client: PoliteClient) -> list[RawPost]:
-        # coolenjoy.net RSS is sometimes slow from cloud IPs; KT proxy routes
-        # Korean-to-Korean and is more reliable. 55s per attempt × 2 paths
-        # stays within the 120s collection budget.
-        return await fetch_parsed(client, RSS_URL, parse_rss, timeout=55.0, max_retries=1)
+        # Bypass fetch_parsed: coolenjoy RSS is plain XML, needs no Chrome TLS
+        # impersonation or soft-block retry loops that inflate total latency.
+        # Direct httpx request only — 90s fits within the 120s collection budget.
+        result = await client.get(RSS_URL, timeout=90.0, proxy=None, curl_fallback=False, max_retries=1)
+        posts = parse_rss(result.text)
+        if not posts:
+            raise RuntimeError(f"parsed 0 posts from coolenjoy RSS ({RSS_URL})")
+        return posts
 
 
 def parse_rss(xml_text: str) -> list[RawPost]:

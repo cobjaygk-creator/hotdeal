@@ -14,7 +14,6 @@ ParseFn = Callable[[str], list[RawPost]]
 # KR proxy first.
 PROXY_FIRST_HOSTS = (
     "arca.live",
-    "coolenjoy.net",
     "damoang.net",
     "quasarzone.com",
     "fmkorea.com",
