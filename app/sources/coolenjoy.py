@@ -21,9 +21,9 @@ class CoolenjoySource:
 
     async def fetch_latest(self, client: PoliteClient) -> list[RawPost]:
         # coolenjoy.net RSS is sometimes slow from cloud IPs; KT proxy routes
-        # Korean-to-Korean and is more reliable. 45s timeout with 2 attempts
-        # handles the occasional slow server response.
-        return await fetch_parsed(client, RSS_URL, parse_rss, timeout=45.0, max_retries=2)
+        # Korean-to-Korean and is more reliable. 55s per attempt × 2 paths
+        # stays within the 120s collection budget.
+        return await fetch_parsed(client, RSS_URL, parse_rss, timeout=55.0, max_retries=1)
 
 
 def parse_rss(xml_text: str) -> list[RawPost]:
