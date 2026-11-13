@@ -480,6 +480,27 @@ async def _kick_mall_enrich(deal_ids: list[int]) -> None:
         log.exception("immediate mall enrich failed")
 
 
+async def _kick_affiliate_convert(deal_id: int, mall_url: str) -> None:
+    """Background counterpart to /out/{deal_id}'s first click: convert the
+    raw mall URL to a Coupang Partners deep link without making the user's
+    redirect wait on the Open API call. Later clicks read the cached result."""
+    from app.parse.links import is_coupang_partner_gate
+    from app.coupang.api import create_deeplinks, is_coupang_product_url
+
+    target = mall_url
+    if COUPANG_ENABLED and is_coupang_product_url(mall_url) and not is_coupang_partner_gate(mall_url):
+        try:
+            converted = await create_deeplinks([mall_url])
+            target = converted.get(mall_url) or mall_url
+        except Exception:
+            log.exception("coupang deeplink conversion failed for deal %s", deal_id)
+    await _db().execute(
+        "UPDATE deals SET affiliate_url=?, affiliate_checked_at=? WHERE id=?",
+        (target if target != mall_url else None, utcnow_iso(), deal_id),
+    )
+    await _db().commit()
+
+
 async def _run_mall_enrich(
     *, deal_ids: list[int] | None = None, limit: int | None = None
 ) -> dict:
@@ -1122,9 +1143,10 @@ async def coupang_out(product_id: str):
 @app.get("/out/{deal_id}")
 async def deal_out(deal_id: int):
     """Single outbound layer for every community-sourced deal's '구매하기'
-    button. Converts a raw coupang.com product link to a Coupang Partners
-    deep link on first click (cached on deals.affiliate_url so the Open API
-    isn't called again), then logs the click the same way /out/coupang does."""
+    button. Redirects to the mall URL immediately; a raw coupang.com link is
+    converted to a Coupang Partners deep link in the background on first
+    click (cached on deals.affiliate_url, used from the next click on),
+    then logs the click the same way /out/coupang does."""
     db = _db()
     cur = await db.execute(
         "SELECT mall_url, affiliate_url, affiliate_checked_at, deal_url FROM deals WHERE id=?", (deal_id,)
@@ -1140,20 +1162,10 @@ async def deal_out(deal_id: int):
     mall_url = row["mall_url"]
     target = row["affiliate_url"] or mall_url
     if not row["affiliate_checked_at"]:
-        from app.parse.links import is_coupang_partner_gate
-        from app.coupang.api import create_deeplinks, is_coupang_product_url
-
-        if COUPANG_ENABLED and is_coupang_product_url(mall_url) and not is_coupang_partner_gate(mall_url):
-            try:
-                converted = await create_deeplinks([mall_url])
-                target = converted.get(mall_url) or mall_url
-            except Exception:
-                log.exception("coupang deeplink conversion failed for deal %s", deal_id)
-                target = mall_url
-        await db.execute(
-            "UPDATE deals SET affiliate_url=?, affiliate_checked_at=? WHERE id=?",
-            (target if target != mall_url else None, utcnow_iso(), deal_id),
-        )
+        # Don't block this redirect on the Coupang API call — convert in the
+        # background so the first click is as fast as a cached one, and
+        # later clicks pick up the affiliate link once it lands.
+        asyncio.create_task(_kick_affiliate_convert(deal_id, mall_url))
     platform = mall_key_from_url(mall_url) or "unknown"
     await db.execute(
         "INSERT INTO affiliate_clicks(platform, product_id, created_at) VALUES (?, ?, ?)",
