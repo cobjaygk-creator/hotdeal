@@ -112,11 +112,11 @@ def format_relative(value: str | None, now: datetime | None = None) -> str:
         now = now.replace(tzinfo=timezone.utc)
     secs = int((now.astimezone(timezone.utc) - dt.astimezone(timezone.utc)).total_seconds())
     if secs < 60:
-        return f"{max(1, secs)}초 전"
+        return f"{max(1, secs)}초전"
     if secs < 3600:
-        return f"{secs // 60}분 전"
+        return f"{secs // 60}분전"
     if secs < 86400:
-        return f"{secs // 3600}시간 전"
+        return f"{secs // 3600}시간전"
     return dt.astimezone(KST).strftime("%m/%d")
 
 
