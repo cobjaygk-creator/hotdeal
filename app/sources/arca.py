@@ -14,7 +14,24 @@ class ArcaSource:
     name = "arca"
 
     async def fetch_latest(self, client: PoliteClient) -> list[RawPost]:
-        return await fetch_parsed(client, LIST_URL, parse_list)
+        try:
+            return await fetch_parsed(client, LIST_URL, parse_list)
+        except RuntimeError as exc:
+            msg = str(exc)
+            if "blocked:" not in msg and "parsed 0 posts" not in msg:
+                raise
+            # Cloudflare Bot Management: fall back to headless-browser fetcher.
+            from app.sources import arca_browser
+
+            html = await arca_browser.fetch_html(
+                LIST_URL, want_selector="div.vrow.hybrid"
+            )
+            if not html:
+                raise
+            posts = parse_list(html)
+            if not posts:
+                raise RuntimeError(f"arca browser parsed 0 posts ({LIST_URL})") from exc
+            return posts
 
 
 def parse_list(html: str) -> list[RawPost]:
