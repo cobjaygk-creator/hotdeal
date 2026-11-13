@@ -39,13 +39,6 @@
   </a>
   <div class="deal-row-side">
     {% if is_lowest %}<span class="deal-tag deal-tag-lowest">역대 최저가</span>{% endif %}
-    {% if request.state.user and d.category %}
-    <button class="deal-quick-notif-btn" type="button"
-            data-keyword="{{ d.category }}"
-            aria-label="이 카테고리 알림 받기"
-            title="'{{ d.category }}' 알림 등록"
-            onclick="dealQuickNotif(this);event.stopPropagation()">🔔</button>
-    {% endif %}
     {% if d.mall_url or d.deal_url %}<a class="deal-buy-btn" href="/out/{{ d.id }}" target="_blank" rel="noopener" onclick="event.stopPropagation()">구매하기</a>{% endif %}
   </div>
 </li>
