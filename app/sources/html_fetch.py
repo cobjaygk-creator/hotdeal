@@ -19,7 +19,8 @@ PROXY_FIRST_HOSTS = (
     "fmkorea.com",
     "www.clien.net",
     "www.dealbada.com",
-    "coolenjoy.net",
+    # coolenjoy.net removed: direct Railway connection is faster for the RSS endpoint;
+    # proxy latency pushes it past the 30 s timeout consistently.
 )
 
 
