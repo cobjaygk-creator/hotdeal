@@ -4,9 +4,7 @@ import email.utils
 import re
 from xml.etree import ElementTree as ET
 
-import httpx
-
-from app.config import PPOMPPU_PROXY_URL, USER_AGENT
+from app.config import PPOMPPU_PROXY_URL
 from app.http_client import PoliteClient
 from app.sources import RawPost
 
@@ -17,43 +15,21 @@ LIST_URL = RSS_URL  # kept for the debug probe
 _ID_RE = re.compile(r"/bbs/jirum/(\d+)")
 _IMG_RE = re.compile(r"""<img[^>]+src\s*=\s*["']([^"']+)["']""", re.I)
 
-_HEADERS = {
-    "User-Agent": USER_AGENT,
-    "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
-    "Referer": "https://coolenjoy.net/",
-}
-
-
 class CoolenjoySource:
     name = "coolenjoy"
 
     async def fetch_latest(self, client: PoliteClient) -> list[RawPost]:
-        # Bypass PoliteClient to avoid Chrome TLS impersonation overhead that
-        # pushes total latency past the 120s collection budget.
-        # Try KR proxy first (Korean ISP → Korean site = fast), then direct.
-        # 50s × 2 paths = 100s max, within the 120s budget.
-        proxies: list[str | None] = []
-        if PPOMPPU_PROXY_URL:
-            proxies.append(PPOMPPU_PROXY_URL)
-        proxies.append(None)  # direct fallback always present
-
-        last_exc: Exception | None = None
-        for proxy in proxies:
+        # coolenjoy RSS is slow from cloud IPs; use curl which handles stalled
+        # reads better than httpx. Try KR proxy first (Korean ISP), then direct.
+        for proxy in ([PPOMPPU_PROXY_URL, None] if PPOMPPU_PROXY_URL else [None]):
             try:
-                async with httpx.AsyncClient(
-                    follow_redirects=True,
-                    timeout=50.0,
-                    proxy=proxy,
-                    headers=_HEADERS,
-                ) as http:
-                    resp = await http.get(RSS_URL)
-                    resp.raise_for_status()
-                posts = parse_rss(resp.text)
+                result = await client._curl_get(RSS_URL, timeout=50.0, proxy=proxy)
+                posts = parse_rss(result.text)
                 if posts:
                     return posts
-            except Exception as exc:  # noqa: BLE001
-                last_exc = exc
-        raise last_exc or RuntimeError(f"parsed 0 posts from coolenjoy RSS ({RSS_URL})")
+            except Exception:  # noqa: BLE001
+                pass
+        raise RuntimeError(f"coolenjoy RSS failed (proxy+direct both timed out) ({RSS_URL})")
 
 
 def parse_rss(xml_text: str) -> list[RawPost]:

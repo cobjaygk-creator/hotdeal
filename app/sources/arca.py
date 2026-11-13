@@ -34,9 +34,8 @@ class ArcaSource:
             posts = parse_list(html)
             if posts:
                 return posts
-        # Browser unavailable or returned no content — try plain HTTP as a
-        # last resort (occasionally clears on a fresh Railway IP).
-        return await fetch_parsed(client, LIST_URL, parse_list)
+            raise RuntimeError(f"arca browser parsed 0 posts ({LIST_URL})")
+        raise RuntimeError(f"arca browser unavailable or CF-blocked ({LIST_URL})")
 
 
 def parse_list(html: str) -> list[RawPost]:
