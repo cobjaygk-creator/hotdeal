@@ -461,8 +461,13 @@ def is_mall_url(url: str | None) -> bool:
     if "gmarket.co.kr" in host or "auction.co.kr" in host:
         qs = {k.lower(): v for k, v in parse_qs(parsed.query).items()}
         code = (qs.get("goodscode") or qs.get("itemno") or [""])[0]
-        if not str(code).isdigit():
-            return False
+        if str(code).isdigit():
+            return True
+        # New path-based product URLs: /p/12345 or /item/detail/12345
+        path_segs = [s for s in (parsed.path or "").split("/") if s]
+        if any(s.isdigit() and len(s) >= 5 for s in path_segs):
+            return True
+        return False
     return True
 
 
