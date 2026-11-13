@@ -443,6 +443,10 @@ async def _scheduled_ppomppu_mall_enrich() -> None:
     # permits only one writer; serialise this sweep with collectors so a link
     # fill cannot abort either transaction with "database is locked".
     async with _collection_slot():
+        priority = list(_priority_enrich_ids)
+        _priority_enrich_ids.clear()
+        if priority:
+            await _run_mall_enrich(deal_ids=priority, limit=max(6, len(priority)))
         await _run_mall_enrich()
 
 
@@ -456,12 +460,19 @@ async def _scheduled_llm_classify() -> None:
         log.exception("llm classify tick failed")
 
 
+_priority_enrich_ids: set[int] = set()
+
+
 async def _kick_mall_enrich(deal_ids: list[int]) -> None:
     if not deal_ids:
         return
     lock = state.get("ppomppu_enrich_lock")
-    # Don't queue behind a long enrich tick; the 30s scheduler will catch up.
-    if lock is None or lock.locked():
+    if lock is None:
+        return
+    if lock.locked():
+        # Enrich is already running — park these IDs so the next scheduler
+        # tick picks them up first (before the regular sweep).
+        _priority_enrich_ids.update(deal_ids)
         return
     try:
         await _run_mall_enrich(deal_ids=deal_ids, limit=max(6, len(deal_ids)))
