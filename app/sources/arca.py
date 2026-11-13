@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import email.utils
 import re
-from xml.etree import ElementTree as ET
 
 from selectolax.parser import HTMLParser
 
@@ -12,7 +10,6 @@ from app.sources.html_fetch import fetch_parsed
 from app.util.timeparse import parse_int, parse_iso
 
 LIST_URL = "https://arca.live/b/hotdeal"
-RSS_URL = "https://arca.live/b/hotdeal.rss"
 _ID_RE = re.compile(r"/b/hotdeal/(\d+)")
 
 
@@ -20,25 +17,24 @@ class ArcaSource:
     name = "arca"
 
     async def fetch_latest(self, client: PoliteClient) -> list[RawPost]:
-        # Try RSS first — not behind CF Bot Management.
-        try:
-            posts = await fetch_parsed(client, RSS_URL, parse_rss)
-            if posts:
-                return posts
-        except Exception:  # noqa: BLE001
-            pass
-        # HTML fallback (CF-gated; browser will clear the challenge).
+        # arca.live is behind Cloudflare Bot Management — plain HTTP is always
+        # challenged. Try the HTML list directly (it fails fast) then hand off
+        # to the headless-browser fetcher which clears the CF challenge.
         try:
             return await fetch_parsed(client, LIST_URL, parse_list)
         except RuntimeError as exc:
             msg = str(exc)
             if "blocked:" not in msg and "parsed 0 posts" not in msg:
                 raise
-            # Cloudflare Bot Management: fall back to headless-browser fetcher.
             from app.sources import arca_browser
 
+            # More rounds and longer settle time give CF's challenge JS enough
+            # time to complete and set cookies before we check the page content.
             html = await arca_browser.fetch_html(
-                LIST_URL, want_selector="div.vrow.hybrid"
+                LIST_URL,
+                want_selector="div.vrow.hybrid",
+                max_rounds=6,
+                settle_ms=3000,
             )
             if not html:
                 raise
@@ -46,44 +42,6 @@ class ArcaSource:
             if not posts:
                 raise RuntimeError(f"arca browser parsed 0 posts ({LIST_URL})") from exc
             return posts
-
-
-def parse_rss(xml_text: str) -> list[RawPost]:
-    try:
-        root = ET.fromstring(xml_text)
-    except ET.ParseError:
-        return []
-    posts: list[RawPost] = []
-    seen: set[str] = set()
-    for item in root.iter("item"):
-        link = (item.findtext("link") or "").strip()
-        m = _ID_RE.search(link)
-        if not m:
-            continue
-        post_id = m.group(1)
-        if post_id in seen:
-            continue
-        title = " ".join((item.findtext("title") or "").split())
-        if not title:
-            continue
-        seen.add(post_id)
-        posted = None
-        pub = item.findtext("pubDate")
-        if pub:
-            try:
-                posted = email.utils.parsedate_to_datetime(pub)
-            except (TypeError, ValueError):
-                posted = None
-        posts.append(
-            RawPost(
-                source="arca",
-                source_post_id=post_id,
-                url=f"https://arca.live/b/hotdeal/{post_id}",
-                title=title,
-                posted_at=posted,
-            )
-        )
-    return posts
 
 
 def parse_list(html: str) -> list[RawPost]:

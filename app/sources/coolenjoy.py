@@ -20,9 +20,10 @@ class CoolenjoySource:
     name = "coolenjoy"
 
     async def fetch_latest(self, client: PoliteClient) -> list[RawPost]:
-        # RSS is lightweight but coolenjoy.net can be slow from both proxy and
-        # direct paths. Use 30s timeout to give the server enough time.
-        return await fetch_parsed(client, RSS_URL, parse_rss, timeout=30.0, max_retries=1)
+        # coolenjoy.net RSS is sometimes slow from cloud IPs; KT proxy routes
+        # Korean-to-Korean and is more reliable. 45s timeout with 2 attempts
+        # handles the occasional slow server response.
+        return await fetch_parsed(client, RSS_URL, parse_rss, timeout=45.0, max_retries=2)
 
 
 def parse_rss(xml_text: str) -> list[RawPost]:

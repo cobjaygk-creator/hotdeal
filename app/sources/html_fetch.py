@@ -14,13 +14,12 @@ ParseFn = Callable[[str], list[RawPost]]
 # KR proxy first.
 PROXY_FIRST_HOSTS = (
     "arca.live",
+    "coolenjoy.net",
     "damoang.net",
     "quasarzone.com",
     "fmkorea.com",
     "www.clien.net",
     "www.dealbada.com",
-    # coolenjoy.net removed: direct Railway connection is faster for the RSS endpoint;
-    # proxy latency pushes it past the 30 s timeout consistently.
 )
 
 

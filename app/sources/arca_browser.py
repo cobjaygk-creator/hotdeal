@@ -198,7 +198,8 @@ async def fetch_html(
                 return None
             if _looks_cf(html):
                 log.warning("arca browser still CF-challenged after %d rounds: %s", rounds, url)
-                await _hard_reset()
+                # Keep the context alive — CF cookies may still be useful next
+                # tick. Only reset on captcha (above) or crash (finally block).
                 return None
             if want_selector:
                 try:
