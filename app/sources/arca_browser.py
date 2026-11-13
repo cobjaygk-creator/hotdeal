@@ -12,7 +12,11 @@ import asyncio
 import logging
 import time
 
-from app.config import HTTP_PROXY_URL, USER_AGENT
+from app.config import HTTP_PROXY_URL, PPOMPPU_PROXY_URL, USER_AGENT
+
+# Use the most specific available proxy (env PPOMPPU_PROXY_URL already falls
+# back to HTTP_PROXY_URL in config, so this covers both env-var patterns).
+_PROXY_URL = PPOMPPU_PROXY_URL or HTTP_PROXY_URL
 
 log = logging.getLogger(__name__)
 
@@ -40,7 +44,7 @@ _MIN_GAP_SEC = 10.0
 
 
 def _proxy_config() -> dict | None:
-    raw = HTTP_PROXY_URL
+    raw = _PROXY_URL
     if not raw:
         return None
     scheme, _, rest = raw.partition("://")
@@ -130,7 +134,7 @@ async def _ensure_context():
         )
         _context.set_default_timeout(30_000)
         await _context.route("**/*", _route_filter)
-        log.info("arca browser context up (proxy=%s)", bool(HTTP_PROXY_URL))
+        log.info("arca browser context up (proxy=%s)", bool(_PROXY_URL))
         return _context
     except Exception:  # noqa: BLE001
         log.exception("arca browser launch failed")
@@ -148,7 +152,7 @@ async def fetch_html(
 ) -> str | None:
     """Return page HTML after Cloudflare clears, or None if unavailable."""
     global _captcha_until, _last_fetch_ts
-    if not HTTP_PROXY_URL:
+    if not _PROXY_URL:
         return None  # no KR proxy → CF will just block
     if time.time() < _captcha_until:
         return None
