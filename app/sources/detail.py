@@ -22,7 +22,6 @@ from app.parse.links import (
 )
 from app.parse.sanitize_html import sanitize_body_html, strip_board_chrome
 from app.http_client import soft_block_reason
-from app.sources.html_fetch import PROXY_FIRST_HOSTS
 
 log = logging.getLogger(__name__)
 
@@ -119,22 +118,18 @@ async def enrich_post(client: PoliteClient, source: str, url: str) -> DetailEnri
     # Prefer https; ppomppu RSS still emits http:// links that bounce via script.
     if url.startswith("http://"):
         url = "https://" + url[len("http://") :]
-    host = (urlparse(url).hostname or "").lower()
-    prefer_proxy = bool(PPOMPPU_PROXY_URL) and (
-        is_ppomppu
-        or source in {"quasarzone", "arca", "damoang", "fmkorea"}
-        or any(host == item or host.endswith("." + item) for item in PROXY_FIRST_HOSTS)
-    )
-    # Ppomppu / CF boards: residential proxy first. Others try direct, then proxy.
+    # Always prefer the KR residential proxy for community post enrichment:
+    # Railway is Singapore-hosted and direct connections to Korean community
+    # sites are unreliable (slow, Cloudflare-blocked, or rate-limited).
+    # Using the proxy ensures consistent access and avoids delayed buy buttons.
+    prefer_proxy = bool(PPOMPPU_PROXY_URL)
     proxy_tries: list[str | None] = []
     if prefer_proxy:
         proxy_tries.append(PPOMPPU_PROXY_URL)
         if not is_ppomppu:
-            proxy_tries.append(None)
+            proxy_tries.append(None)  # direct fallback if proxy fails
     else:
         proxy_tries.append(None)
-        if PPOMPPU_PROXY_URL:
-            proxy_tries.append(PPOMPPU_PROXY_URL)
     urls = [url]
     if is_ppomppu and "www.ppomppu.co.kr" in url:
         urls.append(url.replace("www.ppomppu.co.kr", "m.ppomppu.co.kr", 1))
@@ -143,7 +138,7 @@ async def enrich_post(client: PoliteClient, source: str, url: str) -> DetailEnri
     blocked = False
     fmkorea_partial: DetailEnrichment | None = None
     for proxy in proxy_tries:
-        timeout = 20.0 if proxy else (5.0 if is_ppomppu else None)
+        timeout = 20.0 if proxy else (5.0 if is_ppomppu else 10.0)
         for candidate in urls:
             try:
                 result = await client.get(
