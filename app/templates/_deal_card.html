@@ -15,7 +15,7 @@
   <a class="deal-row-main" href="/deal/{{ d.id }}" data-deal-id="{{ d.id }}">
     <div class="deal-body">
       {% set mall_name = d.mall_url | mall_label or d.seller %}
-      {% set mall_key = d.mall_url | mall_key %}
+      {% set mall_key = (d.mall_url | mall_key) or (mall_name | mall_key_from_label) %}
       {% set is_lowest = d.sample_count is defined and d.sample_count and d.sample_count >= 3
             and d.min_price and d.baseline_price and d.price
             and d.price <= d.min_price and d.price < d.baseline_price %}

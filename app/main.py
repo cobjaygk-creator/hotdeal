@@ -75,7 +75,7 @@ from app.family.query import CATEGORIES, DISC_OPTIONS, SORT_OPTIONS, get_sale, l
 from app.events import EventHub
 from app.http_client import PoliteClient
 from app.pipeline import collect_and_process
-from app.parse.mall import mall_key_from_url, mall_label_from_url
+from app.parse.mall import mall_key_from_url, mall_key_from_label, mall_label_from_url
 from app.parse.sanitize_html import is_thin_body_html
 from app.parse.title import clean_deal_title
 from app.sources.registry import (
@@ -97,6 +97,7 @@ TEMPLATES.env.filters["reltime"] = format_relative
 TEMPLATES.env.filters["clock"] = format_clock
 TEMPLATES.env.filters["mall_label"] = mall_label_from_url
 TEMPLATES.env.filters["mall_key"] = mall_key_from_url
+TEMPLATES.env.filters["mall_key_from_label"] = mall_key_from_label
 TEMPLATES.env.filters["clean_title"] = clean_deal_title
 TEMPLATES.env.globals["site_url"] = SITE_URL
 TEMPLATES.env.globals["ga_measurement_id"] = GA_MEASUREMENT_ID
