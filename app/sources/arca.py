@@ -17,33 +17,26 @@ class ArcaSource:
     name = "arca"
 
     async def fetch_latest(self, client: PoliteClient) -> list[RawPost]:
-        # arca.live is behind Cloudflare Bot Management — plain HTTP is always
-        # challenged. Try the HTML list directly (it fails fast) then hand off
-        # to the headless-browser fetcher which clears the CF challenge.
-        try:
-            return await fetch_parsed(client, LIST_URL, parse_list)
-        except RuntimeError as exc:
-            msg = str(exc)
-            if "blocked:" not in msg and "parsed 0 posts" not in msg:
-                raise
-            from app.sources import arca_browser
+        # arca.live is behind Cloudflare Bot Management. Plain HTTP from cloud
+        # IPs always gets "just a moment" — the proxy+impersonation path in
+        # fetch_parsed wastes 80s before giving up. Go straight to the headless
+        # browser which clears CF with a Korean residential proxy.
+        from app.sources import arca_browser
 
-            # Longer settle time gives CF challenge JS time to redirect.
-            # 60s total timeout with 5s settle per round ≈ 3–4 usable rounds
-            # within the 120s collection budget.
-            html = await arca_browser.fetch_html(
-                LIST_URL,
-                want_selector="div.vrow.hybrid",
-                max_rounds=6,
-                settle_ms=5000,
-                timeout=60.0,
-            )
-            if not html:
-                raise
+        html = await arca_browser.fetch_html(
+            LIST_URL,
+            want_selector="div.vrow.hybrid",
+            max_rounds=6,
+            settle_ms=5000,
+            timeout=90.0,
+        )
+        if html:
             posts = parse_list(html)
-            if not posts:
-                raise RuntimeError(f"arca browser parsed 0 posts ({LIST_URL})") from exc
-            return posts
+            if posts:
+                return posts
+        # Browser unavailable or returned no content — try plain HTTP as a
+        # last resort (occasionally clears on a fresh Railway IP).
+        return await fetch_parsed(client, LIST_URL, parse_list)
 
 
 def parse_list(html: str) -> list[RawPost]:
