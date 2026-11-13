@@ -26,9 +26,9 @@ class ArcaSource:
         html = await arca_browser.fetch_html(
             LIST_URL,
             want_selector="div.vrow.hybrid",
-            max_rounds=6,
-            settle_ms=5000,
-            timeout=90.0,
+            max_rounds=4,
+            settle_ms=4000,
+            timeout=60.0,
         )
         if html:
             posts = parse_list(html)
