@@ -480,25 +480,36 @@ async def _kick_mall_enrich(deal_ids: list[int]) -> None:
         log.exception("immediate mall enrich failed")
 
 
-async def _kick_affiliate_convert(deal_id: int, mall_url: str) -> None:
-    """Background counterpart to /out/{deal_id}'s first click: convert the
-    raw mall URL to a Coupang Partners deep link without making the user's
-    redirect wait on the Open API call. Later clicks read the cached result."""
-    from app.parse.links import is_coupang_partner_gate
-    from app.coupang.api import create_deeplinks, is_coupang_product_url
+async def _log_click_and_check_affiliate(
+    deal_id: int, mall_url: str, platform: str, needs_affiliate_check: bool
+) -> None:
+    """Background counterpart to /out/{deal_id}: everything that writes to
+    the DB, done after the user is already on their way to the mall so a
+    busy collection-job write transaction never makes a click feel slow."""
+    db = _db()
+    try:
+        if needs_affiliate_check:
+            from app.parse.links import is_coupang_partner_gate
+            from app.coupang.api import create_deeplinks, is_coupang_product_url
 
-    target = mall_url
-    if COUPANG_ENABLED and is_coupang_product_url(mall_url) and not is_coupang_partner_gate(mall_url):
-        try:
-            converted = await create_deeplinks([mall_url])
-            target = converted.get(mall_url) or mall_url
-        except Exception:
-            log.exception("coupang deeplink conversion failed for deal %s", deal_id)
-    await _db().execute(
-        "UPDATE deals SET affiliate_url=?, affiliate_checked_at=? WHERE id=?",
-        (target if target != mall_url else None, utcnow_iso(), deal_id),
-    )
-    await _db().commit()
+            affiliate_url = None
+            if COUPANG_ENABLED and is_coupang_product_url(mall_url) and not is_coupang_partner_gate(mall_url):
+                try:
+                    converted = await create_deeplinks([mall_url])
+                    affiliate_url = converted.get(mall_url)
+                except Exception:
+                    log.exception("coupang deeplink conversion failed for deal %s", deal_id)
+            await db.execute(
+                "UPDATE deals SET affiliate_url=?, affiliate_checked_at=? WHERE id=?",
+                (affiliate_url, utcnow_iso(), deal_id),
+            )
+        await db.execute(
+            "INSERT INTO affiliate_clicks(platform, product_id, created_at) VALUES (?, ?, ?)",
+            (platform, str(deal_id), utcnow_iso()),
+        )
+        await db.commit()
+    except Exception:
+        log.exception("background click logging failed for deal %s", deal_id)
 
 
 async def _run_mall_enrich(
@@ -1130,13 +1141,23 @@ async def coupang_index(request: Request, category: str | None = None):
     )
 
 
+async def _log_coupang_click(product_id: str) -> None:
+    try:
+        await _db().execute(
+            "INSERT INTO affiliate_clicks(platform, product_id, created_at) VALUES (?, ?, ?)",
+            ("coupang", product_id, utcnow_iso()),
+        )
+        await _db().commit()
+    except Exception:
+        log.exception("background click logging failed for coupang product %s", product_id)
+
+
 @app.get("/out/coupang/{product_id}")
 async def coupang_out(product_id: str):
     cur = await _db().execute("SELECT buy_url FROM coupang_deals WHERE product_id=? AND active=1", (product_id,))
     row = await cur.fetchone()
     if not row or not row["buy_url"]: raise HTTPException(404, "상품을 찾을 수 없습니다")
-    await _db().execute("INSERT INTO affiliate_clicks(platform, product_id, created_at) VALUES (?, ?, ?)", ("coupang", product_id, utcnow_iso()))
-    await _db().commit()
+    asyncio.create_task(_log_coupang_click(product_id))
     return RedirectResponse(row["buy_url"], status_code=302)
 
 
@@ -1161,17 +1182,15 @@ async def deal_out(deal_id: int):
         return RedirectResponse(fallback, status_code=302)
     mall_url = row["mall_url"]
     target = row["affiliate_url"] or mall_url
-    if not row["affiliate_checked_at"]:
-        # Don't block this redirect on the Coupang API call — convert in the
-        # background so the first click is as fast as a cached one, and
-        # later clicks pick up the affiliate link once it lands.
-        asyncio.create_task(_kick_affiliate_convert(deal_id, mall_url))
+    needs_affiliate_check = not row["affiliate_checked_at"]
     platform = mall_key_from_url(mall_url) or "unknown"
-    await db.execute(
-        "INSERT INTO affiliate_clicks(platform, product_id, created_at) VALUES (?, ?, ?)",
-        (platform, str(deal_id), utcnow_iso()),
-    )
-    await db.commit()
+    # Every write here (click log, affiliate-checked flag) can sit behind
+    # whatever write transaction the collection scheduler currently holds on
+    # the shared SQLite file, which is what made clicks occasionally stall
+    # for several seconds regardless of which mall they pointed to. None of
+    # it needs to happen before the user leaves, so do it all in the
+    # background and redirect immediately.
+    asyncio.create_task(_log_click_and_check_affiliate(deal_id, mall_url, platform, needs_affiliate_check))
     return RedirectResponse(target, status_code=302)
 
 
