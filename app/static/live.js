@@ -994,20 +994,27 @@ function closeModal(opts) {
 async function fetchDealDetail(id) {
   let lastErr = null;
   for (let attempt = 0; attempt < 3; attempt++) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 15000);
     try {
-      const res = await fetch("/api/deals/" + id, { cache: "no-store" });
+      const res = await fetch("/api/deals/" + id, { cache: "no-store", signal: ctrl.signal });
+      clearTimeout(timer);
       if (res.status === 404) {
         throw new Error("not found");
       }
       if (!res.ok) {
         lastErr = new Error("status " + res.status);
-        await new Promise((r) => setTimeout(r, 250 * (attempt + 1)));
+        await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
         continue;
       }
       return await res.json();
     } catch (err) {
+      clearTimeout(timer);
       lastErr = err;
-      await new Promise((r) => setTimeout(r, 250 * (attempt + 1)));
+      if (err.name === "AbortError") {
+        lastErr = new Error("timeout");
+      }
+      await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
     }
   }
   throw lastErr || new Error("deal fetch failed");
@@ -1144,8 +1151,8 @@ function isThinBodyHtml(html) {
 }
 
 async function pollModalBody(id) {
-  for (let i = 0; i < 8; i++) {
-    await new Promise((r) => setTimeout(r, 2000));
+  for (let i = 0; i < 20; i++) {
+    await new Promise((r) => setTimeout(r, i < 5 ? 2000 : 3000));
     if (modalOpenId !== Number(id)) return;
     try {
       const res = await fetch("/api/deals/" + id, { cache: "no-store" });
@@ -1183,8 +1190,8 @@ async function pollModalMall(id, deal) {
   const buyLabelBase = deal && deal.seller
     ? `${esc(deal.seller)}에서 ${won(deal.price)} 구매`
     : `${won(deal && deal.price)} 구매하기`;
-  for (let i = 0; i < 6; i++) {
-    await new Promise((r) => setTimeout(r, 2000));
+  for (let i = 0; i < 15; i++) {
+    await new Promise((r) => setTimeout(r, i < 5 ? 2000 : 3000));
     if (modalOpenId !== Number(id)) return;
     try {
       const res = await fetch("/api/deals/" + id);

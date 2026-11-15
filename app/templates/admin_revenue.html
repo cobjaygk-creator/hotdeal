@@ -1,9 +1,83 @@
 {% extends "admin_base.html" %}
-{% block title %}수익화 대시보드{% endblock %}
+{% block title %}수익화 대시보드 · 관리자{% endblock %}
 {% block admin_body %}
-<div class="page-head"><h1>수익화 대시보드</h1></div>
-<form method="get" style="margin:14px 0"><select name="days"><option value="7">최근 7일</option><option value="30" {% if days == 30 %}selected{% endif %}>최근 30일</option><option value="365" {% if days == 365 %}selected{% endif %}>최근 1년</option></select><select name="device"><option value="">전체 기기</option><option value="pc" {% if device == "pc" %}selected{% endif %}>PC</option><option value="mobile" {% if device == "mobile" %}selected{% endif %}>모바일</option></select><button class="btn-secondary">조회</button></form><div class="metric-grid"><div class="metric-tile"><div class="metric-label">광고 노출</div><div class="metric-value">{{ ad.get("impression", 0) }}</div></div><div class="metric-tile"><div class="metric-label">광고 클릭</div><div class="metric-value">{{ ad.get("click", 0) }}</div></div><div class="metric-tile"><div class="metric-label">쿠팡 제휴 클릭</div><div class="metric-value">{{ affiliate_clicks }}</div></div></div>
-<div class="metric-tile"><div class="metric-label">예상 수익</div><div class="metric-value">{{ "{:,.0f}".format(estimated_revenue) }}원</div></div><p class="muted">예상 수익은 관리자 입력 단가를 이용한 추정치이며 확정 수익과 다릅니다.</p>
+<div class="admin-page-top">
+  <div>
+    <h1>수익화 대시보드</h1>
+    <div class="admin-page-sub">추정치 기준 · 확정 수익과 다를 수 있습니다</div>
+  </div>
+  <form method="get" style="display:flex;gap:5px;align-items:center">
+    <input type="hidden" name="device" value="{{ device or '' }}">
+    {% for d, label in [(7,'7일'),(30,'30일'),(365,'1년')] %}
+    <button type="submit" name="days" value="{{ d }}"
+            class="btn-secondary{% if days == d %} btn-secondary--active{% endif %}"
+            style="height:30px;padding:0 12px;font-size:12.5px{% if days == d %};background:var(--accent);color:#fff;border-color:var(--accent){% endif %}">
+      {{ label }}
+    </button>
+    {% endfor %}
+    <select name="device" onchange="this.form.submit()"
+            style="height:30px;border:1.5px solid var(--border,#e7e9ec);border-radius:9px;padding:0 8px;font-size:13px;background:var(--surface);color:var(--ink)">
+      <option value="" {% if not device %}selected{% endif %}>전체</option>
+      <option value="pc" {% if device == 'pc' %}selected{% endif %}>PC</option>
+      <option value="mobile" {% if device == 'mobile' %}selected{% endif %}>모바일</option>
+    </select>
+  </form>
+</div>
+
+<div class="metric-grid-v2" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr));margin-bottom:24px">
+  <div class="metric-tile-v2">
+    <div class="m-label">광고 노출</div>
+    <div class="m-val">{{ "{:,}".format(ad.get("impression", 0)) }}</div>
+  </div>
+  <div class="metric-tile-v2">
+    <div class="m-label">광고 클릭</div>
+    <div class="m-val">{{ "{:,}".format(ad.get("click", 0)) }}</div>
+    {% if ad.get("impression", 0) > 0 %}
+    <div style="font-size:11px;color:var(--ink-faint)">
+      CTR {{ "%.2f"|format(ad.get("click", 0) / ad.get("impression", 1) * 100) }}%
+    </div>
+    {% endif %}
+  </div>
+  <div class="metric-tile-v2">
+    <div class="m-label">쿠팡 제휴 클릭</div>
+    <div class="m-val">{{ "{:,}".format(affiliate_clicks) }}</div>
+  </div>
+  <div class="metric-tile-v2">
+    <div class="m-label">예상 수익</div>
+    <div class="m-val accent">{{ "{:,.0f}".format(estimated_revenue) }}원</div>
+  </div>
+</div>
+
+{# 일별 추이 차트 #}
+{% if daily_clicks %}
+<div class="h2-label">쿠팡 제휴 클릭 추이</div>
+<div class="panel" style="padding:20px">
+  <div id="rev-chart" style="display:flex;align-items:flex-end;gap:3px;height:80px;width:100%">
+    {% set max_val = daily_clicks | map(attribute='clicks') | max | default(1) %}
+    {% for row in daily_clicks %}
+    <div title="{{ row.date }}: {{ row.clicks }}클릭"
+         style="flex:1;min-width:4px;background:var(--accent,#2e63f6);opacity:.7;border-radius:3px 3px 0 0;height:{{ [row.clicks / max_val * 80, 2] | max }}px;cursor:default;transition:opacity .15s"
+         onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity='.7'"></div>
+    {% endfor %}
+  </div>
+  <div style="display:flex;justify-content:space-between;margin-top:5px;font-size:11px;color:var(--ink-faint)">
+    {% if daily_clicks %}
+    <span>{{ daily_clicks[0].date }}</span>
+    <span>{{ daily_clicks[-1].date }}</span>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<style>
+.h2-label {
+  font-size: 12px; font-weight: 700; color: var(--ink-muted,#6b7280);
+  letter-spacing: .06em; text-transform: uppercase; margin-bottom: 10px;
+  display: flex; align-items: center; gap: 6px;
+}
+.h2-label::before {
+  content: ''; display: inline-block; width: 3px; height: 12px;
+  background: var(--accent,#2e63f6); border-radius: 2px;
+}
+</style>
 {% endblock %}
-
-

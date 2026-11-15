@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from app.sources import RawPost
 
 log = logging.getLogger(__name__)
-SOURCE_FETCH_TIMEOUT_SECONDS = 60.0
+SOURCE_FETCH_TIMEOUT_SECONDS = 120.0
 SOURCE_FAILURE_COOLDOWN_SECONDS = 120.0
 
 

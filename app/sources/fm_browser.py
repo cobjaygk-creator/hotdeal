@@ -34,11 +34,14 @@ log = logging.getLogger(__name__)
 
 # Tokens unique to FMKorea's auto-solving WASM proof-of-work interstitial.
 _GATE_MARKERS = ("ddosCheckOnly", "window.redirectCheck", "/mc/mc.php")
-# The harder gate FMKorea escalates a flagged IP to: a Cloudflare Turnstile
-# CAPTCHA. A headless browser cannot clear it — bail immediately.
-_CAPTCHA_MARKERS = ("cf-turnstile", "challenges.cloudflare.com/turnstile", "/try_unblock.php")
+# Cloudflare Turnstile CAPTCHA: interactive, cannot be solved headlessly.
+_CAPTCHA_MARKERS = ("cf-turnstile", "challenges.cloudflare.com/turnstile")
+# FMKorea IP ban page: not a solvable CAPTCHA — just rotate the proxy session
+# and retry on the next tick (no long cooldown needed).
+_HARD_BLOCK_MARKERS = ("help@fmkorea.com", "/try_unblock.php")
 
 _CAPTCHA_COOLDOWN_SEC = 1800  # after a Turnstile hit, leave the IP alone for a while
+_IP_BAN_COOLDOWN_SEC = 300   # after an IP ban, back off 5 min before retrying
 # Resource types the gate/board don't need — skipping them keeps each page load
 # to a handful of requests so the exit IP looks less like a scraper.
 _BLOCKED_RESOURCE_TYPES = frozenset({"image", "media", "font", "stylesheet"})
@@ -62,6 +65,7 @@ _session_token = ""
 _session_born = 0.0
 _disabled_reason: str | None = None
 _captcha_until = 0.0
+_ip_ban_until = 0.0
 _warned_no_session = False
 
 
@@ -202,11 +206,13 @@ async def fetch_html(
     timeout: float = 35.0,
 ) -> str | None:
     """Return page HTML after the gate clears, or None if unavailable."""
-    global _captcha_until, _last_fetch_ts
+    global _captcha_until, _ip_ban_until, _last_fetch_ts
     if not FMKOREA_BROWSER_ENABLED:
         return None
     if time.time() < _captcha_until:
         return None  # still cooling off from a Turnstile hit
+    if time.time() < _ip_ban_until:
+        return None  # still cooling off from an IP ban
     async with _lock:
         # Rate-limit: full browser page loads burn residential-proxy GB.
         gap = time.time() - _last_fetch_ts
@@ -222,6 +228,19 @@ async def fetch_html(
             page = await ctx.new_page()
             await page.goto(url, wait_until="domcontentloaded", timeout=int(timeout * 1000))
             html = await page.content()
+            # Hard IP ban (help@fmkorea.com / try_unblock): rotate the proxy
+            # session and hard-reset so the NEXT attempt opens a fresh context
+            # with the new session's exit IP. WASM cookies don't help on a
+            # banned IP anyway — the ban check happens before the WASM gate.
+            if any(m in (html or "")[:8000] for m in _HARD_BLOCK_MARKERS):
+                log.warning(
+                    "fmkorea browser hit IP ban page; rotating proxy session, "
+                    "cooling off %ds", _IP_BAN_COOLDOWN_SEC
+                )
+                _ip_ban_until = time.time() + _IP_BAN_COOLDOWN_SEC
+                _rotate_session()
+                await _hard_reset()
+                return None
             if _looks_captcha(html):
                 log.warning(
                     "fmkorea browser hit a Turnstile CAPTCHA; cooling off %ds and "
@@ -250,6 +269,15 @@ async def fetch_html(
                 except Exception:  # noqa: BLE001
                     pass
                 html = await page.content()
+            if any(m in (html or "")[:8000] for m in _HARD_BLOCK_MARKERS):
+                log.warning(
+                    "fmkorea browser escalated to IP ban mid-solve; rotating session, "
+                    "cooling off %ds", _IP_BAN_COOLDOWN_SEC
+                )
+                _ip_ban_until = time.time() + _IP_BAN_COOLDOWN_SEC
+                _rotate_session()
+                await _hard_reset()
+                return None
             if _looks_captcha(html):
                 log.warning("fmkorea browser escalated to Turnstile mid-solve")
                 _captcha_until = time.time() + _CAPTCHA_COOLDOWN_SEC

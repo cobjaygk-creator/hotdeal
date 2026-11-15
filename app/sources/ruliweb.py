@@ -1,55 +1,87 @@
 from __future__ import annotations
 
-from selectolax.parser import HTMLParser
+import email.utils
+import re
+from xml.etree import ElementTree as ET
 
 from app.http_client import PoliteClient
 from app.sources import RawPost
-from app.util.timeparse import parse_int, parse_kr_datetime
+from app.sources.html_fetch import fetch_parsed
 
-# robots.txt blocks ?view= and ?orderby= — use the default URL only
-LIST_URL = "https://bbs.ruliweb.com/market/board/1020"
+# RSS is more robust from datacenter IPs than the board HTML.
+RSS_URL = "https://bbs.ruliweb.com/market/board/1020/rss"
+LIST_URL = RSS_URL  # kept for the debug probe
+_ID_RE = re.compile(r"/market/board/\d+/read/(\d+)")
+_IMG_RE = re.compile(r"""<img[^>]+src\s*=\s*["']([^"']+)["']""", re.I)
 
 
 class RuliwebSource:
     name = "ruliweb"
 
     async def fetch_latest(self, client: PoliteClient) -> list[RawPost]:
-        result = await client.get(LIST_URL)
-        if result.not_modified:
-            return []
-        return parse_list(result.text)
+        return await fetch_parsed(
+            client, RSS_URL, parse_rss, timeout=20.0, max_retries=1, curl_fallback=False
+        )
 
 
-def parse_list(html: str) -> list[RawPost]:
-    tree = HTMLParser(html)
+def parse_rss(xml_text: str) -> list[RawPost]:
+    root = ET.fromstring(xml_text)
     posts: list[RawPost] = []
-    for row in tree.css("tr.table_body.blocktarget"):
-        id_td = row.css_first("td.id")
-        title_a = row.css_first("a.subject_link")
-        if not id_td or not title_a:
+    seen: set[str] = set()
+    for item in root.iter("item"):
+        link = (item.findtext("link") or "").strip()
+        m = _ID_RE.search(link)
+        if not m:
             continue
-        post_id = (id_td.text() or "").strip()
-        if not post_id.isdigit():
+        post_id = m.group(1)
+        if post_id in seen:
             continue
-        title = (title_a.attributes.get("title") or "").strip()
-        if not title:
-            title = " ".join((title_a.text() or "").split())
-        else:
-            title = " ".join(title.split())
-        writer = row.css_first("td.writer a")
-        rec = row.css_first("td.recomd")
-        hit = row.css_first("td.hit")
-        time_el = row.css_first("td.time")
+        title = " ".join((item.findtext("title") or "").split())
+        if not title or "공지" in title or "이용안내" in title:
+            continue
+        seen.add(post_id)
+        desc = (item.findtext("description") or "").strip() or None
+        author = (item.findtext("author") or "").strip() or None
+        posted = None
+        pub = item.findtext("pubDate")
+        if pub:
+            try:
+                posted = email.utils.parsedate_to_datetime(pub)
+            except (TypeError, ValueError):
+                posted = None
+        cat = (item.findtext("category") or "").strip()
+        extra: dict = {}
+        thumb = _first_thumb(desc)
+        if thumb:
+            extra["thumbnail_url"] = thumb
+        if cat and cat.lower() not in ("", "기타"):
+            extra["source_category"] = cat
         posts.append(
             RawPost(
                 source="ruliweb",
                 source_post_id=post_id,
                 url=f"https://bbs.ruliweb.com/market/board/1020/read/{post_id}",
                 title=title,
-                author=" ".join((writer.text() or "").split()) if writer else None,
-                posted_at=parse_kr_datetime(time_el.text() if time_el else None),
-                votes=parse_int(rec.text() if rec else None),
-                views=parse_int(hit.text() if hit else None),
+                body=desc,
+                author=author,
+                posted_at=posted,
+                extra=extra,
             )
         )
     return posts
+
+
+def _first_thumb(desc: str | None) -> str | None:
+    if not desc:
+        return None
+    for m in _IMG_RE.finditer(desc):
+        src = (m.group(1) or "").strip()
+        if not src or src.startswith("data:"):
+            continue
+        if src.startswith("//"):
+            return "https:" + src
+        if src.startswith("/"):
+            return "https://bbs.ruliweb.com" + src
+        if src.startswith("http"):
+            return src
+    return None

@@ -8,6 +8,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import re
 import time
 from collections import defaultdict
 
@@ -64,6 +65,36 @@ async def _first_live_thumb(client, candidates: list[str]) -> str | None:
             getattr(r, "content", b"")
         ):
             return url
+    return None
+
+
+_OG_IMG_BAD = re.compile(
+    r"(icon|logo|badge|avatar|placeholder|blank|1x1|spacer|/emo/|/skin/)",
+    re.I,
+)
+
+
+async def _og_image_from_mall(client, url: str) -> str | None:
+    """Quick og:image extract from a mall product page (direct, no proxy)."""
+    try:
+        r = await client.get(url, timeout=6.0, max_retries=1, curl_fallback=False)
+    except Exception:  # noqa: BLE001
+        return None
+    text = getattr(r, "text", None) or ""
+    if len(text) < 200:
+        return None
+    from selectolax.parser import HTMLParser as _HP
+    tree = _HP(text)
+    for sel in (
+        'meta[property="og:image"]',
+        "meta[property='og:image']",
+        'meta[name="twitter:image"]',
+    ):
+        node = tree.css_first(sel)
+        if node:
+            src = (node.attributes.get("content") or "").strip()
+            if src and src.startswith("http") and not _OG_IMG_BAD.search(src):
+                return src
     return None
 
 
@@ -303,6 +334,18 @@ async def enrich_missing_ppomppu_malls(
             if raw_thumb and raw_thumb not in cand:
                 cand.insert(0, raw_thumb)
             stored_thumb = (row.get("thumbnail_url") or "").strip()
+            # No images in the community post → try mall product page og:image.
+            if not cand and not stored_thumb:
+                mall_for_thumb = mall_url or row.get("mall_url")
+                if mall_for_thumb:
+                    try:
+                        mall_og = await asyncio.wait_for(
+                            _og_image_from_mall(client, mall_for_thumb), timeout=8.0
+                        )
+                        if mall_og:
+                            cand = [mall_og]
+                    except Exception:  # noqa: BLE001
+                        pass
             thumb = None
             if cand and cand[:1] != [stored_thumb]:
                 try:

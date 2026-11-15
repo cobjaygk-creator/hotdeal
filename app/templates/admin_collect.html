@@ -1,0 +1,108 @@
+{% extends "admin_base.html" %}
+{% block title %}수집관리 · 관리자{% endblock %}
+{% block admin_body %}
+<div class="admin-page-top">
+  <div>
+    <h1>수집관리</h1>
+    <div class="admin-page-sub">버튼 클릭 시 즉시 1회 실행 · 마지막 수집 {% if stats.last_collect_at %}{{ stats.last_collect_at | kst }}{% else %}–{% endif %}</div>
+  </div>
+</div>
+
+<div class="h2-label">수동 실행</div>
+<div class="admin-collect-buttons" style="margin-bottom:24px">
+  <button type="button" class="btn-secondary" data-collect="/api/collect">🔄 전체 수집</button>
+  <button type="button" class="btn-secondary" data-collect="/api/family/collect">🏬 패밀리세일</button>
+  <button type="button" class="btn-secondary" data-collect="/api/ppomppu/enrich-malls">🔗 구매링크 보강</button>
+  <button type="button" class="btn-secondary" data-collect="/api/coupang/collect">🛒 쿠팡특가</button>
+  <button type="button" class="btn-secondary" data-collect="/api/amazon-jp/collect">🗾 일마존</button>
+  {% if email_digest_enabled %}<button type="button" class="btn-secondary" data-collect="/api/admin/digest/send">📧 다이제스트 발송</button>{% endif %}
+</div>
+<p class="muted" id="admin-collect-status" style="margin-bottom:20px"></p>
+
+<div class="h2-label">소스별 수집 현황</div>
+{% if stats.collect_by_source %}
+<div class="table-card collect-table">
+  <div class="table-scroll">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>소스</th>
+          <th>상태</th>
+          <th>마지막 수집</th>
+          <th>수집 건</th>
+          <th>신규</th>
+          <th>오류 메시지</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for src, info in stats.collect_by_source.items() %}
+        <tr>
+          <td><strong>{{ src }}</strong></td>
+          <td>
+            {% if info.error %}
+              <span class="status-badge danger">● 실패</span>
+            {% else %}
+              <span class="status-badge ok">● 정상</span>
+            {% endif %}
+          </td>
+          <td style="white-space:nowrap;color:var(--ink-muted)">
+            {{ info.at | kst if info.at else '–' }}
+          </td>
+          <td>{{ info.fetched if info.fetched is not none else '–' }}</td>
+          <td>{{ info.new if info.new is not none else '–' }}</td>
+          <td>
+            {% if info.error %}
+              <span class="collect-err-msg" title="{{ info.error }}">{{ info.error }}</span>
+            {% else %}
+              –
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<p class="muted">아직 수집 이력이 없습니다.</p>
+{% endif %}
+
+<style>
+.h2-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-muted, #6b7280);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.h2-label::before {
+  content: '';
+  display: inline-block;
+  width: 3px; height: 12px;
+  background: var(--accent, #2e63f6);
+  border-radius: 2px;
+}
+</style>
+<script>
+document.querySelectorAll("[data-collect]").forEach((btn) => {
+  btn.addEventListener("click", async () => {
+    const status = document.getElementById("admin-collect-status");
+    btn.disabled = true;
+    if (status) status.textContent = "실행 중…";
+    try {
+      const res = await fetch(btn.dataset.collect, { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (status) status.textContent = res.ok ? "완료: " + JSON.stringify(data) : (data.detail || "실패");
+    } catch (e) {
+      if (status) status.textContent = "요청 실패";
+    } finally {
+      btn.disabled = false;
+    }
+  });
+});
+</script>
+{% endblock %}

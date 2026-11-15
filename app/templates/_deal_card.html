@@ -14,8 +14,8 @@
   </div>
   <a class="deal-row-main" href="/deal/{{ d.id }}" data-deal-id="{{ d.id }}">
     <div class="deal-body">
-      {% set mall_name = d.mall_url | mall_label %}
-      {% set mall_key = d.mall_url | mall_key %}
+      {% set mall_name = d.mall_url | mall_label or d.seller %}
+      {% set mall_key = (d.mall_url | mall_key) or (mall_name | mall_key_from_label) %}
       {% set is_lowest = d.sample_count is defined and d.sample_count and d.sample_count >= 3
             and d.min_price and d.baseline_price and d.price
             and d.price <= d.min_price and d.price < d.baseline_price %}
@@ -31,7 +31,6 @@
       <div class="deal-price-row">
         {% if d.discount_rate is defined and d.discount_rate is not none and d.discount_rate < 0 %}<span class="deal-discount">{{ (-d.discount_rate * 100)|round(0)|int }}%</span>{% endif %}
         <div class="deal-price">{% if d.price %}{{ "{:,}".format(d.price) }}<span class="won">원</span>{% else %}-{% endif %}</div>
-        {% if d.shipping_fee == 0 %}<span class="deal-shipping">무료배송</span>{% endif %}
         {% if d.status == 'expired' %}<span class="deal-soldout">품절</span>{% endif %}
         <time class="time-abs" datetime="{{ d.last_seen_at or '' }}" data-ts="{{ d.last_seen_at or '' }}">{{ d.last_seen_at | reltime }}</time>
       </div>
@@ -39,13 +38,6 @@
   </a>
   <div class="deal-row-side">
     {% if is_lowest %}<span class="deal-tag deal-tag-lowest">역대 최저가</span>{% endif %}
-    {% if request.state.user and d.category %}
-    <button class="deal-quick-notif-btn" type="button"
-            data-keyword="{{ d.category }}"
-            aria-label="이 카테고리 알림 받기"
-            title="'{{ d.category }}' 알림 등록"
-            onclick="dealQuickNotif(this);event.stopPropagation()">🔔</button>
-    {% endif %}
     {% if d.mall_url or d.deal_url %}<a class="deal-buy-btn" href="/out/{{ d.id }}" target="_blank" rel="noopener" onclick="event.stopPropagation()">구매하기</a>{% endif %}
   </div>
 </li>

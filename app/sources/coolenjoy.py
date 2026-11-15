@@ -4,9 +4,9 @@ import email.utils
 import re
 from xml.etree import ElementTree as ET
 
+from app.config import PPOMPPU_PROXY_URL
 from app.http_client import PoliteClient
 from app.sources import RawPost
-from app.sources.html_fetch import fetch_parsed
 
 # The board HTML repeatedly ReadTimeout'd from the cloud host; the RSS feed is
 # small, fast, and carries the post body (with images) inline.
@@ -15,14 +15,21 @@ LIST_URL = RSS_URL  # kept for the debug probe
 _ID_RE = re.compile(r"/bbs/jirum/(\d+)")
 _IMG_RE = re.compile(r"""<img[^>]+src\s*=\s*["']([^"']+)["']""", re.I)
 
-
 class CoolenjoySource:
     name = "coolenjoy"
 
     async def fetch_latest(self, client: PoliteClient) -> list[RawPost]:
-        # RSS is lightweight, but repeated timeout retries still multiply
-        # traffic from the collector. A single retry is enough for this feed.
-        return await fetch_parsed(client, RSS_URL, parse_rss, timeout=20.0, max_retries=1, curl_fallback=False)
+        # coolenjoy RSS is slow from cloud IPs; use curl which handles stalled
+        # reads better than httpx. Try KR proxy first (Korean ISP), then direct.
+        for proxy in ([PPOMPPU_PROXY_URL, None] if PPOMPPU_PROXY_URL else [None]):
+            try:
+                result = await client._curl_get(RSS_URL, None, timeout=50.0, proxy=proxy)
+                posts = parse_rss(result.text)
+                if posts:
+                    return posts
+            except Exception:  # noqa: BLE001
+                pass
+        raise RuntimeError(f"coolenjoy RSS failed (proxy+direct both timed out) ({RSS_URL})")
 
 
 def parse_rss(xml_text: str) -> list[RawPost]:

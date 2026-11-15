@@ -75,7 +75,7 @@ from app.family.query import CATEGORIES, DISC_OPTIONS, SORT_OPTIONS, get_sale, l
 from app.events import EventHub
 from app.http_client import PoliteClient
 from app.pipeline import collect_and_process
-from app.parse.mall import mall_key_from_url, mall_label_from_url
+from app.parse.mall import mall_key_from_url, mall_key_from_label, mall_label_from_url
 from app.parse.sanitize_html import is_thin_body_html
 from app.parse.title import clean_deal_title
 from app.sources.registry import (
@@ -97,6 +97,7 @@ TEMPLATES.env.filters["reltime"] = format_relative
 TEMPLATES.env.filters["clock"] = format_clock
 TEMPLATES.env.filters["mall_label"] = mall_label_from_url
 TEMPLATES.env.filters["mall_key"] = mall_key_from_url
+TEMPLATES.env.filters["mall_key_from_label"] = mall_key_from_label
 TEMPLATES.env.filters["clean_title"] = clean_deal_title
 TEMPLATES.env.globals["site_url"] = SITE_URL
 TEMPLATES.env.globals["ga_measurement_id"] = GA_MEASUREMENT_ID
@@ -442,6 +443,10 @@ async def _scheduled_ppomppu_mall_enrich() -> None:
     # permits only one writer; serialise this sweep with collectors so a link
     # fill cannot abort either transaction with "database is locked".
     async with _collection_slot():
+        priority = list(_priority_enrich_ids)
+        _priority_enrich_ids.clear()
+        if priority:
+            await _run_mall_enrich(deal_ids=priority, limit=max(6, len(priority)))
         await _run_mall_enrich()
 
 
@@ -455,17 +460,56 @@ async def _scheduled_llm_classify() -> None:
         log.exception("llm classify tick failed")
 
 
+_priority_enrich_ids: set[int] = set()
+
+
 async def _kick_mall_enrich(deal_ids: list[int]) -> None:
     if not deal_ids:
         return
     lock = state.get("ppomppu_enrich_lock")
-    # Don't queue behind a long enrich tick; the 30s scheduler will catch up.
-    if lock is None or lock.locked():
+    if lock is None:
+        return
+    if lock.locked():
+        # Enrich is already running — park these IDs so the next scheduler
+        # tick picks them up first (before the regular sweep).
+        _priority_enrich_ids.update(deal_ids)
         return
     try:
         await _run_mall_enrich(deal_ids=deal_ids, limit=max(6, len(deal_ids)))
     except Exception:
         log.exception("immediate mall enrich failed")
+
+
+async def _log_click_and_check_affiliate(
+    deal_id: int, mall_url: str, platform: str, needs_affiliate_check: bool
+) -> None:
+    """Background counterpart to /out/{deal_id}: everything that writes to
+    the DB, done after the user is already on their way to the mall so a
+    busy collection-job write transaction never makes a click feel slow."""
+    db = _db()
+    try:
+        if needs_affiliate_check:
+            from app.parse.links import is_coupang_partner_gate
+            from app.coupang.api import create_deeplinks, is_coupang_product_url
+
+            affiliate_url = None
+            if COUPANG_ENABLED and is_coupang_product_url(mall_url) and not is_coupang_partner_gate(mall_url):
+                try:
+                    converted = await create_deeplinks([mall_url])
+                    affiliate_url = converted.get(mall_url)
+                except Exception:
+                    log.exception("coupang deeplink conversion failed for deal %s", deal_id)
+            await db.execute(
+                "UPDATE deals SET affiliate_url=?, affiliate_checked_at=? WHERE id=?",
+                (affiliate_url, utcnow_iso(), deal_id),
+            )
+        await db.execute(
+            "INSERT INTO affiliate_clicks(platform, product_id, created_at) VALUES (?, ?, ?)",
+            (platform, str(deal_id), utcnow_iso()),
+        )
+        await db.commit()
+    except Exception:
+        log.exception("background click logging failed for deal %s", deal_id)
 
 
 async def _run_mall_enrich(
@@ -1097,22 +1141,33 @@ async def coupang_index(request: Request, category: str | None = None):
     )
 
 
+async def _log_coupang_click(product_id: str) -> None:
+    try:
+        await _db().execute(
+            "INSERT INTO affiliate_clicks(platform, product_id, created_at) VALUES (?, ?, ?)",
+            ("coupang", product_id, utcnow_iso()),
+        )
+        await _db().commit()
+    except Exception:
+        log.exception("background click logging failed for coupang product %s", product_id)
+
+
 @app.get("/out/coupang/{product_id}")
 async def coupang_out(product_id: str):
     cur = await _db().execute("SELECT buy_url FROM coupang_deals WHERE product_id=? AND active=1", (product_id,))
     row = await cur.fetchone()
     if not row or not row["buy_url"]: raise HTTPException(404, "상품을 찾을 수 없습니다")
-    await _db().execute("INSERT INTO affiliate_clicks(platform, product_id, created_at) VALUES (?, ?, ?)", ("coupang", product_id, utcnow_iso()))
-    await _db().commit()
+    asyncio.create_task(_log_coupang_click(product_id))
     return RedirectResponse(row["buy_url"], status_code=302)
 
 
 @app.get("/out/{deal_id}")
 async def deal_out(deal_id: int):
     """Single outbound layer for every community-sourced deal's '구매하기'
-    button. Converts a raw coupang.com product link to a Coupang Partners
-    deep link on first click (cached on deals.affiliate_url so the Open API
-    isn't called again), then logs the click the same way /out/coupang does."""
+    button. Redirects to the mall URL immediately; a raw coupang.com link is
+    converted to a Coupang Partners deep link in the background on first
+    click (cached on deals.affiliate_url, used from the next click on),
+    then logs the click the same way /out/coupang does."""
     db = _db()
     cur = await db.execute(
         "SELECT mall_url, affiliate_url, affiliate_checked_at, deal_url FROM deals WHERE id=?", (deal_id,)
@@ -1127,27 +1182,15 @@ async def deal_out(deal_id: int):
         return RedirectResponse(fallback, status_code=302)
     mall_url = row["mall_url"]
     target = row["affiliate_url"] or mall_url
-    if not row["affiliate_checked_at"]:
-        from app.parse.links import is_coupang_partner_gate
-        from app.coupang.api import create_deeplinks, is_coupang_product_url
-
-        if COUPANG_ENABLED and is_coupang_product_url(mall_url) and not is_coupang_partner_gate(mall_url):
-            try:
-                converted = await create_deeplinks([mall_url])
-                target = converted.get(mall_url) or mall_url
-            except Exception:
-                log.exception("coupang deeplink conversion failed for deal %s", deal_id)
-                target = mall_url
-        await db.execute(
-            "UPDATE deals SET affiliate_url=?, affiliate_checked_at=? WHERE id=?",
-            (target if target != mall_url else None, utcnow_iso(), deal_id),
-        )
+    needs_affiliate_check = not row["affiliate_checked_at"]
     platform = mall_key_from_url(mall_url) or "unknown"
-    await db.execute(
-        "INSERT INTO affiliate_clicks(platform, product_id, created_at) VALUES (?, ?, ?)",
-        (platform, str(deal_id), utcnow_iso()),
-    )
-    await db.commit()
+    # Every write here (click log, affiliate-checked flag) can sit behind
+    # whatever write transaction the collection scheduler currently holds on
+    # the shared SQLite file, which is what made clicks occasionally stall
+    # for several seconds regardless of which mall they pointed to. None of
+    # it needs to happen before the user leaves, so do it all in the
+    # background and redirect immediately.
+    asyncio.create_task(_log_click_and_check_affiliate(deal_id, mall_url, platform, needs_affiliate_check))
     return RedirectResponse(target, status_code=302)
 
 
@@ -2099,7 +2142,8 @@ async def admin_settings_page(request: Request):
     conn = _db()
     cur = await conn.execute("SELECT key, updated_at FROM app_settings ORDER BY key")
     saved = {row["key"]: row["updated_at"] for row in await cur.fetchall()}
-    return TEMPLATES.TemplateResponse("admin_settings.html", {"request": request, "nav": "admin", "admin_section": "settings", "setting_keys": SETTING_KEYS, "saved": saved, "oauth_ready": user_auth.providers_ready()})
+    nav = await _nav_counts()
+    return TEMPLATES.TemplateResponse("admin_settings.html", {"request": request, "nav": "admin", "admin_section": "settings", "setting_keys": SETTING_KEYS, "saved": saved, "oauth_ready": user_auth.providers_ready(), **nav})
 
 @app.post("/api/admin/settings")
 async def admin_settings_save(request: Request):
@@ -2147,13 +2191,27 @@ async def api_ad_event(request: Request):
 @app.get("/admin/revenue", response_class=HTMLResponse)
 async def admin_revenue(request: Request, days: int = 30, device: str | None = None):
     _require_role(request, {"operator", "ads", "viewer"})
-    cur = await _db().execute("SELECT event_type, COUNT(*) AS count FROM ad_events GROUP BY event_type")
+    days = max(1, min(365, days))
+    device = device if device in ("pc", "mobile") else None
+    cutoff = f"-{days} days"
+    where = "created_at >= datetime('now', ?)"
+    params: list = [cutoff]
+    if device:
+        where += " AND device=?"
+        params.append(device)
+    cur = await _db().execute(f"SELECT event_type, COUNT(*) AS count FROM ad_events WHERE {where} GROUP BY event_type", params)
     ad = {row["event_type"]: row["count"] for row in await cur.fetchall()}
-    cur = await _db().execute("SELECT COUNT(*) AS count FROM affiliate_clicks WHERE created_at >= ?", (cutoff,))
+    cur = await _db().execute(f"SELECT COUNT(*) AS count FROM affiliate_clicks WHERE {where}", params)
     clicks = (await cur.fetchone())["count"]
+    cur = await _db().execute(
+        f"SELECT date(created_at,'localtime') AS date, COUNT(*) AS clicks FROM affiliate_clicks WHERE {where} GROUP BY date(created_at,'localtime') ORDER BY date",
+        params,
+    )
+    daily_clicks = [{"date": row["date"], "clicks": row["clicks"]} for row in await cur.fetchall()]
     import app.config as revenue_config
     estimated = ad.get("click", 0) * float(getattr(revenue_config, "ADSENSE_ESTIMATED_CPC", 0)) + clicks * float(getattr(revenue_config, "COUPANG_ESTIMATED_EPC", 0))
-    return TEMPLATES.TemplateResponse("admin_revenue.html", {"request": request, "nav": "admin", "admin_section": "settings", "ad": ad, "affiliate_clicks": clicks, "days": days, "device": device, "estimated_revenue": estimated})
+    nav = await _nav_counts()
+    return TEMPLATES.TemplateResponse("admin_revenue.html", {"request": request, "nav": "admin", "admin_section": "revenue", "ad": ad, "affiliate_clicks": clicks, "days": days, "device": device, "estimated_revenue": estimated, "daily_clicks": daily_clicks, **nav})
 
 @app.get("/admin/ad-stats", response_class=HTMLResponse)
 async def admin_ad_stats(request: Request, days: int = 1, device: str | None = None):
@@ -2275,7 +2333,8 @@ async def admin_quality(request: Request, kind: str = "all"):
     rows = [dict(r) for r in await cur.fetchall()]
     cur = await _db().execute("SELECT * FROM admin_change_log WHERE entity='deal' ORDER BY id DESC LIMIT 50")
     changes = [dict(r) for r in await cur.fetchall()]
-    return TEMPLATES.TemplateResponse("admin_quality.html", {"request": request, "nav": "admin", "admin_section": "quality", "rows": rows, "kind": kind, "changes": changes})
+    nav = await _nav_counts()
+    return TEMPLATES.TemplateResponse("admin_quality.html", {"request": request, "nav": "admin", "admin_section": "quality", "rows": rows, "kind": kind, "changes": changes, **nav})
 
 
 @app.post("/admin/toss-links/status")
@@ -2304,7 +2363,8 @@ async def admin_toss_links(request: Request, status: str | None = None):
         where += " AND toss_review_status=?"; params.append(status)
     cur = await _db().execute("SELECT id, product_name, seller, mall_url, deal_url, toss_review_status, toss_review_reason, last_seen_at FROM deals WHERE " + where + " ORDER BY last_seen_at DESC LIMIT 300", params)
     rows = [dict(r) for r in await cur.fetchall()]
-    return TEMPLATES.TemplateResponse("admin_toss_links.html", {"request": request, "nav": "admin", "admin_section": "toss_links", "rows": rows, "status": status})
+    nav = await _nav_counts()
+    return TEMPLATES.TemplateResponse("admin_toss_links.html", {"request": request, "nav": "admin", "admin_section": "toss_links", "rows": rows, "status": status, **nav})
 
 
 @app.get("/admin/coupang-links", response_class=HTMLResponse)
@@ -2317,7 +2377,8 @@ async def admin_coupang_links(request: Request, status: str | None = None):
         params.append(status)
     cur = await _db().execute(f"SELECT * FROM coupang_deals WHERE {where} ORDER BY last_seen_at DESC LIMIT 300", params)
     rows = [dict(row) for row in await cur.fetchall()]
-    return TEMPLATES.TemplateResponse("admin_coupang_links.html", {"request": request, "nav": "admin", "admin_section": "coupang_links", "rows": rows, "status": status})
+    nav = await _nav_counts()
+    return TEMPLATES.TemplateResponse("admin_coupang_links.html", {"request": request, "nav": "admin", "admin_section": "coupang_links", "rows": rows, "status": status, **nav})
 
 @app.post("/api/admin/coupang-links/validate-all")
 async def admin_coupang_links_validate_all(request: Request, status: str = "failed"):
@@ -2426,9 +2487,10 @@ async def admin_report_history(request: Request):
 async def admin_reports(request: Request):
     _require_role(request, {"operator", "reviewer", "viewer"})
     rows = await deal_comments.list_reports(_db())
+    nav = await _nav_counts()
     return TEMPLATES.TemplateResponse(
         "admin_reports.html",
-        {"request": request, "nav": "admin", "admin_section": "reports", "reports": rows},
+        {"request": request, "nav": "admin", "admin_section": "reports", "reports": rows, **nav},
     )
 
 
@@ -2436,6 +2498,7 @@ async def admin_reports(request: Request):
 async def admin_users(request: Request):
     me = _require_admin(request)
     users = await user_auth.list_users(_db())
+    nav = await _nav_counts()
     return TEMPLATES.TemplateResponse(
         "admin_users.html",
         {
@@ -2445,6 +2508,7 @@ async def admin_users(request: Request):
             "users": users,
             "me_id": int(me["id"]),
             "bootstrap_username": ADMIN_USERNAME,
+            **nav,
         },
     )
 
@@ -2740,6 +2804,15 @@ async def _debug_resolve_outbound(client, page_url: str, hrefs: list[str]) -> li
         if len(out) >= 3:
             break
     return out
+
+
+async def _nav_counts() -> dict:
+    db = _db()
+    cur = await db.execute("SELECT COUNT(*) AS c FROM deal_reports")
+    reports = (await cur.fetchone())["c"]
+    cur = await db.execute("SELECT COUNT(*) AS c FROM deals WHERE status='needs_review' OR price IS NULL OR price < 1000")
+    quality = (await cur.fetchone())["c"]
+    return {"nav_reports_pending": reports, "nav_quality_pending": quality}
 
 
 async def _stats() -> dict:

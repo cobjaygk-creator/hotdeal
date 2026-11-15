@@ -154,6 +154,20 @@ def mall_key_from_url(url: str | None) -> str | None:
     return mall_from_url(url)[1]
 
 
+# label → key reverse lookup (first match wins when labels share a key)
+_LABEL_TO_KEY: dict[str, str] = {}
+for _needle, _label, _key in _MALL_HOSTS:
+    if _label not in _LABEL_TO_KEY:
+        _LABEL_TO_KEY[_label] = _key
+
+
+def mall_key_from_label(label: str | None) -> str | None:
+    """Return CSS key for a known display label (e.g. 'G마켓' → 'gmarket')."""
+    if not label:
+        return None
+    return _LABEL_TO_KEY.get(label.strip())
+
+
 # Malls that sell (almost) one category — the buy link alone is a strong signal.
 # Generic marketplaces (쿠팡/네이버/G마켓/11번가/SSG/롯데온/티몬…) are deliberately
 # absent.

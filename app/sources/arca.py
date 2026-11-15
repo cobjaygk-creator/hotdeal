@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from selectolax.parser import HTMLParser
 
 from app.http_client import PoliteClient
@@ -8,13 +10,32 @@ from app.sources.html_fetch import fetch_parsed
 from app.util.timeparse import parse_int, parse_iso
 
 LIST_URL = "https://arca.live/b/hotdeal"
+_ID_RE = re.compile(r"/b/hotdeal/(\d+)")
 
 
 class ArcaSource:
     name = "arca"
 
     async def fetch_latest(self, client: PoliteClient) -> list[RawPost]:
-        return await fetch_parsed(client, LIST_URL, parse_list)
+        # arca.live is behind Cloudflare Bot Management. Plain HTTP from cloud
+        # IPs always gets "just a moment" — the proxy+impersonation path in
+        # fetch_parsed wastes 80s before giving up. Go straight to the headless
+        # browser which clears CF with a Korean residential proxy.
+        from app.sources import arca_browser
+
+        html = await arca_browser.fetch_html(
+            LIST_URL,
+            want_selector="div.vrow.hybrid",
+            max_rounds=4,
+            settle_ms=4000,
+            timeout=60.0,
+        )
+        if html:
+            posts = parse_list(html)
+            if posts:
+                return posts
+            raise RuntimeError(f"arca browser parsed 0 posts ({LIST_URL})")
+        raise RuntimeError(f"arca browser unavailable or CF-blocked ({LIST_URL})")
 
 
 def parse_list(html: str) -> list[RawPost]:

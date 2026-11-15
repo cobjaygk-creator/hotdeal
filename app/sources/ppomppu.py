@@ -28,7 +28,7 @@ class PpomppuSource:
         """RSS-only from datacenter hosts; CDN thumbs are derived from post id."""
         try:
             result = await client.get(
-                RSS_URL, timeout=RSS_TIMEOUT_SEC, max_retries=2
+                RSS_URL, timeout=RSS_TIMEOUT_SEC, max_retries=2, proxy=None
             )
             if result.not_modified or not result.text:
                 return []
