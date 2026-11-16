@@ -564,7 +564,9 @@ function renderRow(deal, { fresh = false, freshIndex = 0 } = {}) {
     `<div class="deal-row-side">` +
     (isPostUrl(deal.mall_url)
       ? `<a class="deal-buy-btn" href="/out/${deal.id}" target="_blank" rel="noopener" onclick="event.stopPropagation()">구매하기</a>`
-      : "") +
+      : deal.deal_url
+        ? `<a class="deal-buy-btn deal-buy-btn--src" href="${deal.deal_url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">원문 보기</a>`
+        : "") +
     `</div>`;
   applyChipClass(li);
   return li;

@@ -757,6 +757,12 @@ details:not([open]) > .account-dropdown { display: none; }
   line-height: 1;
 }
 .deal-buy-btn:hover { opacity: .9; }
+.deal-buy-btn--src {
+  background: var(--surface);
+  color: var(--ink-muted);
+  border: 1px solid var(--border);
+}
+.deal-buy-btn--src:hover { opacity: .8; }
 
 /* ?볤?쨌?쒓컙 (紐⑹뾽: .row-stats) */
 .time-abs {
