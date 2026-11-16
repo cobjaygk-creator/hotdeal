@@ -128,6 +128,25 @@
       {% endif %}
     </div>
     <p class="adm-collect-status" id="adm-collect-status"></p>
+  {% if stats.collect_by_source %}
+  <div style="margin-top:12px">
+    <table class="adm-table" style="font-size:12px">
+      <thead><tr><th>소스</th><th>상태</th><th>마지막 수집</th><th>수집</th><th>신규</th><th>오류</th></tr></thead>
+      <tbody>
+      {% for src, info in stats.collect_by_source.items() %}
+      <tr>
+        <td><strong>{{ src }}</strong></td>
+        <td>{% if info.error %}<span class="adm-badge red">실패</span>{% else %}<span class="adm-badge green">정상</span>{% endif %}</td>
+        <td style="color:var(--ink-muted);white-space:nowrap">{{ info.at | kst if info.at else '–' }}</td>
+        <td>{{ info.fetched if info.fetched is not none else '–' }}</td>
+        <td>{{ info.new if info.new is not none else '–' }}</td>
+        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ info.error or '' }}">{{ info.error or '–' }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
   </div>
 </div>
 
