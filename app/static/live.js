@@ -563,7 +563,7 @@ function renderRow(deal, { fresh = false, freshIndex = 0 } = {}) {
     `</div></a>` +
     `<div class="deal-row-side">` +
     (isPostUrl(deal.mall_url)
-      ? `<a class="deal-buy-btn" href="/out/${deal.id}" target="_blank" rel="noopener" onclick="event.stopPropagation()">구매하기</a>`
+      ? `<a class="deal-buy-btn" href="${deal.mall_url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">구매하기</a>`
       : deal.deal_url
         ? `<a class="deal-buy-btn deal-buy-btn--src" href="${deal.deal_url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">원문 보기</a>`
         : "") +
@@ -775,14 +775,14 @@ function patchRowMall(deal) {
   li.dataset.mallUrl = deal.mall_url;
   const existing = li.querySelector(".deal-buy-btn");
   if (existing) {
-    existing.href = `/out/${deal.id}`;
+    existing.href = deal.mall_url;
     return;
   }
   const side = li.querySelector(".deal-row-side");
   if (!side) return;
   const a = document.createElement("a");
   a.className = "deal-buy-btn";
-  a.href = `/out/${deal.id}`;
+  a.href = deal.mall_url;
   a.target = "_blank";
   a.rel = "noopener";
   a.textContent = "구매하기";
