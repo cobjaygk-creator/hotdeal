@@ -24,6 +24,7 @@ MALL_HOST_PARTS = (
     "shopping.naver.com",
     "m.shopping.naver.com",
     "m.site.naver.com",
+    "shoppinglive.naver.com",
     "naver.me",
     "coupang.com",
     "link.coupang.com",
@@ -91,6 +92,7 @@ NAVER_SHOP_HOST_PARTS = (
     "shopping.naver.com",
     "m.shopping.naver.com",
     "m.site.naver.com",
+    "shoppinglive.naver.com",
     "naver.me",
 )
 
@@ -352,6 +354,9 @@ def is_junk_mall_url(url: str | None) -> bool:
     if _host_has(host, "shopping.naver.com") and path.startswith("/festa/onsal"):
         return True
     if any(tok in path for tok in ("/adbiz/", "/oauth", "/nidlogin", "/authorize")):
+        return True
+    # Chinese marketplace links injected via UTM/referral are not Korean shop targets.
+    if any(_host_has(host, p) for p in ("jd.com", "taobao.com", "tmall.com", "pinduoduo.com", "tb.cn", "jd.hk")):
         return True
     # Community redirector / short-link *API* endpoints, not a real destination.
     query = (parsed.query or "").lower()

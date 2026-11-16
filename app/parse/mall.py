@@ -13,6 +13,7 @@ _MALL_HOSTS: tuple[tuple[str, str, str], ...] = (
     ("brand.naver.com", "네이버", "naver"),
     ("shopping.naver.com", "네이버", "naver"),
     ("m.shopping.naver.com", "네이버", "naver"),
+    ("shoppinglive.naver.com", "네이버", "naver"),
     ("naver.me", "네이버", "naver"),
     ("gmarket.co.kr", "G마켓", "gmarket"),
     ("gma.me", "G마켓", "gmarket"),
