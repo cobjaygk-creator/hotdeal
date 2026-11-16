@@ -1,0 +1,25 @@
+name: FMKorea Collect
+
+on:
+  schedule:
+    - cron: "*/20 * * * *"  # 20분마다
+  workflow_dispatch:         # 수동 실행 가능
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install deps
+        run: pip install httpx selectolax
+
+      - name: Fetch & push fmkorea
+        env:
+          SERVER_URL: ${{ secrets.SERVER_URL }}
+          INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
+        run: python scripts/collect_fmkorea.py

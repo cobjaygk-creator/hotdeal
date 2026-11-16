@@ -60,6 +60,7 @@ from app.config import (
     WATCHDOG_CHECK_SECONDS,
     WATCHDOG_ENABLED,
     WATCHDOG_STALE_MINUTES,
+    INGEST_SECRET,
 )
 from app.db import connect, get_meta, upsert_family_sale, utcnow_iso
 from app.engine import auth as user_auth
@@ -2580,6 +2581,28 @@ async def api_collect(request: Request, source: str | None = None):
     names = [source] if source else None
     summary = await _run_collect_serialized(names)
     return JSONResponse(summary)
+
+
+@app.post("/api/ingest/fmkorea")
+async def api_ingest_fmkorea(request: Request):
+    """External collector (GitHub Actions) pushes pre-fetched fmkorea HTML here."""
+    if not INGEST_SECRET:
+        raise HTTPException(503, "ingest not configured")
+    auth = request.headers.get("X-Ingest-Secret", "")
+    if not auth or auth != INGEST_SECRET:
+        raise HTTPException(403, "forbidden")
+    body = await request.json()
+    html = body.get("html", "")
+    if not html:
+        raise HTTPException(400, "html required")
+    from app.sources.fmkorea import parse_list
+    from app.pipeline import ingest_posts
+    posts = parse_list(html)
+    if not posts:
+        return JSONResponse({"ok": True, "saved": 0, "parsed": 0})
+    async with connect() as conn:
+        ids = await ingest_posts(conn, posts)
+    return JSONResponse({"ok": True, "parsed": len(posts), "saved": len(ids)})
 
 
 @app.post("/api/ppomppu/enrich-malls")

@@ -77,6 +77,7 @@ ENABLE_COLLECT = (
     or bool(os.environ.get("RAILWAY_ENVIRONMENT"))
 )
 HTTP_TIMEOUT_SEC = 20.0
+INGEST_SECRET = os.environ.get("INGEST_SECRET", "").strip()
 MAX_RETRIES = 3
 
 BASELINE_DAYS = 90
