@@ -497,22 +497,35 @@ details:not([open]) > .account-dropdown { display: none; }
 .deal-card:hover { background: var(--surface); }
 .deal-card.is-expired { opacity: .6; }
 
-/* 신규 등록 카드 깜빡 하이라이트 */
+/* 신규 등록 카드 슬라이드 등장 + 깜빡 하이라이트 */
 @keyframes fresh-blink {
   0%   { background: transparent; }
-  20%  { background: var(--fresh-color, #fff9e6); }
-  50%  { background: transparent; }
-  70%  { background: var(--fresh-color, #fff9e6); }
+  15%  { background: var(--fresh-color, #fff3e0); }
+  40%  { background: transparent; }
+  60%  { background: var(--fresh-color, #fff3e0); }
+  80%  { background: transparent; }
+  90%  { background: var(--fresh-color, #fff3e0); }
   100% { background: transparent; }
 }
+@keyframes fresh-slide-in {
+  from { transform: translateX(-110%); opacity: 0; }
+  to   { transform: translateX(0);     opacity: 1; }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .deal-card.fresh {
-    --fresh-color: #edf4ff;
-    animation: fresh-blink 3s ease-in-out var(--fresh-delay, 0ms) 1 forwards;
+    --fresh-color: #fff3e0;
+    animation:
+      fresh-slide-in 380ms cubic-bezier(.22,.68,0,1.2) var(--fresh-delay, 0ms) 1 both,
+      fresh-blink 5s ease-in-out calc(var(--fresh-delay, 0ms) + 380ms) 1 forwards;
+    overflow: hidden;
   }
   .deal-card.hot-fresh {
     --fresh-color: #fff3e0;
-    animation: fresh-blink 3s ease-in-out var(--fresh-delay, 0ms) 1 forwards;
+    animation:
+      fresh-slide-in 380ms cubic-bezier(.22,.68,0,1.2) var(--fresh-delay, 0ms) 1 both,
+      fresh-blink 5s ease-in-out calc(var(--fresh-delay, 0ms) + 380ms) 1 forwards;
+    overflow: hidden;
   }
 }
 .is-shifting { pointer-events: none; }
