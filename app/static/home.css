@@ -555,8 +555,17 @@ details:not([open]) > .account-dropdown { display: none; }
 .deal-thumb.placeholder {
   width: 72px;
   height: 72px;
-  background: linear-gradient(135deg, var(--border), var(--bg));
+  background: var(--bg);
+  border: 1.5px solid var(--border);
   border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.deal-thumb.placeholder::after {
+  content: "🛍";
+  font-size: 26px;
+  opacity: .45;
 }
 .deal-expired-overlay {
   position: absolute;
@@ -772,10 +781,11 @@ details:not([open]) > .account-dropdown { display: none; }
 .deal-buy-btn:hover { opacity: .9; }
 .deal-buy-btn--src {
   background: var(--surface);
-  color: var(--ink-muted);
-  border: 1px solid var(--border);
+  color: var(--ink);
+  border: 1.5px solid var(--border);
+  font-weight: 600;
 }
-.deal-buy-btn--src:hover { opacity: .8; }
+.deal-buy-btn--src:hover { background: var(--bg); }
 
 /* ?볤?쨌?쒓컙 (紐⑹뾽: .row-stats) */
 .time-abs {
