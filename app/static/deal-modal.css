@@ -661,9 +661,10 @@ body.dm-open { overflow: hidden; }
 /* 반응형 */
 @media (max-width: 680px) {
   .dm-panel {
-    width: 100vw; height: 85dvh;
+    width: 100vw; height: 93dvh;
     border-radius: 20px 20px 0 0;
     box-shadow: 0 -2px 24px rgba(0,0,0,.14);
+    font-size: 130%;
   }
   .dm {
     align-items: flex-end;
