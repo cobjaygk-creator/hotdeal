@@ -370,6 +370,9 @@ details:not([open]) > .account-dropdown { display: none; }
 /* 紐⑹뾽???꾩씠肄??놁쓬 ???④? */
 #cat-chips .filter-chip .filter-chip-ico { display: none; }
 
+/* 원문사이트 탭 숨김 */
+#source-chips { display: none !important; }
+
 /* ?뚯뒪 移?*/
 #source-chips .filter-chip {
   flex: none;
@@ -434,9 +437,7 @@ details:not([open]) > .account-dropdown { display: none; }
 /* ?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧
    ?뺣젹 諛?   ?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧 */
 .homepage-filters {
-  display: flex;
-  align-items: center;
-  margin-bottom: 6px;
+  display: none !important;
 }
 .sort-label { display: none; }
 .list-view-switch { display: none; }
@@ -888,6 +889,19 @@ details:not([open]) > .account-dropdown { display: none; }
 .rail-deal:nth-child(1) strong,
 .rail-deal:nth-child(2) strong,
 .rail-deal:nth-child(3) strong { color: var(--accent); }
+
+/* 많이 보는딜 슬라이드 애니메이션 */
+@keyframes rank-slide-in {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.rail-popular-list { overflow: hidden; }
+.rail-popular-list .rail-deal {
+  opacity: 0;
+  animation: rank-slide-in 0.32s ease forwards;
+  animation-delay: calc(var(--rank-i, 0) * 60ms);
+}
+.rail-popular-list .rail-deal:hover { background: var(--bg-hover, var(--bg)); border-radius: 8px; }
 .rail-deal span {
   font-size: 13.8px;
   white-space: nowrap;

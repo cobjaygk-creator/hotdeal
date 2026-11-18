@@ -17,7 +17,7 @@
   {% else %}
   <li class="empty-row empty">아직 순위를 매길 딜이 없습니다.</li>
   {% endfor %}
-</ol></main><aside class="deal-rail" aria-label="인기 딜 보조 정보"><section class="rail-panel"><h2>지금 많이 보는 딜</h2>{% for d in deals[:3] %}<a class="rail-deal" href="/deal/{{ d.id }}"><strong>{{ loop.index }}</strong><span>{{ d.product_name | clean_title }}</span></a>{% else %}<p class="muted">아직 인기 딜이 없습니다.</p>{% endfor %}</section><section class="rail-panel rail-alert"><h2>키워드 알림</h2><p class="muted">원하는 상품이 올라오면 알려드려요.</p><a class="btn" href="/alerts">알림 설정</a></section></aside></div>
+</ol></main><aside class="deal-rail" aria-label="인기 딜 보조 정보"><section class="rail-panel rail-popular"><h2>지금 많이 보는 딜</h2><div class="rail-popular-list" id="rail-popular">{% for d in deals[:7] %}<a class="rail-deal" href="/deal/{{ d.id }}" style="--rank-i:{{ loop.index0 }}"><strong>{{ loop.index }}</strong><span>{{ d.product_name | clean_title }}</span></a>{% else %}<p class="muted">아직 인기 딜이 없습니다.</p>{% endfor %}</div></section><section class="rail-panel rail-alert"><h2>키워드 알림</h2><p class="muted">원하는 상품이 올라오면 알려드려요.</p><a class="btn" href="/alerts">알림 설정</a></section></aside></div>
 {% include "_deal_modal_bundle.html" %}
 <script src="/static/list-controls.js?v={{ asset_v }}" defer></script>
 {% endblock %}

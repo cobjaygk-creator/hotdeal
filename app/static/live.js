@@ -1053,7 +1053,8 @@ async function openModal(id, opts) {
   const mallLabel = deal.seller || (deal.mall_url ? new URL(deal.mall_url, location.href).hostname.replace(/^www\./, "") : "상품");
   const mallKey = mallFromUrl(deal.mall_url).key || "";
   const starred = isBookmarked(id);
-  const ctaHtml = (isPostUrl(deal.mall_url) ? `<a class="dm-buy" href="/out/${id}" target="_blank" rel="noopener">구매하기</a>` : "") + `<button type="button" class="dm-sq bookmark-btn${starred ? " on" : ""}" data-deal-id="${id}" aria-label="저장">☆</button>` + (isPostUrl(deal.deal_url) ? `<a class="dm-src" href="${esc(deal.deal_url)}" target="_blank" rel="noopener">원문</a>` : "");
+  const heartSvg = `<svg class="deal-wish-ico" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="M12.1 20.3s-7.2-4.4-9.5-8.3C.4 8.5 1.5 4.6 5.1 3.4c2.1-.7 4.4.1 5.7 1.8 1.3-1.7 3.6-2.5 5.7-1.8 3.6 1.2 4.7 5.1 2.5 8.6-2.3 3.9-9.5 8.3-9.5 8.3z"/></svg>`;
+  const ctaHtml = (isPostUrl(deal.mall_url) ? `<a class="dm-buy" href="/out/${id}" target="_blank" rel="noopener">구매하기</a>` : "") + `<button type="button" class="dm-sq bookmark-btn deal-wish${starred ? " on" : ""}" data-deal-id="${id}" aria-label="저장">${heartSvg}</button>` + (isPostUrl(deal.deal_url) ? `<a class="dm-src" href="${esc(deal.deal_url)}" target="_blank" rel="noopener">원문</a>` : "");
   const cheaper = hasBaseline && deal.price && Number(deal.baseline_price) > Number(deal.price);
   const saveAmt = cheaper ? Number(deal.baseline_price) - Number(deal.price) : 0;
   const isLowest = hasBaseline && deal.min_price && deal.price && Number(deal.price) <= Number(deal.min_price);
@@ -1061,18 +1062,22 @@ async function openModal(id, opts) {
   const chartPoints = chartIsDemo ? (window.demoPricePoints ? window.demoPricePoints(deal.price, deal.baseline_price) : []) : priceHistory;
   const showChart = chartPoints.length >= 3;
   const verdictHtml = cheaper ? `<p class="dm-verdict"><span aria-hidden="true">✓</span>${isLowest ? "역대 최저가" : "평소보다 저렴"} · 평소가보다 ${Number(saveAmt).toLocaleString("ko-KR")}원 저렴해요</p>` : "";
-  const chartHtml = showChart ? `<section id="dd-chart-root"><div class="dm-sec-head"><h2 class="dm-h2">가격 변동</h2><div class="dm-seg" role="tablist" aria-label="기간"><button type="button" data-range="30">1개월</button><button type="button" class="on" data-range="90">3개월</button><button type="button" data-range="all">전체</button></div></div><div class="dm-chart"><canvas id="modal-chart"></canvas></div></section>` : "";
+  const chartHtml = `<section id="dd-chart-root"${!showChart ? ' class="dd-chart-no-data"' : ""}><div class="dm-sec-head"><h2 class="dm-h2">가격 변동</h2>${showChart ? `<div class="dm-seg" role="tablist" aria-label="기간"><button type="button" data-range="30">1개월</button><button type="button" class="on" data-range="90">3개월</button><button type="button" data-range="all">전체</button></div>` : ""}</div><div class="dm-chart${!showChart ? " dm-chart-empty" : ""}"><canvas id="modal-chart"${!showChart ? ' hidden' : ""}></canvas>${!showChart ? `<p class="dm-chart-no-data-msg">가격 표본이 부족합니다</p>` : ""}</div></section>`;
   const adHtml = "";
   const originalHtml = deal.body_html ? `<section><div class="dm-sec-head"><h2 class="dm-h2">원문 내용</h2><span class="dm-sub">${esc(sourceLabels[deal.body_source] || deal.body_source || "")}</span></div><div class="dm-body-html">${deal.body_html}</div></section>` : "";
   const chatHtml = document.querySelector("#dm-chat-source #dd-chat")?.outerHTML || `<aside class="dm-chat" id="dd-chat"></aside>`;
-  const stickyBuyHtml = isPostUrl(deal.mall_url)
-    ? `<a class="dm-buy" href="/out/${id}" target="_blank" rel="noopener">구매하기</a>`
-    : isPostUrl(deal.deal_url)
-    ? `<a class="dm-buy" href="${esc(deal.deal_url)}" target="_blank" rel="noopener">구매하기</a>`
+  const stickyBuyUrl = isPostUrl(deal.mall_url) ? `/out/${id}` : isPostUrl(deal.deal_url) ? deal.deal_url : "";
+  const stickyBuyHtml = stickyBuyUrl
+    ? `<div class="dm-sticky-info"><span class="dm-sticky-name">${esc(deal.product_name)}</span><span class="dm-sticky-price">${won(deal.price)}</span></div>` +
+      `<div class="dm-sticky-btns">` +
+      `<a class="dm-buy" href="${esc(stickyBuyUrl)}" target="_blank" rel="noopener">구매하기</a>` +
+      `<button type="button" class="dm-sticky-wish bookmark-btn deal-wish${starred ? " on" : ""}" data-deal-id="${id}" aria-label="찜하기">${heartSvg}</button>` +
+      (isPostUrl(deal.deal_url) ? `<a class="dm-src" href="${esc(deal.deal_url)}" target="_blank" rel="noopener">원문</a>` : "") +
+      `</div>`
     : "";
   const commentCount = deal.comments || 0;
   const tabBarHtml = `<div class="dm-tab-bar" role="tablist"><button type="button" class="dm-tab-btn active" data-tab="product" role="tab" aria-selected="true">상품 정보</button><button type="button" class="dm-tab-btn" data-tab="chat" role="tab" aria-selected="false">댓글${commentCount ? ` <span class="dm-tab-count">${commentCount}</span>` : ""}</button></div>`;
-  modalBody.innerHTML = `${tabBarHtml}<div class="dm-body" data-active-tab="product"><div class="dm-left"><section class="dm-hero"><div class="dm-img">${deal.thumbnail_url ? `<img src="${esc(deal.thumbnail_url)}" alt="" referrerpolicy="no-referrer">` : "상품 이미지"}${deal.status === "expired" ? `<span class="dm-ended">종료</span>` : ""}</div><div class="dm-info"><p class="dm-meta"><span class="dm-mall deal-tag-mall" data-mall="${esc(mallKey)}">${esc(mallLabel)}</span><span>${esc(sourceLabel)}에서 ${esc(relativeTime(deal.last_seen_at))} 등록</span></p><h1 class="dm-title" id="modal-title">${esc(deal.product_name)}</h1><div class="dm-price">${detailOffHtml(deal)}<span class="won">${won(deal.price)}</span></div>${strikeHtml(deal, hasBaseline, cheaper)}${verdictHtml}<dl class="dm-dl"><dt>배송</dt><dd>${deal.shipping_fee === 0 ? "무료배송" : (deal.shipping_fee ? won(deal.shipping_fee) : "정보 없음")}</dd><dt>카테고리</dt><dd>${esc(deal.category || "기타")}</dd><dt>반응</dt><dd>추천 ${deal.votes || 0} · 댓글 ${deal.comments || 0}</dd></dl><div class="dm-spacer"></div><div class="dm-cta" id="modal-cta">${ctaHtml}</div><div id="dm-disclosure">${coupangDisclosureHtml(deal)}</div></div></section><div class="dm-main"><section><div class="dm-sec-head"><h2 class="dm-h2">쇼핑몰 가격 비교</h2><span class="dm-sub">현재 기준</span></div><div class="dm-mrow is-deal"><span class="name">${esc(mallLabel)} <span class="tag">이 딜</span></span><span class="track"><span class="bar" style="width:66%"></span></span><span class="won">${won(deal.price)}</span></div></section>${adHtml}${chartHtml}${originalHtml}<section><div class="dm-sec-head"><h2 class="dm-h2">원문 게시글</h2></div><ul class="dm-posts">${postHtml}</ul></section></div>${stickyBuyHtml ? `<div class="dm-sticky-buy" id="modal-sticky-buy" hidden>${stickyBuyHtml}</div>` : ""}</div><aside class="dm-aside">${chatHtml}</aside></div>`;
+  modalBody.innerHTML = `${tabBarHtml}<div class="dm-body" data-active-tab="product"><div class="dm-left"><section class="dm-hero"><div class="dm-img">${deal.thumbnail_url ? `<img src="${esc(deal.thumbnail_url)}" alt="" referrerpolicy="no-referrer">` : "상품 이미지"}${deal.status === "expired" ? `<span class="dm-ended">종료</span>` : ""}</div><div class="dm-info"><p class="dm-meta"><span class="dm-mall deal-tag-mall" data-mall="${esc(mallKey)}">${esc(mallLabel)}</span><span>${esc(sourceLabel)}에서 ${esc(relativeTime(deal.last_seen_at))} 등록</span></p><h1 class="dm-title" id="modal-title">${esc(deal.product_name)}</h1><div class="dm-price">${detailOffHtml(deal)}<span class="won">${won(deal.price)}</span></div>${strikeHtml(deal, hasBaseline, cheaper)}${verdictHtml}<dl class="dm-dl"><dt>배송</dt><dd>${deal.shipping_fee === 0 ? "무료배송" : (deal.shipping_fee ? won(deal.shipping_fee) : "정보 없음")}</dd><dt>카테고리</dt><dd>${esc(deal.category || "기타")}</dd><dt>반응</dt><dd>추천 ${deal.votes || 0} · 댓글 ${deal.comments || 0}</dd></dl><div class="dm-spacer"></div><div class="dm-cta" id="modal-cta">${ctaHtml}</div><div id="dm-disclosure">${coupangDisclosureHtml(deal)}</div></div></section><div class="dm-main">${adHtml}${chartHtml}${originalHtml}<section><div class="dm-sec-head"><h2 class="dm-h2">원문 게시글</h2></div><ul class="dm-posts">${postHtml}</ul></section></div>${stickyBuyHtml ? `<div class="dm-sticky-buy" id="modal-sticky-buy" hidden>${stickyBuyHtml}</div>` : ""}</div><aside class="dm-aside">${chatHtml}</aside></div>`;
   modalCta = document.getElementById("modal-cta");
   const stickyBuyEl = document.getElementById("modal-sticky-buy");
   if (stickyBuyEl && modalCta) {
@@ -1116,10 +1121,9 @@ async function openModal(id, opts) {
   if (cat) cat.textContent = deal.category || "상세";
   if (showChart) {
     const root = document.getElementById("dd-chart-root");
-    const baseline =
-      hasBaseline ? deal.baseline_price
-        : chartIsDemo && deal.price ? Math.round(Number(deal.price) * 1.25)
-        : null;
+    const baseline = hasBaseline ? deal.baseline_price
+      : chartIsDemo && deal.price ? Math.round(Number(deal.price) * 1.25)
+      : null;
     if (window.bindPriceChartRange) {
       chart = window.bindPriceChartRange(root, "modal-chart", chartPoints, baseline, 90);
     } else if (window.renderPriceChart) {

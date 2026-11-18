@@ -200,6 +200,11 @@ body.dm-open { overflow: hidden; }
   cursor: pointer; background: transparent; font-family: inherit;
 }
 .dm-sq:hover, .dm-sq.on { border-color: var(--discount); color: var(--discount); }
+.dm-sq.deal-wish { display: flex; align-items: center; justify-content: center; }
+.dm-sq.deal-wish .deal-wish-ico { stroke: #aaa; fill: none; stroke-width: 1.8; transition: fill .15s, stroke .15s; }
+.dm-sq.deal-wish:hover .deal-wish-ico { stroke: #ef3b4a; }
+.dm-sq.deal-wish.on { background: #fff0f0; border-color: #ef3b4a; }
+.dm-sq.deal-wish.on .deal-wish-ico { fill: #ef3b4a; stroke: #ef3b4a; }
 .dm-src {
   height: 42px; padding: 0 12px;
   border: 1.5px solid var(--border); border-radius: 10px;
@@ -250,8 +255,15 @@ body.dm-open { overflow: hidden; }
 .dm-mrow .won { font-weight: 700; font-variant-numeric: tabular-nums; flex-shrink: 0; }
 
 /* 차트 */
-.dm-chart { height: 150px; margin-top: 6px; }
+.dm-chart { height: 150px; margin-top: 6px; position: relative; }
 .dm-chart canvas { width: 100% !important; height: 100% !important; }
+.dm-chart-empty { display: flex; align-items: center; justify-content: center; }
+.dm-chart-no-data-msg {
+  color: var(--ink-faint);
+  font-size: 13px;
+  text-align: center;
+}
+.dd-chart-no-data { opacity: 0.45; pointer-events: none; }
 
 .dm-seg { display: flex; gap: 3px; }
 .dm-seg button {
@@ -303,20 +315,57 @@ body.dm-open { overflow: hidden; }
   position: sticky;
   bottom: 0;
   left: 0; right: 0;
-  padding: 10px 20px;
+  padding: 8px 16px 10px;
   background: var(--surface);
   border-top: 1px solid var(--border);
   box-shadow: 0 -4px 16px rgba(0,0,0,.07);
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  gap: 6px;
   z-index: 5;
 }
 .dm-sticky-buy[hidden] { display: none !important; }
-.dm-sticky-buy .dm-buy {
+.dm-sticky-info {
+  display: flex; flex-direction: column; gap: 1px;
+  min-width: 0;
+  overflow: hidden;
+}
+.dm-sticky-name {
+  font-size: 13px; font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  color: var(--ink);
+}
+.dm-sticky-price {
+  font-size: 14px; font-weight: 700;
+  color: var(--ink);
+}
+.dm-sticky-btns {
+  display: flex; align-items: center; gap: 6px;
+}
+.dm-sticky-btns .dm-buy {
+  flex: 1;
+  padding: 0 12px;
+  height: 38px;
+  font-size: 14px;
+}
+.dm-sticky-wish {
   flex: none;
-  padding: 0 20px;
-  width: auto;
+  width: 38px; height: 38px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md, 8px);
+  background: var(--surface);
+  cursor: pointer;
+  padding: 0;
+}
+.dm-sticky-wish .deal-wish-ico { stroke: #aaa; fill: none; stroke-width: 1.8; transition: fill .15s, stroke .15s; }
+.dm-sticky-wish.on { background: #fff0f0; border-color: #ef3b4a; }
+.dm-sticky-wish.on .deal-wish-ico { fill: #ef3b4a; stroke: #ef3b4a; }
+.dm-sticky-btns .dm-src {
+  flex: none;
+  padding: 0 12px;
+  height: 38px;
+  font-size: 13px;
 }
 
 /* ── 우: 댓글 ── */
