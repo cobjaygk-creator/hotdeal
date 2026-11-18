@@ -1985,19 +1985,27 @@ async def sitemap():
     return Response("".join(chunks), media_type="application/xml")
 
 
+async def _similar_deals_safe(deal: dict, limit: int = 6) -> list[dict]:
+    try:
+        return await asyncio.wait_for(_similar_deals(deal, limit), timeout=2.0)
+    except Exception:
+        return []
+
+
 @app.get("/api/deals/{deal_id}")
 async def api_deal(deal_id: int):
     try:
-        deal = await _get_deal(deal_id)
+        deal = await _get_deal(deal_id, attach=False)
         if not deal:
             raise HTTPException(404, "deal not found")
-        posts, history_rows, similar, counts = await asyncio.gather(
+        posts, history_rows, similar, counts, _ = await asyncio.gather(
             _deal_posts(deal_id),
             _price_history(deal["product_key"]),
-            _similar_deals(deal),
+            _similar_deals_safe(deal),
             deal_comments.comment_counts(_db(), [deal_id]),
+            _attach_sources(_db(), [deal]),
         )
-        body_html, body_source = _pick_body_html(posts)
+        body_html, body_source = await asyncio.to_thread(_pick_body_html, posts)
         deal["body_html"] = body_html
         deal["body_source"] = body_source
         deal["posts"] = [
@@ -3216,18 +3224,19 @@ def _deal_jsonld(deal: dict) -> dict:
     return {"@context": "https://schema.org", "@graph": [data, crumbs]}
 
 
-async def _get_deal(deal_id: int) -> dict | None:
+async def _get_deal(deal_id: int, attach: bool = True) -> dict | None:
     cur = await _db().execute("SELECT * FROM deals WHERE id=?", (deal_id,))
     row = await cur.fetchone()
     if not row:
         return None
     deal = _clean_deal(dict(row))
-    try:
-        await _attach_sources(_db(), [deal])
-    except Exception:
-        deal.setdefault("sources", "")
-        deal.setdefault("comments", 0)
-        deal.setdefault("user_comments", 0)
+    if attach:
+        try:
+            await _attach_sources(_db(), [deal])
+        except Exception:
+            deal.setdefault("sources", "")
+            deal.setdefault("comments", 0)
+            deal.setdefault("user_comments", 0)
     return deal
 
 

@@ -466,8 +466,9 @@ function tagsHtml(deal) {
   if (src && src !== "-") {
     parts.push(`<span class="deal-tag deal-source">${esc(src)}</span>`);
   }
-  if (deal.category) {
-    parts.push(`<span class="deal-tag deal-tag-cat">${esc(deal.category)}</span>`);
+  const ts = deal.last_seen_at || "";
+  if (ts) {
+    parts.push(`<time class="deal-tag deal-tag-time time-rel" datetime="${esc(ts)}" data-ts="${esc(ts)}">${esc(relativeTime(ts))}</time>`);
   }
   const lowest = lowestHtml(deal);
   if (lowest) parts.push(lowest);
@@ -483,7 +484,6 @@ function priceRowMeta(deal, ts) {
   if (deal.shipping_fee === 0) {
     html += `<span class="deal-shipping">무료배송</span>`;
   }
-  html += `<time class="time-abs" datetime="${esc(ts)}" data-ts="${esc(ts)}">${esc(clockTime(ts))}</time>`;
   return html;
 }
 
@@ -997,7 +997,7 @@ async function fetchDealDetail(id) {
   let lastErr = null;
   for (let attempt = 0; attempt < 3; attempt++) {
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 15000);
+    const timer = setTimeout(() => ctrl.abort(), 8000);
     try {
       const res = await fetch("/api/deals/" + id, { cache: "no-store", signal: ctrl.signal });
       clearTimeout(timer);
@@ -1050,8 +1050,9 @@ async function openModal(id, opts) {
   const postHtml = posts.length ? posts.map((p) => `<li><a class="dm-post" href="${esc(p.url)}" target="_blank" rel="noopener"><span class="ini">${esc((p.source || "원").slice(0, 1))}</span><span class="txt"><span class="t">${esc(p.title || "원문 게시글")}</span><span class="s">${esc(sourceLabels[p.source] || p.source || "커뮤니티")} · 추천 ${p.votes || 0} · 조회 ${p.views || 0}</span></span><span aria-hidden="true">›</span></a></li>`).join("") : `<li class="muted">원문 없음</li>`;
   const sourceKey = sourceTokens(deal.sources)[0] || deal.body_source || "";
   const sourceLabel = sourceLabels[sourceKey] || sourceKey || "커뮤니티";
-  const mallLabel = deal.seller || (deal.mall_url ? new URL(deal.mall_url, location.href).hostname.replace(/^www\./, "") : "상품");
-  const mallKey = mallFromUrl(deal.mall_url).key || "";
+  const mallInfo = mallFromUrl(deal.mall_url);
+  const mallLabel = mallInfo.label || deal.seller || (deal.mall_url ? new URL(deal.mall_url, location.href).hostname.replace(/^www\./, "") : "상품");
+  const mallKey = mallInfo.key || "";
   const starred = isBookmarked(id);
   const heartSvg = `<svg class="deal-wish-ico" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="M12.1 20.3s-7.2-4.4-9.5-8.3C.4 8.5 1.5 4.6 5.1 3.4c2.1-.7 4.4.1 5.7 1.8 1.3-1.7 3.6-2.5 5.7-1.8 3.6 1.2 4.7 5.1 2.5 8.6-2.3 3.9-9.5 8.3-9.5 8.3z"/></svg>`;
   const ctaHtml = (isPostUrl(deal.mall_url) ? `<a class="dm-buy" href="/out/${id}" target="_blank" rel="noopener">구매하기</a>` : "") + `<button type="button" class="dm-sq bookmark-btn deal-wish${starred ? " on" : ""}" data-deal-id="${id}" aria-label="저장">${heartSvg}</button>` + (isPostUrl(deal.deal_url) ? `<a class="dm-src" href="${esc(deal.deal_url)}" target="_blank" rel="noopener">원문</a>` : "");
@@ -1388,52 +1389,60 @@ window.addEventListener("load", () => sweepBrokenThumbs());
   const PAGE_SIZE = 7;
   const INTERVAL = 5000;
   const totalPages = Math.ceil(all.length / PAGE_SIZE);
+
+  // 모든 아이템 먼저 숨기기
+  all.forEach(el => { el.style.display = "none"; });
+
   if (totalPages <= 1) {
-    // 7개 이하면 그냥 한 번 등장 애니메이션만
     all.forEach((el, i) => {
+      el.style.display = "";
       el.style.setProperty("--rank-i", i);
     });
     list.classList.add("is-entering");
-    if (pageLabel) pageLabel.textContent = "";
     return;
   }
 
   let currentPage = 0;
+  let animating = false;
 
-  function showPage(page, dir) {
-    // 먼저 나가는 애니메이션
-    const entering = dir !== "init";
-    if (entering) {
-      all.forEach((el) => el.style.setProperty("--rank-i", 0));
+  function showPage(page) {
+    if (animating) return;
+    animating = true;
+
+    const start = page * PAGE_SIZE;
+    const pageItems = all.slice(start, start + PAGE_SIZE);
+
+    // 현재 보이는 아이템 슬라이드 아웃
+    const visible = all.filter(el => el.style.display !== "none");
+    if (visible.length) {
       list.classList.remove("is-entering");
       list.classList.add("is-exiting");
-    }
-
-    const doShow = () => {
-      list.classList.remove("is-exiting");
-      const start = page * PAGE_SIZE;
-      all.forEach((el, i) => {
-        const inPage = i >= start && i < start + PAGE_SIZE;
-        el.hidden = !inPage;
-        el.style.setProperty("--rank-i", inPage ? i - start : 0);
-      });
-      if (pageLabel) pageLabel.textContent = `${page + 1} / ${totalPages}`;
-      requestAnimationFrame(() => {
-        list.classList.add("is-entering");
-      });
-    };
-
-    if (entering) {
-      // 나가는 애니메이션 끝날 때까지 대기 (가장 느린 항목: 6 * 30ms + 200ms ≈ 380ms)
-      setTimeout(doShow, 380);
+      visible.forEach((el, i) => el.style.setProperty("--rank-i", i));
+      setTimeout(() => {
+        visible.forEach(el => { el.style.display = "none"; });
+        list.classList.remove("is-exiting");
+        enterPage(pageItems, page);
+      }, visible.length * 30 + 220);
     } else {
-      doShow();
+      enterPage(pageItems, page);
     }
   }
 
-  showPage(0, "init");
+  function enterPage(items, page) {
+    items.forEach((el, i) => {
+      el.style.display = "";
+      el.style.setProperty("--rank-i", i);
+    });
+    if (pageLabel) pageLabel.textContent = `${page + 1} / ${totalPages}`;
+    requestAnimationFrame(() => {
+      list.classList.add("is-entering");
+      animating = false;
+    });
+  }
+
+  showPage(0);
   setInterval(() => {
     currentPage = (currentPage + 1) % totalPages;
-    showPage(currentPage, "next");
+    showPage(currentPage);
   }, INTERVAL);
 })();

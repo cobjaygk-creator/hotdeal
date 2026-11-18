@@ -622,6 +622,7 @@ details:not([open]) > .account-dropdown { display: none; }
   white-space: nowrap;
 }
 .deal-tag-sep { opacity: .5; }
+.deal-tag-time { background: none; color: var(--ink-faint); padding: 0; font-size: 12px; }
 .deal-tag-mall {
   background: #f0f1f3;
   color: #444;
@@ -910,12 +911,14 @@ details:not([open]) > .account-dropdown { display: none; }
 .rail-popular-list { overflow: hidden; }
 .rail-popular-list .rail-deal {
   opacity: 0;
+  animation: none;
 }
 .rail-popular-list.is-entering .rail-deal {
   animation: rank-slide-in 0.3s ease forwards;
   animation-delay: calc(var(--rank-i, 0) * 50ms);
 }
 .rail-popular-list.is-exiting .rail-deal {
+  opacity: 1;
   animation: rank-slide-out 0.2s ease forwards;
   animation-delay: calc(var(--rank-i, 0) * 30ms);
 }
