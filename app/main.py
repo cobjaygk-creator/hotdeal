@@ -1991,7 +1991,12 @@ async def api_deal(deal_id: int):
         deal = await _get_deal(deal_id)
         if not deal:
             raise HTTPException(404, "deal not found")
-        posts = await _deal_posts(deal_id)
+        posts, history_rows, similar, counts = await asyncio.gather(
+            _deal_posts(deal_id),
+            _price_history(deal["product_key"]),
+            _similar_deals(deal),
+            deal_comments.comment_counts(_db(), [deal_id]),
+        )
         body_html, body_source = _pick_body_html(posts)
         deal["body_html"] = body_html
         deal["body_source"] = body_source
@@ -2001,10 +2006,9 @@ async def api_deal(deal_id: int):
         ]
         deal["history"] = [
             {k: _json_safe(v) for k, v in row.items()}
-            for row in await _price_history(deal["product_key"])
+            for row in history_rows
         ]
-        deal["similar"] = await _similar_deals(deal)
-        counts = await deal_comments.comment_counts(_db(), [deal_id])
+        deal["similar"] = similar
         deal["user_comments"] = counts.get(deal_id, 0)
         deal["comment_count"] = deal["user_comments"]
     except HTTPException:

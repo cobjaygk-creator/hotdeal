@@ -139,9 +139,10 @@ body.dm-open { overflow: hidden; }
   margin-bottom: 8px; flex-wrap: wrap;
 }
 .dm-mall {
-  font-weight: 600; color: var(--accent);
-  background: var(--accent-soft);
-  padding: 1px 7px; border-radius: 999px; font-size: 11.5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
 }
 
 .dm-title {
@@ -560,7 +561,7 @@ body.dm-open { overflow: hidden; }
 /* 반응형 */
 @media (max-width: 680px) {
   .dm-panel {
-    width: 100vw; height: 100dvh;
+    width: 100vw; height: 85dvh;
     border-radius: 20px 20px 0 0;
     box-shadow: 0 -2px 24px rgba(0,0,0,.14);
   }

@@ -590,7 +590,10 @@ details:not([open]) > .account-dropdown { display: none; }
   align-items: center;
   justify-content: center;
 }
-.deal-wish-ico { flex: none; }
+.deal-wish-ico { flex: none; fill: none; stroke: #aaa; stroke-width: 1.8; transition: fill .15s, stroke .15s; }
+.deal-wish:hover .deal-wish-ico { stroke: #ef3b4a; }
+.deal-wish.on { background: #fff0f0; }
+.deal-wish.on .deal-wish-ico { fill: #ef3b4a; stroke: #ef3b4a; }
 
 /* 以묒븰 (紐⑹뾽: .row-mid) */
 .deal-row-main {
