@@ -304,9 +304,13 @@ const MALL_HOSTS = [
   ["store.kakao.com", "톡딜", "kakao"],
   ["gift.kakao.com", "카카오톡선물하기", "kakao"],
   ["toss.im", "토스", "toss"],
+  ["jnmall.net", "남도장터", "jnmall"],
+  ["jnmall.co.kr", "남도장터", "jnmall"],
+  ["skstoa.com", "SK스토아", "skstoa"],
+  ["otokimall.co.kr", "오뚜기몰", "otokimall"],
   ["steampowered.com", "스팀", "steam"],
   ["temu.com", "테무", "temu"],
-  ["aliexpress.com", "알리익스프레스", "ali"],
+  ["aliexpress.com", "알리", "ali"],
   ["amazon.", "아마존", "amazon"],
   ["iherb.com", "아이허브", "iherb"],
   ["qoo10.", "Qoo10", "qoo10"],
@@ -1063,14 +1067,14 @@ async function openModal(id, opts) {
   const chartPoints = chartIsDemo ? (window.demoPricePoints ? window.demoPricePoints(deal.price, deal.baseline_price) : []) : priceHistory;
   const showChart = chartPoints.length >= 3;
   const verdictHtml = cheaper ? `<p class="dm-verdict"><span aria-hidden="true">✓</span>${isLowest ? "역대 최저가" : "평소보다 저렴"} · 평소가보다 ${Number(saveAmt).toLocaleString("ko-KR")}원 저렴해요</p>` : "";
-  const chartHtml = `<section id="dd-chart-root"${!showChart ? ' class="dd-chart-no-data"' : ""}><div class="dm-sec-head"><h2 class="dm-h2">가격 변동</h2>${showChart ? `<div class="dm-seg" role="tablist" aria-label="기간"><button type="button" data-range="30">1개월</button><button type="button" class="on" data-range="90">3개월</button><button type="button" data-range="all">전체</button></div>` : ""}</div><div class="dm-chart${!showChart ? " dm-chart-empty" : ""}"><canvas id="modal-chart"${!showChart ? ' hidden' : ""}></canvas>${!showChart ? `<p class="dm-chart-no-data-msg">가격 표본이 부족합니다</p>` : ""}</div></section>`;
+  const placeholderSvg = `<svg class="dm-chart-placeholder" viewBox="0 0 400 120" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><linearGradient id="ph-grad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="currentColor" stop-opacity="0.3"/><stop offset="100%" stop-color="currentColor" stop-opacity="0"/></linearGradient></defs><polyline points="0,80 40,72 80,65 120,60 160,55 200,62 240,70 280,58 320,45 360,38 400,30" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/><polygon points="0,80 40,72 80,65 120,60 160,55 200,62 240,70 280,58 320,45 360,38 400,30 400,120 0,120" fill="url(#ph-grad)"/></svg>`;
+  const chartHtml = `<section id="dd-chart-root"${!showChart ? ' class="dd-chart-no-data"' : ""}><div class="dm-sec-head"><h2 class="dm-h2">가격 변동</h2>${showChart ? `<div class="dm-seg" role="tablist" aria-label="기간"><button type="button" data-range="30">1개월</button><button type="button" class="on" data-range="90">3개월</button><button type="button" data-range="all">전체</button></div>` : ""}</div><div class="dm-chart${!showChart ? " dm-chart-empty" : ""}"><canvas id="modal-chart"${!showChart ? ' hidden' : ""}></canvas>${!showChart ? `${placeholderSvg}<div class="dm-chart-overlay"><p class="dm-chart-no-data-msg">가격 표본이 부족합니다</p></div>` : ""}</div></section>`;
   const adHtml = "";
   const originalHtml = deal.body_html ? `<section><div class="dm-sec-head"><h2 class="dm-h2">원문 내용</h2><span class="dm-sub">${esc(sourceLabels[deal.body_source] || deal.body_source || "")}</span></div><div class="dm-body-html">${deal.body_html}</div></section>` : "";
   const chatHtml = document.querySelector("#dm-chat-source #dd-chat")?.outerHTML || `<aside class="dm-chat" id="dd-chat"></aside>`;
   const stickyBuyUrl = isPostUrl(deal.mall_url) ? `/out/${id}` : isPostUrl(deal.deal_url) ? deal.deal_url : "";
   const stickyBuyHtml = stickyBuyUrl
-    ? `<div class="dm-sticky-info"><span class="dm-sticky-name">${esc(deal.product_name)}</span><span class="dm-sticky-price">${won(deal.price)}</span></div>` +
-      `<div class="dm-sticky-btns">` +
+    ? `<div class="dm-sticky-btns">` +
       `<a class="dm-buy" href="${esc(stickyBuyUrl)}" target="_blank" rel="noopener">구매하기</a>` +
       `<button type="button" class="dm-sticky-wish bookmark-btn deal-wish${starred ? " on" : ""}" data-deal-id="${id}" aria-label="찜하기">${heartSvg}</button>` +
       (isPostUrl(deal.deal_url) ? `<a class="dm-src" href="${esc(deal.deal_url)}" target="_blank" rel="noopener">원문</a>` : "") +

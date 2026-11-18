@@ -654,6 +654,9 @@ details:not([open]) > .account-dropdown { display: none; }
 .deal-tag-mall[data-mall="homeplus"]  { background:#e8f4ff; color:#005598; }
 .deal-tag-mall[data-mall="ohouse"]    { background:#e8f5f2; color:#00806e; }
 .deal-tag-mall[data-mall="toss"]      { background:#e8f0ff; color:#0046e0; }
+.deal-tag-mall[data-mall="jnmall"]    { background:#e8f5e8; color:#2a6e2a; }
+.deal-tag-mall[data-mall="skstoa"]    { background:#ffe8e8; color:#c40000; }
+.deal-tag-mall[data-mall="otokimall"] { background:#fff8e8; color:#b06000; }
 .deal-tag-mall[data-mall="steam"]     { background:#e8edf5; color:#2a475e; }
 .deal-tag-mall[data-mall="temu"]      { background:#fff4e8; color:#bf5000; }
 .deal-tag-mall[data-mall="ali"]       { background:#fff2e8; color:#c43900; }
@@ -686,6 +689,9 @@ details:not([open]) > .account-dropdown { display: none; }
   :root:not([data-theme="light"]) .deal-tag-mall[data-mall="samsung"]   { background:#0a1430; color:#7aa0ff; }
   :root:not([data-theme="light"]) .deal-tag-mall[data-mall="ohouse"]    { background:#0a2420; color:#50d0be; }
   :root:not([data-theme="light"]) .deal-tag-mall[data-mall="toss"]      { background:#0a1430; color:#7aa0ff; }
+  :root:not([data-theme="light"]) .deal-tag-mall[data-mall="jnmall"]    { background:#0a2210; color:#5fce5f; }
+  :root:not([data-theme="light"]) .deal-tag-mall[data-mall="skstoa"]    { background:#2e0808; color:#ff7070; }
+  :root:not([data-theme="light"]) .deal-tag-mall[data-mall="otokimall"] { background:#2e1e00; color:#ffa840; }
   :root:not([data-theme="light"]) .deal-tag-mall[data-mall="temu"]      { background:#2e1800; color:#ff9a40; }
   :root:not([data-theme="light"]) .deal-tag-mall[data-mall="ali"]       { background:#2e1200; color:#ff8050; }
 }
@@ -704,6 +710,9 @@ details:not([open]) > .account-dropdown { display: none; }
 :root[data-theme="dark"] .deal-tag-mall[data-mall="samsung"]   { background:#0a1430; color:#7aa0ff; }
 :root[data-theme="dark"] .deal-tag-mall[data-mall="ohouse"]    { background:#0a2420; color:#50d0be; }
 :root[data-theme="dark"] .deal-tag-mall[data-mall="toss"]      { background:#0a1430; color:#7aa0ff; }
+:root[data-theme="dark"] .deal-tag-mall[data-mall="jnmall"]    { background:#0a2210; color:#5fce5f; }
+:root[data-theme="dark"] .deal-tag-mall[data-mall="skstoa"]    { background:#2e0808; color:#ff7070; }
+:root[data-theme="dark"] .deal-tag-mall[data-mall="otokimall"] { background:#2e1e00; color:#ffa840; }
 :root[data-theme="dark"] .deal-tag-mall[data-mall="temu"]      { background:#2e1800; color:#ff9a40; }
 :root[data-theme="dark"] .deal-tag-mall[data-mall="ali"]       { background:#2e1200; color:#ff8050; }
 
