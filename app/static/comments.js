@@ -71,11 +71,7 @@
   }
 
   function emptyHtml() {
-    return (
-      `<div class="chat-empty"><p>첫 댓글을 남겨 보세요.</p><div class="chat-quick">` +
-      QUICK.map((t) => `<button type="button" class="chat-quick-btn" data-quick="${esc(t)}">${esc(t)}</button>`).join("") +
-      `</div></div>`
-    );
+    return `<div class="chat-empty"><p>첫 댓글을 남겨 보세요.</p></div>`;
   }
 
   const AV_PALETTES = [
@@ -119,7 +115,10 @@
     const log = $("#chat-log");
     if (!log) return;
     if (replace) {
-      log.innerHTML = items.length ? items.map(bubbleHtml).join("") : emptyHtml();
+      const sysMsg = log.querySelector(".chat-system-msg");
+      const html = items.length ? items.map(bubbleHtml).join("") : emptyHtml();
+      log.innerHTML = html;
+      if (sysMsg) log.insertAdjacentElement("afterbegin", sysMsg);
     } else {
       const empty = log.querySelector(".chat-empty");
       if (empty) empty.remove();

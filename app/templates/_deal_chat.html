@@ -1,7 +1,12 @@
 <aside class="dm-chat" id="dd-chat">
   <div class="dd-chat-pin" id="dd-chat-pin" hidden aria-hidden="true"><div class="dd-chat-pin-clip"><button type="button" class="dd-chat-pin-inner" id="dd-chat-pin-btn" aria-label="상품 정보로 이동"><span class="dd-chat-pin-thumb" id="dd-chat-pin-thumb" aria-hidden="true"></span><span class="dd-chat-pin-body"><span class="dd-chat-pin-title" id="dd-chat-pin-title"></span><span class="dd-chat-pin-price" id="dd-chat-pin-price"></span></span></button></div></div>
   <div class="dm-chat-head"><span class="chat-head-title">댓글 <span data-chat-count>0</span></span><span class="chat-me" id="chat-me" aria-label="내 표시 이름"></span></div>
-  <div class="chat-log" id="chat-log"></div>
+  <div class="chat-log" id="chat-log">
+    <div class="chat-system-msg">
+      <span class="chat-system-title">이 딜에 대한 의견을 남겨주세요!</span>
+      <span class="chat-system-sub">가격, 품질, 배송 등 구매에 도움이 되는 정보를 공유해 보세요 😊</span>
+    </div>
+  </div>
   <div class="dm-chat-composer chat-composer">
     <div class="chat-reply-bar" id="chat-reply-bar" hidden><span id="chat-reply-label"></span><button type="button" class="chat-reply-cancel" id="chat-reply-cancel">취소</button></div>
     <div class="chat-input-row"><textarea id="chat-input" rows="1" maxlength="300" placeholder="댓글을 남겨 보세요"></textarea><button type="button" class="chat-send" id="chat-send" aria-label="보내기">↑</button></div><input type="hidden" id="chat-nick" value=""><input type="hidden" id="chat-pin" value="">
