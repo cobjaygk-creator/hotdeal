@@ -892,14 +892,32 @@ details:not([open]) > .account-dropdown { display: none; }
 
 /* 많이 보는딜 슬라이드 애니메이션 */
 @keyframes rank-slide-in {
-  from { opacity: 0; transform: translateY(-10px); }
+  from { opacity: 0; transform: translateY(-8px); }
   to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes rank-slide-out {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(8px); }
+}
+.rail-popular-head {
+  display: flex; align-items: center; justify-content: space-between;
+}
+.rail-popular-page {
+  font-size: 11.5px; font-weight: 500;
+  color: var(--ink-faint);
+  letter-spacing: 0;
 }
 .rail-popular-list { overflow: hidden; }
 .rail-popular-list .rail-deal {
   opacity: 0;
-  animation: rank-slide-in 0.32s ease forwards;
-  animation-delay: calc(var(--rank-i, 0) * 60ms);
+}
+.rail-popular-list.is-entering .rail-deal {
+  animation: rank-slide-in 0.3s ease forwards;
+  animation-delay: calc(var(--rank-i, 0) * 50ms);
+}
+.rail-popular-list.is-exiting .rail-deal {
+  animation: rank-slide-out 0.2s ease forwards;
+  animation-delay: calc(var(--rank-i, 0) * 30ms);
 }
 .rail-popular-list .rail-deal:hover { background: var(--bg-hover, var(--bg)); border-radius: 8px; }
 .rail-deal span {

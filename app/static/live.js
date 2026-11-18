@@ -1377,3 +1377,63 @@ function sweepBrokenThumbs(root) {
 }
 sweepBrokenThumbs();
 window.addEventListener("load", () => sweepBrokenThumbs());
+
+/* ── 많이 보는딜 페이지 자동 전환 (7개씩, 5초) ── */
+(function initRailPager() {
+  const list = document.getElementById("rail-popular");
+  const pageLabel = document.getElementById("rail-popular-page");
+  if (!list) return;
+
+  const all = Array.from(list.querySelectorAll(".rail-deal"));
+  const PAGE_SIZE = 7;
+  const INTERVAL = 5000;
+  const totalPages = Math.ceil(all.length / PAGE_SIZE);
+  if (totalPages <= 1) {
+    // 7개 이하면 그냥 한 번 등장 애니메이션만
+    all.forEach((el, i) => {
+      el.style.setProperty("--rank-i", i);
+    });
+    list.classList.add("is-entering");
+    if (pageLabel) pageLabel.textContent = "";
+    return;
+  }
+
+  let currentPage = 0;
+
+  function showPage(page, dir) {
+    // 먼저 나가는 애니메이션
+    const entering = dir !== "init";
+    if (entering) {
+      all.forEach((el) => el.style.setProperty("--rank-i", 0));
+      list.classList.remove("is-entering");
+      list.classList.add("is-exiting");
+    }
+
+    const doShow = () => {
+      list.classList.remove("is-exiting");
+      const start = page * PAGE_SIZE;
+      all.forEach((el, i) => {
+        const inPage = i >= start && i < start + PAGE_SIZE;
+        el.hidden = !inPage;
+        el.style.setProperty("--rank-i", inPage ? i - start : 0);
+      });
+      if (pageLabel) pageLabel.textContent = `${page + 1} / ${totalPages}`;
+      requestAnimationFrame(() => {
+        list.classList.add("is-entering");
+      });
+    };
+
+    if (entering) {
+      // 나가는 애니메이션 끝날 때까지 대기 (가장 느린 항목: 6 * 30ms + 200ms ≈ 380ms)
+      setTimeout(doShow, 380);
+    } else {
+      doShow();
+    }
+  }
+
+  showPage(0, "init");
+  setInterval(() => {
+    currentPage = (currentPage + 1) % totalPages;
+    showPage(currentPage, "next");
+  }, INTERVAL);
+})();

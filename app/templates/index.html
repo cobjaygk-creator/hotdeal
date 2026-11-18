@@ -74,7 +74,7 @@
   <button type="button" id="more-btn" class="btn-secondary" {% if not has_more %}hidden{% endif %}>더보기</button>
 </div>
 </main><aside class="deal-rail" aria-label="핫딜 보조 정보">
-  <section class="rail-panel rail-popular"><h2>지금 많이 보는 딜</h2><div class="rail-popular-list" id="rail-popular">{% for d in popular_deals %}<a class="rail-deal" href="/deal/{{ d.id }}" style="--rank-i:{{ loop.index0 }}"><strong>{{ loop.index }}</strong><span>{{ d.product_name | clean_title }}</span></a>{% else %}<p class="muted">아직 인기 딜이 없습니다.</p>{% endfor %}</div></section>
+  <section class="rail-panel rail-popular"><h2 class="rail-popular-head">지금 많이 보는 딜<span class="rail-popular-page" id="rail-popular-page"></span></h2><div class="rail-popular-list" id="rail-popular">{% for d in popular_deals %}<a class="rail-deal" href="/deal/{{ d.id }}" data-rank="{{ loop.index }}"><strong>{{ loop.index }}</strong><span>{{ d.product_name | clean_title }}</span></a>{% else %}<p class="muted">아직 인기 딜이 없습니다.</p>{% endfor %}</div></section>
   <section class="rail-panel rail-alert"><h2>키워드 알림</h2><p class="muted">원하는 상품이 올라오면 바로 알려드려요.</p><form action="/alerts" method="get"><input name="q" type="search" placeholder="예: 에어팟, 생수" aria-label="알림 키워드"><button class="btn" type="submit">등록</button></form></section>
   {% if adsense_active_now() and adsense_enabled and adsense_sidebar_enabled and adsense_publisher_id and adsense_sidebar_slot_id %}<div class="rail-ad" aria-label="광고"><span>광고</span><ins class="adsbygoogle" data-ad-client="{{ adsense_publisher_id }}" data-ad-slot="{{ adsense_sidebar_slot_id }}"></ins></div>{% endif %}
 </aside></div>

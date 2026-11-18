@@ -701,7 +701,7 @@ async def _home_ctx(
     try:
         from app.engine.ranking import rank_deals
 
-        popular_deals = await rank_deals(_db(), limit=7)
+        popular_deals = await rank_deals(_db(), limit=21)
     except Exception:
         log.exception("index popular rail failed")
         popular_deals = []
