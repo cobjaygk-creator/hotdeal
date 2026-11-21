@@ -24,7 +24,7 @@ from app.sources.detail import enrich_post
 
 log = logging.getLogger(__name__)
 
-_ENRICH_TIMEOUT_SEC = 60.0
+_ENRICH_TIMEOUT_SEC = 90.0
 # Quasarzone list sometimes attaches this ancient shared placeholder as data-preview.
 _STALE_QZ_THUMB = "%dc9345db51f5b6aa0e363ed2cfbe9358%"
 # Don't re-fetch a deal's detail page (a proxied request) more than once per

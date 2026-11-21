@@ -206,9 +206,16 @@ class PoliteClient:
                     # Chrome TLS + residential proxy: httpx is challenged by
                     # Cloudflare even when the exit IP is Korean.
                     if effective_proxy:
-                        impersonated = await self._impersonate_get(
-                            url, encoding, timeout=req_timeout, proxy=effective_proxy, cond=extra
-                        )
+                        try:
+                            impersonated = await asyncio.wait_for(
+                                self._impersonate_get(
+                                    url, encoding, timeout=req_timeout, proxy=effective_proxy, cond=extra
+                                ),
+                                timeout=req_timeout,
+                            )
+                        except (asyncio.TimeoutError, asyncio.CancelledError):
+                            log.warning("chrome TLS impersonate hard-timeout %s", url)
+                            impersonated = None
                         if impersonated is not None and impersonated.not_modified:
                             return impersonated
                         if impersonated is not None and not _soft_blocked(impersonated.text):
@@ -222,9 +229,16 @@ class PoliteClient:
                                 soft_block_reason(impersonated.text),
                             )
                             await asyncio.sleep(2.5)
-                            impersonated = await self._impersonate_get(
-                                url, encoding, timeout=req_timeout, proxy=effective_proxy
-                            )
+                            try:
+                                impersonated = await asyncio.wait_for(
+                                    self._impersonate_get(
+                                        url, encoding, timeout=req_timeout, proxy=effective_proxy
+                                    ),
+                                    timeout=req_timeout,
+                                )
+                            except (asyncio.TimeoutError, asyncio.CancelledError):
+                                log.warning("chrome TLS impersonate retry hard-timeout %s", url)
+                                impersonated = None
                             if impersonated is not None and not _soft_blocked(
                                 impersonated.text
                             ):
