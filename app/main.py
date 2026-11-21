@@ -440,15 +440,33 @@ async def _scheduled_family_d0_notif() -> None:
 
 
 async def _scheduled_ppomppu_mall_enrich() -> None:
-    # Detail-link writes share SQLite with every collection tier.  WAL still
-    # permits only one writer; serialise this sweep with collectors so a link
-    # fill cannot abort either transaction with "database is locked".
-    async with _collection_slot():
+    # Enrich writes SQLite in WAL mode. We prefer not to run simultaneously
+    # with active collection, but if the slot is busy we skip this tick and
+    # the scheduler retries in MALL_ENRICH_INTERVAL_SECONDS.
+    lock = state.get("collect_lock")
+    if lock is None:
+        return
+    if lock.locked():
+        log.debug("enrich: collection slot busy, deferring to next tick")
+        return
+    # Acquire quickly — just verified it is free; 5 s covers the edge case
+    # where another coroutine sneaks in between the check and acquire.
+    try:
+        async with asyncio.timeout(5.0):
+            await lock.acquire()
+    except TimeoutError:
+        log.debug("enrich: slot taken right after check, deferring")
+        return
+    # Enrich work runs without an outer timeout — enrich_post already has its
+    # own per-deal asyncio.wait_for(18 s), so the total is bounded by batch size.
+    try:
         priority = list(_priority_enrich_ids)
         _priority_enrich_ids.clear()
         if priority:
             await _run_mall_enrich(deal_ids=priority, limit=max(6, len(priority)))
         await _run_mall_enrich()
+    finally:
+        lock.release()
 
 
 async def _scheduled_llm_classify() -> None:
@@ -525,7 +543,7 @@ async def _run_mall_enrich(
             out = await enrich_missing_ppomppu_malls(
                 conn, state["http"], deal_ids=deal_ids, limit=limit
             )
-        except Exception:
+        except (Exception, asyncio.CancelledError):
             log.exception("ppomppu mall enrich failed")
             return {}
         finally:
