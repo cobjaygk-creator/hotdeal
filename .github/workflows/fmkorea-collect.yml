@@ -1,8 +1,9 @@
 name: FMKorea Collect
 
 on:
-  schedule:
-    - cron: "*/20 * * * *"  # 20분마다
+  # schedule 비활성화됨 — 자동 실행 중지. 다시 켜려면 아래 cron 줄 주석 해제.
+  # schedule:
+  #   - cron: "*/20 * * * *"  # 20분마다
   workflow_dispatch:         # 수동 실행 가능
 
 jobs:
