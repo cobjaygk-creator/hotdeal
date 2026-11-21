@@ -150,6 +150,13 @@ ARCA_BROWSER_DETAIL = (
     os.environ.get("ARCA_BROWSER_DETAIL") or "1"
 ).strip().lower() not in ("", "0", "false", "no")
 
+# Same for quasarzone: its post pages sit behind the same Cloudflare check as
+# its list, so a plain fetch only ever returns 403 and the deal never gets a
+# buy link. Runs over the home proxy, so no metered GB.
+QUASARZONE_BROWSER_DETAIL = (
+    os.environ.get("QUASARZONE_BROWSER_DETAIL") or "1"
+).strip().lower() not in ("", "0", "false", "no")
+
 # FMKorea fronts /hotdeal with an Akamai + WASM proof-of-work gate that plain
 # HTTP clients cannot pass. When enabled, a headless Chromium (Playwright)
 # solves the gate and keeps the cleared cookies warm for the process.

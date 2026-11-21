@@ -7,7 +7,12 @@ from urllib.parse import urljoin, urlparse
 
 from selectolax.parser import HTMLParser
 
-from app.config import ARCA_BROWSER_DETAIL, FMKOREA_BROWSER_DETAIL, PPOMPPU_PROXY_URL
+from app.config import (
+    ARCA_BROWSER_DETAIL,
+    FMKOREA_BROWSER_DETAIL,
+    PPOMPPU_PROXY_URL,
+    QUASARZONE_BROWSER_DETAIL,
+)
 from app.http_client import PoliteClient
 from app.parse.links import (
     coupang_product_url,
@@ -201,6 +206,10 @@ async def enrich_post(client: PoliteClient, source: str, url: str) -> DetailEnri
         enriched = await _enrich_arca_via_browser(client, url)
         if enriched is not None:
             return enriched
+    if source == "quasarzone" and QUASARZONE_BROWSER_DETAIL:
+        enriched = await _enrich_quasarzone_via_browser(client, url)
+        if enriched is not None:
+            return enriched
     return DetailEnrichment(blocked=blocked)
 
 
@@ -234,6 +243,28 @@ async def _enrich_arca_via_browser(
 
     html = await arca_browser.fetch_html(
         url, want_selector=".article-body", timeout=20.0, max_rounds=2, settle_ms=2000
+    )
+    if not html:
+        return None
+    parsed = parse_detail(html, url)
+    if parsed.mall_url:
+        parsed.mall_url = await canonicalize_mall_url(client, parsed.mall_url)
+        if parsed.mall_url and is_junk_mall_url(parsed.mall_url):
+            parsed.mall_url = None
+    if parsed.mall_url or parsed.title or parsed.thumbnail_url or parsed.body_html:
+        parsed.blocked = False
+        return parsed
+    return None
+
+
+async def _enrich_quasarzone_via_browser(
+    client: PoliteClient, url: str
+) -> DetailEnrichment | None:
+    """Quasarzone detail behind Cloudflare: fetch with the warm qz context."""
+    from app.sources import qz_browser
+
+    html = await qz_browser.fetch_html(
+        url, want_selector=".view-content", timeout=25.0, max_rounds=2
     )
     if not html:
         return None
