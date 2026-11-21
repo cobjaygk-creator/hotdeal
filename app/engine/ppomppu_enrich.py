@@ -477,6 +477,11 @@ async def enrich_missing_ppomppu_malls(
                             """,
                             (name, offer.seller, cat, row["deal_id"]),
                         )
+                # Commit per deal: this connection is in deferred-transaction
+                # mode, so an uncommitted write holds SQLite's write lock across
+                # every later network fetch in the batch, and other writers
+                # (login, collection) hit "database is locked".
+                await conn.commit()
             if mall_better or title_update or thumb_update or body_update:
                 filled += 1
                 filled_here += 1
