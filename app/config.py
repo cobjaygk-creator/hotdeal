@@ -179,6 +179,12 @@ FMKOREA_PROXY_SESSION_TTL_SEC = int(
 PPOMPPU_ENRICH_INTERVAL_MINUTES = int(
     (os.environ.get("PPOMPPU_ENRICH_INTERVAL_MINUTES") or "10").strip() or "10"
 )
+# Drain the missing-buy-link backlog from the scheduled enrich job instead of
+# only looking at the newest 8 deals per source. Set to a day count to sweep
+# every missing-link deal in that window; 0 (default) keeps the normal sweep.
+# Meant to be switched on until the backlog clears, then removed.
+MALL_BACKFILL_DAYS = int((os.environ.get("MALL_BACKFILL_DAYS") or "0").strip() or "0")
+
 MALL_ENRICH_INTERVAL_SECONDS = max(
     15,
     int((os.environ.get("MALL_ENRICH_INTERVAL_SECONDS") or "120").strip() or "120"),

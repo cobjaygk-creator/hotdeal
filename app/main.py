@@ -30,6 +30,7 @@ from app.config import (
     COLLECT_FAST_SECONDS,
     COLLECT_PROXY_SECONDS,
     COLLECT_SLOW_MINUTES,
+    MALL_BACKFILL_DAYS,
     MALL_ENRICH_INTERVAL_SECONDS,
     ENABLE_COLLECT,
     ADMIN_USERNAME,
@@ -464,7 +465,7 @@ async def _scheduled_ppomppu_mall_enrich() -> None:
         _priority_enrich_ids.clear()
         if priority:
             await _run_mall_enrich(deal_ids=priority, limit=max(6, len(priority)))
-        await _run_mall_enrich()
+        await _run_mall_enrich(backfill_days=MALL_BACKFILL_DAYS or None)
     finally:
         lock.release()
 
