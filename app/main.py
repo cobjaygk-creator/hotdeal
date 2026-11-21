@@ -532,7 +532,10 @@ async def _log_click_and_check_affiliate(
 
 
 async def _run_mall_enrich(
-    *, deal_ids: list[int] | None = None, limit: int | None = None
+    *,
+    deal_ids: list[int] | None = None,
+    limit: int | None = None,
+    backfill_days: int | None = None,
 ) -> dict:
     lock = state.get("ppomppu_enrich_lock")
     if lock is None:
@@ -541,7 +544,7 @@ async def _run_mall_enrich(
         conn = await connect()
         try:
             out = await enrich_missing_ppomppu_malls(
-                conn, state["http"], deal_ids=deal_ids, limit=limit
+                conn, state["http"], deal_ids=deal_ids, limit=limit, backfill_days=backfill_days
             )
         except (Exception, asyncio.CancelledError):
             log.exception("ppomppu mall enrich failed")
@@ -2636,14 +2639,19 @@ async def api_ingest_fmkorea(request: Request):
 
 
 @app.post("/api/ppomppu/enrich-malls")
-async def api_ppomppu_enrich_malls(request: Request, limit: int = 12):
-    """Manually run buy-link enrich for deals missing mall_url."""
+async def api_ppomppu_enrich_malls(request: Request, limit: int = 12, backfill_days: int = 0):
+    """Manually run buy-link enrich for deals missing mall_url.
+
+    backfill_days > 0 sweeps older deals in that window (backlog drain)."""
     _require_collect()
     _require_admin(request)
     lock = state.get("ppomppu_enrich_lock")
     if lock is None:
         raise HTTPException(503, "enrich lock unavailable")
-    out = await _run_mall_enrich(limit=max(1, min(50, limit)))
+    out = await _run_mall_enrich(
+        limit=max(1, min(50, limit)),
+        backfill_days=max(0, min(90, backfill_days)) or None,
+    )
     safe = {k: v for k, v in (out or {}).items() if k != "cards"}
     return JSONResponse(safe)
 

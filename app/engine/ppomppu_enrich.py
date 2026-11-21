@@ -161,8 +161,12 @@ async def enrich_missing_ppomppu_malls(
     *,
     limit: int | None = None,
     deal_ids: list[int] | None = None,
+    backfill_days: int | None = None,
 ) -> dict:
-    """Fill mall_url for recent deals (all sources) that still lack a buy link."""
+    """Fill mall_url for recent deals (all sources) that still lack a buy link.
+
+    backfill_days: sweep every deal seen within that window instead of only
+    the newest 8 per source, so an old backlog can be drained."""
     batch = limit if limit is not None else PPOMPPU_ENRICH_BATCH
     batch = max(1, min(50, batch))
     extra_sql = ""
@@ -229,7 +233,12 @@ async def enrich_missing_ppomppu_malls(
                   AND length(p.body_html) < 400
                 )
               )"""
-    params.append(batch)
+        if backfill_days:
+            extra_sql = " AND d.last_seen_at >= datetime('now', ?)"
+            params.append(f"-{int(backfill_days)} days")
+    # Backfill: over-fetch candidates so the in-memory cooldown filter below
+    # skips past already-tried deals instead of re-selecting the same batch.
+    params.append(min(1000, batch * 20) if backfill_days and not deal_ids else batch)
     cur = await conn.execute(
         f"""
         SELECT deal_id, post_id, post_url, source, mall_url, thumbnail_url, body_html, comments FROM (
@@ -261,15 +270,22 @@ async def enrich_missing_ppomppu_malls(
             )
             {extra_sql}
         )
-        {"WHERE 1=1" if deal_ids else "WHERE rn <= 8"}
-        ORDER BY source, deal_id DESC
+        {"WHERE 1=1" if (deal_ids or backfill_days) else "WHERE rn <= 8"}
+        ORDER BY {"deal_id DESC" if backfill_days and not deal_ids else "source, deal_id DESC"}
         LIMIT ?
         """,
         params,
     )
     rows = [dict(r) for r in await cur.fetchall()]
     if not deal_ids:  # background sweep: honour the per-deal cooldown
-        rows = [r for r in rows if _cooldown_ok(int(r["deal_id"]))]
+        picked: list[dict] = []
+        for r in rows:  # _cooldown_ok stamps the attempt, so stop at batch
+            if len(picked) >= batch:
+                break
+            if _cooldown_ok(int(r["deal_id"])):
+                picked.append(r)
+        rows = picked
+    if not deal_ids and not backfill_days:
         # Spare-capacity pass: re-touch a few recent deals purely to refresh
         # their source comment count (it otherwise freezes once the post drops
         # off the list page and enrich stops re-fetching it).
