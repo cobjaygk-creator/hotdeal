@@ -24,7 +24,7 @@ from app.sources.detail import enrich_post
 
 log = logging.getLogger(__name__)
 
-_ENRICH_TIMEOUT_SEC = 18.0
+_ENRICH_TIMEOUT_SEC = 60.0
 # Quasarzone list sometimes attaches this ancient shared placeholder as data-preview.
 _STALE_QZ_THUMB = "%dc9345db51f5b6aa0e363ed2cfbe9358%"
 # Don't re-fetch a deal's detail page (a proxied request) more than once per
@@ -307,6 +307,7 @@ async def enrich_missing_ppomppu_malls(
                     timeout=_ENRICH_TIMEOUT_SEC,
                 )
             except TimeoutError:
+                log.warning("mall enrich timeout source=%s deal=%s url=%s", source, row["deal_id"], row.get("post_url", "")[:80])
                 errors += 1
                 continue
             except Exception:  # noqa: BLE001
