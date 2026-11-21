@@ -142,6 +142,14 @@ ARCA_PROXY_URL = (
     or PPOMPPU_PROXY_URL
 ).strip()
 
+# Also route arca.live *detail* pages through the headless browser. Arca fronts
+# post pages with the same Cloudflare challenge as its list, so a plain fetch
+# only ever returns 403 and the deal keeps its "원문 보기" fallback. Unlike
+# FMKorea this runs over the home proxy, so it costs no metered GB.
+ARCA_BROWSER_DETAIL = (
+    os.environ.get("ARCA_BROWSER_DETAIL") or "1"
+).strip().lower() not in ("", "0", "false", "no")
+
 # FMKorea fronts /hotdeal with an Akamai + WASM proof-of-work gate that plain
 # HTTP clients cannot pass. When enabled, a headless Chromium (Playwright)
 # solves the gate and keeps the cleared cookies warm for the process.
