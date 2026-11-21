@@ -10,6 +10,7 @@ import httpx
 from selectolax.parser import HTMLParser
 
 from app.config import (
+    CHROME_IMPERSONATE_ENABLED,
     HTTP_PROXY_URL,
     HTTP_TIMEOUT_SEC,
     MAX_RETRIES,
@@ -205,7 +206,7 @@ class PoliteClient:
                 try:
                     # Chrome TLS + residential proxy: httpx is challenged by
                     # Cloudflare even when the exit IP is Korean.
-                    if effective_proxy:
+                    if effective_proxy and CHROME_IMPERSONATE_ENABLED:
                         try:
                             impersonated = await asyncio.wait_for(
                                 self._impersonate_get(

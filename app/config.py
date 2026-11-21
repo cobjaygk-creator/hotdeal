@@ -21,6 +21,16 @@ USER_AGENT = (
     "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 )
 
+# curl_cffi's Chrome-impersonated TLS handshake has been getting reset by
+# whatever sits on Railway's outbound path for every proxied host, regardless
+# of target site, so it never succeeds there — it just adds a doomed attempt
+# (and its own retry) before every proxied request falls through to plain
+# httpx anyway. Off by default (keeps existing behavior elsewhere); set to
+# "0" on Railway to skip straight to httpx/curl.
+CHROME_IMPERSONATE_ENABLED = (os.environ.get("CHROME_IMPERSONATE_ENABLED") or "1").strip().lower() not in (
+    "0", "false", "no",
+)
+
 MIN_REQUEST_INTERVAL_SEC = 1.0
 # Warn when collection stops progressing. Upstream failures must not terminate
 # the web process; bounded collector tasks handle recovery independently.
