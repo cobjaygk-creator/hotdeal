@@ -21,6 +21,11 @@ from app.config import (
 log = logging.getLogger(__name__)
 
 
+# A challenge/interstitial page is a stub; anything larger is real content that
+# merely references Cloudflare's script.
+_GATE_MAX_CHARS = 60_000
+
+
 def soft_block_reason(text: str | None) -> str | None:
     """Return a short marker when the body is a bot/IP gate, else None."""
     raw = text or ""
@@ -42,10 +47,15 @@ def soft_block_reason(text: str | None) -> str | None:
     # pass as an article. These are markup tokens no post would quote, and the
     # gate is often served as EUC-KR and decoded to mojibake, so the Korean
     # markers cannot be relied on here.
-    gate_head = raw[:12000].lower()
-    for marker in ("cf-turnstile", "challenges.cloudflare.com", "/try_unblock.php"):
-        if marker in gate_head:
-            return marker
+    # ...and only for a stub-sized document. A real interstitial is a few KB
+    # (FMKorea's is 6.8 KB); a served arca article is ~144 KB and carries
+    # challenges.cloudflare.com near its end as an ordinary sitewide script, so
+    # matching this marker on a full page would reject every arca post.
+    if len(raw) <= _GATE_MAX_CHARS:
+        gate_head = raw[:12000].lower()
+        for marker in ("cf-turnstile", "challenges.cloudflare.com", "/try_unblock.php"):
+            if marker in gate_head:
+                return marker
     # Prose markers stay at 4000: past that they start matching a security
     # notice merely quoted inside a long post body.
     head = raw[:4000]
