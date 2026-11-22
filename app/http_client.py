@@ -36,6 +36,18 @@ def soft_block_reason(text: str | None) -> str | None:
             compact = "".join(text.split())
             if "접속하려면보안검사를완료" in compact:
                 return "quasarzone security check"
+    # Cloudflare Turnstile widget markup, matched over a wider window than the
+    # prose markers below: FMKorea's gate page carries help@fmkorea.com at
+    # offset ~4177, past the 4000-char head, so the whole gate page used to
+    # pass as an article. These are markup tokens no post would quote, and the
+    # gate is often served as EUC-KR and decoded to mojibake, so the Korean
+    # markers cannot be relied on here.
+    gate_head = raw[:12000].lower()
+    for marker in ("cf-turnstile", "challenges.cloudflare.com", "/try_unblock.php"):
+        if marker in gate_head:
+            return marker
+    # Prose markers stay at 4000: past that they start matching a security
+    # notice merely quoted inside a long post body.
     head = raw[:4000]
     head_l = head.lower()
     for marker in (

@@ -155,10 +155,12 @@ async def enrich_post(client: PoliteClient, source: str, url: str) -> DetailEnri
                     proxy=proxy,
                 )
                 if result.not_modified or not result.text:
-                    if result.status == 403:
+                    if result.status in (403, 429):
                         blocked = True
                     continue
-                if result.status == 403 or _looks_blocked(result.text):
+                # 429 is what FMKorea's Turnstile gate answers with; treating it
+                # as content let the gate page be stored as the article.
+                if result.status in (403, 429) or _looks_blocked(result.text):
                     blocked = True
                     log.warning("detail enrich blocked source=%s url=%s", source, candidate)
                     continue

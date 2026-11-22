@@ -232,15 +232,10 @@ async def fetch_html(
             # session and hard-reset so the NEXT attempt opens a fresh context
             # with the new session's exit IP. WASM cookies don't help on a
             # banned IP anyway — the ban check happens before the WASM gate.
-            if any(m in (html or "")[:8000] for m in _HARD_BLOCK_MARKERS):
-                log.warning(
-                    "fmkorea browser hit IP ban page; rotating proxy session, "
-                    "cooling off %ds", _IP_BAN_COOLDOWN_SEC
-                )
-                _ip_ban_until = time.time() + _IP_BAN_COOLDOWN_SEC
-                _rotate_session()
-                await _hard_reset()
-                return None
+            # Captcha first: the Turnstile page ALSO carries help@fmkorea.com and
+            # posts to /try_unblock.php, so checking the ban markers first
+            # labelled every Turnstile hit an "IP ban" and used the short
+            # cooldown, hammering the gate every 5 minutes.
             if _looks_captcha(html):
                 log.warning(
                     "fmkorea browser hit a Turnstile CAPTCHA; cooling off %ds and "
@@ -250,6 +245,15 @@ async def fetch_html(
                 _captcha_until = time.time() + _CAPTCHA_COOLDOWN_SEC
                 _rotate_session()
                 await _hard_reset()  # next attempt rebuilds on the fresh session
+                return None
+            if any(m in (html or "")[:8000] for m in _HARD_BLOCK_MARKERS):
+                log.warning(
+                    "fmkorea browser hit IP ban page; rotating proxy session, "
+                    "cooling off %ds", _IP_BAN_COOLDOWN_SEC
+                )
+                _ip_ban_until = time.time() + _IP_BAN_COOLDOWN_SEC
+                _rotate_session()
+                await _hard_reset()
                 return None
             rounds = 0
             while _looks_gated(html) and rounds < max_rounds and time.time() < deadline:
@@ -269,18 +273,18 @@ async def fetch_html(
                 except Exception:  # noqa: BLE001
                     pass
                 html = await page.content()
+            if _looks_captcha(html):
+                log.warning("fmkorea browser escalated to Turnstile mid-solve")
+                _captcha_until = time.time() + _CAPTCHA_COOLDOWN_SEC
+                _rotate_session()
+                await _hard_reset()
+                return None
             if any(m in (html or "")[:8000] for m in _HARD_BLOCK_MARKERS):
                 log.warning(
                     "fmkorea browser escalated to IP ban mid-solve; rotating session, "
                     "cooling off %ds", _IP_BAN_COOLDOWN_SEC
                 )
                 _ip_ban_until = time.time() + _IP_BAN_COOLDOWN_SEC
-                _rotate_session()
-                await _hard_reset()
-                return None
-            if _looks_captcha(html):
-                log.warning("fmkorea browser escalated to Turnstile mid-solve")
-                _captcha_until = time.time() + _CAPTCHA_COOLDOWN_SEC
                 _rotate_session()
                 await _hard_reset()
                 return None
