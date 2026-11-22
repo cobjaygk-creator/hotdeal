@@ -9,9 +9,12 @@ from selectolax.parser import HTMLParser
 
 from app.config import (
     ARCA_BROWSER_DETAIL,
+    ARCA_PROXY_URL,
     FMKOREA_BROWSER_DETAIL,
+    FMKOREA_PROXY_URL,
     PPOMPPU_PROXY_URL,
     QUASARZONE_BROWSER_DETAIL,
+    QUASARZONE_PROXY_URL,
 )
 from app.http_client import PoliteClient
 from app.parse.links import (
@@ -116,6 +119,15 @@ _BLOCKED_TITLE = re.compile(
 )
 
 
+def _source_proxy(source: str) -> str | None:
+    """The proxy configured for this source, if it has its own."""
+    return {
+        "fmkorea": FMKOREA_PROXY_URL,
+        "arca": ARCA_PROXY_URL,
+        "quasarzone": QUASARZONE_PROXY_URL,
+    }.get(source) or None
+
+
 async def enrich_post(client: PoliteClient, source: str, url: str) -> DetailEnrichment:
     if not url or not url.startswith(("http://", "https://")):
         return DetailEnrichment()
@@ -127,14 +139,16 @@ async def enrich_post(client: PoliteClient, source: str, url: str) -> DetailEnri
     # Railway is Singapore-hosted and direct connections to Korean community
     # sites are unreliable (slow, Cloudflare-blocked, or rate-limited).
     # Using the proxy ensures consistent access and avoids delayed buy buttons.
-    prefer_proxy = bool(PPOMPPU_PROXY_URL)
+    # Per-source proxy first. FMKorea refuses the home residential IP outright
+    # (ReadError / 429 Turnstile) while answering the same request through
+    # FMKOREA_PROXY_URL with the full article and its buy link, so sending
+    # every source down PPOMPPU_PROXY_URL alone cost FMKorea every buy link.
     proxy_tries: list[str | None] = []
-    if prefer_proxy:
-        proxy_tries.append(PPOMPPU_PROXY_URL)
-        if not is_ppomppu:
-            proxy_tries.append(None)  # direct fallback if proxy fails
-    else:
-        proxy_tries.append(None)
+    for candidate_proxy in (_source_proxy(source), PPOMPPU_PROXY_URL):
+        if candidate_proxy and candidate_proxy not in proxy_tries:
+            proxy_tries.append(candidate_proxy)
+    if not proxy_tries or not is_ppomppu:
+        proxy_tries.append(None)  # direct fallback if every proxy fails
     urls = [url]
     if is_ppomppu and "www.ppomppu.co.kr" in url:
         urls.append(url.replace("www.ppomppu.co.kr", "m.ppomppu.co.kr", 1))
