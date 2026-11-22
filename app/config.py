@@ -146,8 +146,15 @@ ARCA_PROXY_URL = (
 # post pages with the same Cloudflare challenge as its list, so a plain fetch
 # only ever returns 403 and the deal keeps its "원문 보기" fallback. Unlike
 # FMKorea this runs over the home proxy, so it costs no metered GB.
+#
+# Default off. The premise above did not hold: a plain fetch of an arca post
+# returns the full ~144 KB article and its buy link over either proxy. The
+# browser path, meanwhile, has never once succeeded — the home proxy logged 44
+# auth rejections for arca.live, one every 30 minutes as the CAPTCHA cooldown
+# expired, each attempt earning a fresh Turnstile on the exit IP that the
+# working plain path then has to share. Set ARCA_BROWSER_DETAIL=1 to restore it.
 ARCA_BROWSER_DETAIL = (
-    os.environ.get("ARCA_BROWSER_DETAIL") or "1"
+    os.environ.get("ARCA_BROWSER_DETAIL") or "0"
 ).strip().lower() not in ("", "0", "false", "no")
 
 # Same for quasarzone: its post pages sit behind the same Cloudflare check as
