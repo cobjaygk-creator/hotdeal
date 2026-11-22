@@ -132,14 +132,22 @@ QUASARZONE_PROXY_URL = (
 # Example: http://user:pass@host:port  or  socks5://host:port
 PPOMPPU_PROXY_URL = (os.environ.get("PPOMPPU_PROXY_URL") or HTTP_PROXY_URL).strip()
 
-# Proxy for the arca.live headless browser. Chromium treats a proxy port of
-# 443 as TLS and resets the connection, so this must point at a non-443 port
-# (e.g. the same alt port used for FMKOREA_PROXY_URL/QUASARZONE_PROXY_URL).
-# Falls back to FMKOREA_PROXY_URL, then PPOMPPU_PROXY_URL/HTTP_PROXY_URL.
+# Proxy for arca.live. The home proxy, like every source except FMKorea: a
+# plain fetch of an arca post over it returns the full article and its buy
+# link (verified 6/6), so there is no reason to spend metered GB here.
+#
+# It used to fall back to FMKOREA_PROXY_URL ahead of the home proxy, because
+# the arca headless browser needs a non-443 port — Chromium treats a proxy
+# port of 443 as TLS and resets the connection. That inherited FMKorea's
+# commercial endpoint for all of arca, plain fetches included. The browser is
+# only a fallback now (ARCA_BROWSER_DETAIL is off and the list's plain path
+# works), so it is not worth routing arca's normal traffic off the home proxy;
+# set ARCA_PROXY_URL explicitly to give the browser an alt port again.
 ARCA_PROXY_URL = (
     os.environ.get("ARCA_PROXY_URL")
-    or os.environ.get("FMKOREA_PROXY_URL")
     or PPOMPPU_PROXY_URL
+    or os.environ.get("FMKOREA_PROXY_URL")
+    or ""
 ).strip()
 
 # Also route arca.live *detail* pages through the headless browser. Arca fronts
