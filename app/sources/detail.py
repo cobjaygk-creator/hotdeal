@@ -157,6 +157,7 @@ async def enrich_post(client: PoliteClient, source: str, url: str) -> DetailEnri
     blocked = False
     fmkorea_partial: DetailEnrichment | None = None
     for proxy in proxy_tries:
+        proxy_failed = False
         timeout = 20.0 if proxy else (5.0 if is_ppomppu else 10.0)
         for candidate in urls:
             try:
@@ -169,12 +170,16 @@ async def enrich_post(client: PoliteClient, source: str, url: str) -> DetailEnri
                     proxy=proxy,
                 )
                 if result.not_modified or not result.text:
-                    if result.status in (403, 429):
+                    if result.status >= 400:
                         blocked = True
                     continue
-                # 429 is what FMKorea's Turnstile gate answers with; treating it
-                # as content let the gate page be stored as the article.
-                if result.status in (403, 429) or _looks_blocked(result.text):
+                # Any 4xx/5xx means this proxy did not deliver the article, so
+                # the next one must still be tried. 429 is FMKorea's Turnstile
+                # gate (treating it as content stored the gate page as the
+                # article); 407 is the home proxy rejecting credentials meant
+                # for a commercial endpoint, which used to end the loop here
+                # with blocked still False and the good proxy never tried.
+                if result.status >= 400 or _looks_blocked(result.text):
                     blocked = True
                     log.warning("detail enrich blocked source=%s url=%s", source, candidate)
                     continue
@@ -207,8 +212,12 @@ async def enrich_post(client: PoliteClient, source: str, url: str) -> DetailEnri
                     return parsed
             except Exception as exc:  # noqa: BLE001
                 last_err = exc
+                proxy_failed = True
                 log.warning("detail enrich failed source=%s url=%s err=%s", source, candidate, exc)
-        if not blocked:
+        # Only stop early when this proxy actually answered: a 407 from the home
+        # proxy (credentials meant for a commercial endpoint) arrives as an
+        # exception, and breaking on it left the working proxy untried.
+        if not blocked and not proxy_failed:
             break
     if last_err:
         log.warning("detail enrich exhausted source=%s url=%s", source, url)
