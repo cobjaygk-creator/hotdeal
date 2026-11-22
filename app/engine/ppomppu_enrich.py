@@ -10,7 +10,7 @@ import json
 import logging
 import re
 import time
-from collections import defaultdict
+from collections import Counter, defaultdict
 
 from app.config import PPOMPPU_ENRICH_BATCH, PPOMPPU_PROXY_URL
 from app.db import set_meta, utcnow_iso
@@ -299,9 +299,16 @@ async def enrich_missing_ppomppu_malls(
     errors = 0
     attempted = 0
     count_bumped = 0
-    by_source: dict[str, dict[str, int]] = defaultdict(
+    by_source: dict[str, dict] = defaultdict(
         lambda: {"filled": 0, "blocked": 0, "no_link": 0}
     )
+    # Why each source was refused, so a blocked count in the summary can be
+    # acted on without server logs.
+    block_reasons: dict[str, Counter] = defaultdict(Counter)
+
+    def _note_block(source: str, detail) -> None:
+        reason = (getattr(detail, "block_reason", None) or "unknown")[:60]
+        block_reasons[source][reason] += 1
     filled_ids: list[int] = []
     write_lock = asyncio.Lock()
 
@@ -338,6 +345,7 @@ async def enrich_missing_ppomppu_malls(
             if getattr(detail, "blocked", False) or (title_txt and soft_block_reason(title_txt)):
                 blocked += 1
                 by_source[source]["blocked"] += 1
+                _note_block(source, detail)
                 consec_blocked += 1
                 continue
             body_html = (getattr(detail, "body_html", None) or "").strip() or None
@@ -379,6 +387,7 @@ async def enrich_missing_ppomppu_malls(
                 if getattr(detail, "blocked", False):
                     blocked += 1
                     by_source[source]["blocked"] += 1
+                    _note_block(source, detail)
                     consec_blocked += 1
                 else:
                     no_link += 1
@@ -508,6 +517,7 @@ async def enrich_missing_ppomppu_malls(
         "filled": filled,
         "count_bumped": count_bumped,
         "blocked": blocked,
+        "block_reasons": {k: dict(v) for k, v in block_reasons.items()},
         "no_link": no_link,
         "errors": errors,
         "by_source": dict(by_source),

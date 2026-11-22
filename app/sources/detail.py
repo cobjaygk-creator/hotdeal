@@ -111,6 +111,9 @@ class DetailEnrichment:
     # Cloudflare gate). A clean fetch that simply has no buy link stays False so
     # callers can tell "exit IP blocked" apart from "post has no mall link".
     blocked: bool = False
+    # Why it was refused ("http 407", "cf-turnstile", "ReadError: ..."), so a
+    # blocked count in the enrich summary can be acted on without server logs.
+    block_reason: str | None = None
 
 
 _BLOCKED_TITLE = re.compile(
@@ -155,6 +158,7 @@ async def enrich_post(client: PoliteClient, source: str, url: str) -> DetailEnri
     encoding = "euc-kr" if is_ppomppu else None
     last_err: Exception | None = None
     blocked = False
+    block_reason: str | None = None
     fmkorea_partial: DetailEnrichment | None = None
     for proxy in proxy_tries:
         proxy_failed = False
@@ -172,6 +176,7 @@ async def enrich_post(client: PoliteClient, source: str, url: str) -> DetailEnri
                 if result.not_modified or not result.text:
                     if result.status >= 400:
                         blocked = True
+                        block_reason = f"http {result.status}"
                     continue
                 # Any 4xx/5xx means this proxy did not deliver the article, so
                 # the next one must still be tried. 429 is FMKorea's Turnstile
@@ -181,7 +186,14 @@ async def enrich_post(client: PoliteClient, source: str, url: str) -> DetailEnri
                 # with blocked still False and the good proxy never tried.
                 if result.status >= 400 or _looks_blocked(result.text):
                     blocked = True
-                    log.warning("detail enrich blocked source=%s url=%s", source, candidate)
+                    block_reason = (
+                        f"http {result.status}" if result.status >= 400
+                        else (soft_block_reason(result.text) or "soft block")
+                    )
+                    log.warning(
+                        "detail enrich blocked source=%s url=%s reason=%s",
+                        source, candidate, block_reason,
+                    )
                     continue
                 if len(result.text) < 800 and "document.location" in result.text:
                     continue
@@ -213,6 +225,7 @@ async def enrich_post(client: PoliteClient, source: str, url: str) -> DetailEnri
             except Exception as exc:  # noqa: BLE001
                 last_err = exc
                 proxy_failed = True
+                block_reason = f"{type(exc).__name__}: {str(exc)[:60]}"
                 log.warning("detail enrich failed source=%s url=%s err=%s", source, candidate, exc)
         # Only stop early when this proxy actually answered: a 407 from the home
         # proxy (credentials meant for a commercial endpoint) arrives as an
@@ -235,7 +248,7 @@ async def enrich_post(client: PoliteClient, source: str, url: str) -> DetailEnri
         enriched = await _enrich_quasarzone_via_browser(client, url)
         if enriched is not None:
             return enriched
-    return DetailEnrichment(blocked=blocked)
+    return DetailEnrichment(blocked=blocked, block_reason=block_reason)
 
 
 async def _enrich_fmkorea_via_browser(
