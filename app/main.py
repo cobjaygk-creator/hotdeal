@@ -27,6 +27,7 @@ from app.admin_settings import load_runtime_settings
 from app.collection_guard import fetch_sources
 from app.admin_settings import SETTING_KEYS, encrypt
 from app.config import (
+    CHROME_IMPERSONATE_ENABLED,
     COLLECT_FAST_SECONDS,
     COLLECT_PROXY_SECONDS,
     COLLECT_SLOW_MINUTES,
@@ -2951,6 +2952,11 @@ async def _stats() -> dict:
         "last_collect": last_collect,
         "collect_by_source": by_source,
         "ppomppu_proxy_configured": bool(PPOMPPU_PROXY_URL),
+        # Chrome TLS impersonation is what gets arca/quasarzone past Cloudflare:
+        # with it off, httpx takes a 403 on every detail fetch and the exit IP
+        # earns a Turnstile. Surfaced here because a stale Railway variable
+        # turning it off is invisible from outside.
+        "chrome_impersonate_enabled": CHROME_IMPERSONATE_ENABLED,
         "last_ppomppu_mall_enrich": pp_enrich,
         "llm_classify_configured": LLM_CLASSIFY_ENABLED,
         "last_llm_classify": llm_classify,
