@@ -45,9 +45,13 @@ WATCHDOG_CHECK_SECONDS = int(
 )
 # Legacy name: unused by the scheduler after source-tier jobs landed.
 COLLECT_INTERVAL_MINUTES = 3
-PPOMPPU_INTERVAL_SECONDS = int((os.environ.get("PPOMPPU_INTERVAL_SECONDS") or "30").strip() or "30")
-COLLECT_FAST_SECONDS = int((os.environ.get("COLLECT_FAST_SECONDS") or "30").strip() or "30")
-COLLECT_PROXY_SECONDS = int((os.environ.get("COLLECT_PROXY_SECONDS") or "90").strip() or "90")
+# Polling cadence. These were 30/30/90s, which kept CPU pinned near 0.65 vCPU
+# around the clock and made compute 63% of the Railway bill while the number
+# of sources stayed flat. Doubling them costs about 15 seconds of median
+# latency on a new deal and roughly halves the floor.
+PPOMPPU_INTERVAL_SECONDS = int((os.environ.get("PPOMPPU_INTERVAL_SECONDS") or "60").strip() or "60")
+COLLECT_FAST_SECONDS = int((os.environ.get("COLLECT_FAST_SECONDS") or "60").strip() or "60")
+COLLECT_PROXY_SECONDS = int((os.environ.get("COLLECT_PROXY_SECONDS") or "180").strip() or "180")
 COLLECT_SLOW_MINUTES = int((os.environ.get("COLLECT_SLOW_MINUTES") or "30").strip() or "30")
 # Quasarzone has no RSS, so its list page is the heaviest proxy fetch left.
 # Give it its own (slower) cadence instead of dragging arca down with it.
@@ -165,11 +169,19 @@ ARCA_BROWSER_DETAIL = (
     os.environ.get("ARCA_BROWSER_DETAIL") or "0"
 ).strip().lower() not in ("", "0", "false", "no")
 
-# Same for quasarzone: its post pages sit behind the same Cloudflare check as
-# its list, so a plain fetch only ever returns 403 and the deal never gets a
-# buy link. Runs over the home proxy, so no metered GB.
+# Same for quasarzone: its post pages were thought to sit behind the same
+# Cloudflare check as its list, so that a plain fetch only ever returned 403
+# and the deal never got a buy link.
+#
+# Default off. That premise held only while Chrome TLS impersonation was
+# disabled by a stale Railway variable; with it on, a plain fetch of a
+# quasarzone post returns the article and its buy link in about 0.4s
+# (verified 2/2). The browser path cost a full Chromium page load — JS, ads,
+# analytics — per deal, which is what drove CPU to 63% of the Railway bill
+# while the deals themselves stayed flat. Set QUASARZONE_BROWSER_DETAIL=1 to
+# restore it if quasarzone ever fronts its posts for real.
 QUASARZONE_BROWSER_DETAIL = (
-    os.environ.get("QUASARZONE_BROWSER_DETAIL") or "1"
+    os.environ.get("QUASARZONE_BROWSER_DETAIL") or "0"
 ).strip().lower() not in ("", "0", "false", "no")
 
 # FMKorea fronts /hotdeal with an Akamai + WASM proof-of-work gate that plain
@@ -197,6 +209,16 @@ FMKOREA_PROXY_URL = (
 ).strip()
 FMKOREA_PROXY_SESSION_TTL_SEC = int(
     (os.environ.get("FMKOREA_PROXY_SESSION_TTL_SEC") or "480").strip() or "480"
+)
+# Headless Chromium is kept warm between fetches so only the first request
+# after a launch pays the Cloudflare gate cost, but nothing used to close it:
+# an idle browser stayed resident for the whole deployment. Reap it after this
+# many idle seconds; the next fetch relaunches and pays the gate once.
+BROWSER_IDLE_CLOSE_SECONDS = int(
+    (os.environ.get("BROWSER_IDLE_CLOSE_SECONDS") or "600").strip() or "600"
+)
+BROWSER_IDLE_CHECK_SECONDS = int(
+    (os.environ.get("BROWSER_IDLE_CHECK_SECONDS") or "120").strip() or "120"
 )
 PPOMPPU_ENRICH_INTERVAL_MINUTES = int(
     (os.environ.get("PPOMPPU_ENRICH_INTERVAL_MINUTES") or "10").strip() or "10"

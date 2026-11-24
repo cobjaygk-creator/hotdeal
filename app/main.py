@@ -27,6 +27,8 @@ from app.admin_settings import load_runtime_settings
 from app.collection_guard import fetch_sources
 from app.admin_settings import SETTING_KEYS, encrypt
 from app.config import (
+    BROWSER_IDLE_CHECK_SECONDS,
+    BROWSER_IDLE_CLOSE_SECONDS,
     CHROME_IMPERSONATE_ENABLED,
     COLLECT_FAST_SECONDS,
     COLLECT_PROXY_SECONDS,
@@ -290,6 +292,15 @@ async def lifespan(app: FastAPI):
             coalesce=True,
             next_run_time=datetime.now() + timedelta(seconds=20),
         )
+        scheduler.add_job(
+            _scheduled_reap_browsers,
+            "interval",
+            seconds=BROWSER_IDLE_CHECK_SECONDS,
+            id="reap_idle_browsers",
+            max_instances=1,
+            coalesce=True,
+            next_run_time=datetime.now() + timedelta(seconds=BROWSER_IDLE_CHECK_SECONDS),
+        )
         if EMAIL_DIGEST_ENABLED:
             scheduler.add_job(
                 _scheduled_email_digest,
@@ -440,6 +451,24 @@ async def _scheduled_family_d0_notif() -> None:
     except Exception:
         log.exception("family d0 notif failed")
 
+
+
+async def _scheduled_reap_browsers() -> None:
+    """Close headless Chromium instances that have gone idle.
+
+    Each browser module keeps its Chromium alive between fetches so only the
+    first request after a launch pays the Cloudflare gate cost. Nothing closed
+    them, so they stayed resident for the whole deployment and their memory
+    alone was a third of the Railway bill. The next fetch relaunches.
+    """
+    from app.sources import arca_browser, fm_browser, qz_browser
+
+    for name, mod in (("fmkorea", fm_browser), ("quasarzone", qz_browser), ("arca", arca_browser)):
+        try:
+            if await mod.close_if_idle(BROWSER_IDLE_CLOSE_SECONDS):
+                log.info("closed idle %s browser", name)
+        except Exception:  # noqa: BLE001
+            log.exception("reaping the %s browser failed", name)
 
 async def _scheduled_ppomppu_mall_enrich() -> None:
     # Enrich writes SQLite in WAL mode. We prefer not to run simultaneously

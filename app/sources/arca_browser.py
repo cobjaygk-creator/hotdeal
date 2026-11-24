@@ -222,3 +222,20 @@ async def fetch_html(
 async def shutdown() -> None:
     async with _lock:
         await _hard_reset()
+
+
+async def close_if_idle(idle_sec: float) -> bool:
+    """Drop the resident Chromium when nothing has used it for a while.
+
+    The browser is kept alive between fetches so only the first request after
+    a launch pays the gate cost, but nothing ever closed it: one headless
+    Chromium stayed resident for the whole deployment, and three of them were
+    34% of the Railway bill in memory alone. Reclaim it while idle; the next
+    fetch relaunches.
+    """
+    if _browser is None and _pw is None and _context is None:
+        return False
+    if time.time() - _last_fetch_ts < idle_sec:
+        return False
+    await shutdown()
+    return True
