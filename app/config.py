@@ -45,18 +45,19 @@ WATCHDOG_CHECK_SECONDS = int(
 )
 # Legacy name: unused by the scheduler after source-tier jobs landed.
 COLLECT_INTERVAL_MINUTES = 3
-# Polling cadence. These were 30/30/90s, which kept CPU pinned near 0.65 vCPU
-# around the clock and made compute 63% of the Railway bill while the number
-# of sources stayed flat. Doubling them costs about 15 seconds of median
-# latency on a new deal and roughly halves the floor.
+# Polling cadence. November ran these at 30/30/90s, which kept CPU pinned near
+# 0.65 vCPU around the clock and made compute 63% of the Railway bill while the
+# number of sources stayed flat. The proxy tier is back to the 480s October ran
+# on a $10 bill; the two fast tiers stay at 60s, slower than October's 30s,
+# since halving their rate costs only about 15 seconds of median latency.
 PPOMPPU_INTERVAL_SECONDS = int((os.environ.get("PPOMPPU_INTERVAL_SECONDS") or "60").strip() or "60")
 COLLECT_FAST_SECONDS = int((os.environ.get("COLLECT_FAST_SECONDS") or "60").strip() or "60")
-COLLECT_PROXY_SECONDS = int((os.environ.get("COLLECT_PROXY_SECONDS") or "180").strip() or "180")
+COLLECT_PROXY_SECONDS = int((os.environ.get("COLLECT_PROXY_SECONDS") or "480").strip() or "480")
 COLLECT_SLOW_MINUTES = int((os.environ.get("COLLECT_SLOW_MINUTES") or "30").strip() or "30")
 # Quasarzone has no RSS, so its list page is the heaviest proxy fetch left.
 # Give it its own (slower) cadence instead of dragging arca down with it.
 QUASARZONE_INTERVAL_MINUTES = int(
-    (os.environ.get("QUASARZONE_INTERVAL_MINUTES") or "15").strip() or "15"
+    (os.environ.get("QUASARZONE_INTERVAL_MINUTES") or "30").strip() or "30"
 )
 FAMILY_SALE_INTERVAL_MINUTES = 30
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "").strip()
@@ -234,9 +235,11 @@ PPOMPPU_ENRICH_INTERVAL_MINUTES = int(
 # Meant to be switched on until the backlog clears, then removed.
 MALL_BACKFILL_DAYS = int((os.environ.get("MALL_BACKFILL_DAYS") or "0").strip() or "0")
 
+# 300s is what October ran. The 120s November used meant a buy link landed a
+# couple of minutes sooner at more than twice the enrich work per hour.
 MALL_ENRICH_INTERVAL_SECONDS = max(
     15,
-    int((os.environ.get("MALL_ENRICH_INTERVAL_SECONDS") or "120").strip() or "120"),
+    int((os.environ.get("MALL_ENRICH_INTERVAL_SECONDS") or "300").strip() or "300"),
 )
 PPOMPPU_ENRICH_BATCH = int((os.environ.get("PPOMPPU_ENRICH_BATCH") or "10").strip() or "10")
 
