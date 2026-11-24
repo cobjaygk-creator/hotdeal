@@ -193,8 +193,13 @@ FMKOREA_BROWSER_ENABLED = (
 # Also route FMKorea *detail* pages through the headless browser when the plain
 # fetch is gate-blocked. Off by default: detail enrich runs many times per tick,
 # and full browser page loads burn residential-proxy GB fast. List-only is cheap.
+# Back to off, which is what October ran. It was turned on while Chrome TLS
+# impersonation was disabled by a stale Railway variable and plain detail
+# fetches could not get through; with impersonation on, a plain fetch returns
+# the post and its buy link in under 7s (verified 3/3), so the browser only
+# costs CPU and metered proxy GB.
 FMKOREA_BROWSER_DETAIL = (
-    os.environ.get("FMKOREA_BROWSER_DETAIL") or "1"
+    os.environ.get("FMKOREA_BROWSER_DETAIL") or "0"
 ).strip().lower() not in ("", "0", "false", "no")
 # Minimum seconds between any two headless FMKorea fetches (proxy-GB guard).
 FMKOREA_BROWSER_MIN_GAP_SEC = int(
