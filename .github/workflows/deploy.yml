@@ -18,17 +18,9 @@ jobs:
           OCI_USER: ubuntu
         run: |
           mkdir -p ~/.ssh
-          printf '%s\n' "$SSH_KEY" > ~/.ssh/oci_key
+          echo "$SSH_KEY" | base64 -d > ~/.ssh/oci_key
           chmod 600 ~/.ssh/oci_key
           ssh-keyscan -H $OCI_HOST >> ~/.ssh/known_hosts
-
-          # SSH 키 확인
-          head -1 ~/.ssh/oci_key
-          tail -1 ~/.ssh/oci_key
-          wc -l ~/.ssh/oci_key
-
-          # SSH 연결 테스트
-          ssh -v -i ~/.ssh/oci_key $OCI_USER@$OCI_HOST "echo 'SSH OK'" 2>&1 | tail -20
 
           # 코드 전송
           git archive HEAD | ssh -i ~/.ssh/oci_key $OCI_USER@$OCI_HOST \
