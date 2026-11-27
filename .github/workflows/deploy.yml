@@ -3,6 +3,7 @@ name: Deploy to OCI
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -16,17 +17,17 @@ jobs:
           OCI_HOST: 129.225.138.202
           OCI_USER: ubuntu
         run: |
-          echo "$SSH_KEY" > /tmp/oci_key
-          chmod 600 /tmp/oci_key
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/oci_key
+          chmod 600 ~/.ssh/oci_key
+          ssh-keyscan -H $OCI_HOST >> ~/.ssh/known_hosts
 
           # 코드 전송
-          git archive HEAD | ssh -i /tmp/oci_key \
-            -o StrictHostKeyChecking=no \
-            $OCI_USER@$OCI_HOST \
+          git archive HEAD | ssh -i ~/.ssh/oci_key $OCI_USER@$OCI_HOST \
             "mkdir -p /home/ubuntu/hotdeal && tar -xf - -C /home/ubuntu/hotdeal"
 
           # 이미지 재빌드 & 컨테이너 재시작
-          ssh -i /tmp/oci_key -o StrictHostKeyChecking=no $OCI_USER@$OCI_HOST \
+          ssh -i ~/.ssh/oci_key $OCI_USER@$OCI_HOST \
             "cd /home/ubuntu/hotdeal && \
              sudo docker build -t hotdeal:latest . && \
              sudo docker rm -f hotdeal 2>/dev/null || true && \
@@ -38,5 +39,3 @@ jobs:
                -v /home/ubuntu/hotdeal/data:/home/ubuntu/hotdeal/data \
                hotdeal:latest && \
              sudo docker image prune -f"
-
-          rm -f /tmp/oci_key
