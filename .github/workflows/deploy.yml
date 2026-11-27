@@ -29,7 +29,7 @@ jobs:
           # 이미지 재빌드 & 컨테이너 재시작
           ssh -i ~/.ssh/oci_key $OCI_USER@$OCI_HOST \
             "cd /home/ubuntu/hotdeal && \
-             sudo docker build -t hotdeal:latest . && \
+             sudo docker build --cache-from hotdeal:latest -t hotdeal:latest . && \
              sudo docker rm -f hotdeal 2>/dev/null || true && \
              sudo docker run -d \
                --name hotdeal \
