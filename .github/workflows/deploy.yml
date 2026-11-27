@@ -1,0 +1,42 @@
+name: Deploy to OCI
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to OCI
+        env:
+          SSH_KEY: ${{ secrets.OCI_SSH_KEY }}
+          OCI_HOST: 129.225.138.202
+          OCI_USER: ubuntu
+        run: |
+          echo "$SSH_KEY" > /tmp/oci_key
+          chmod 600 /tmp/oci_key
+
+          # 코드 전송
+          git archive HEAD | ssh -i /tmp/oci_key \
+            -o StrictHostKeyChecking=no \
+            $OCI_USER@$OCI_HOST \
+            "mkdir -p /home/ubuntu/hotdeal && tar -xf - -C /home/ubuntu/hotdeal"
+
+          # 이미지 재빌드 & 컨테이너 재시작
+          ssh -i /tmp/oci_key -o StrictHostKeyChecking=no $OCI_USER@$OCI_HOST \
+            "cd /home/ubuntu/hotdeal && \
+             sudo docker build -t hotdeal:latest . && \
+             sudo docker rm -f hotdeal 2>/dev/null || true && \
+             sudo docker run -d \
+               --name hotdeal \
+               --restart unless-stopped \
+               -p 8000:8000 \
+               --env-file /home/ubuntu/hotdeal/.env \
+               -v /home/ubuntu/hotdeal/data:/home/ubuntu/hotdeal/data \
+               hotdeal:latest && \
+             sudo docker image prune -f"
+
+          rm -f /tmp/oci_key
